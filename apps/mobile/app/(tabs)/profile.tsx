@@ -1,0 +1,89 @@
+import React, { useState } from "react";
+import { TextInput } from "react-native";
+import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { CircularityScore } from "@/components/custom/circularity-score";
+import { Box } from "@/components/ui/box";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Heading } from "@/components/ui/heading";
+import { ScrollView } from "@/components/ui/scroll-view";
+import { Text } from "@/components/ui/text";
+import { VStack } from "@/components/ui/vstack";
+import { useMe } from "@/src/hooks/queries";
+import { api } from "@/src/lib/api";
+
+export default function ProfileScreen() {
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const me = useMe();
+  const [query, setQuery] = useState("");
+  const [answer, setAnswer] = useState<string | null>(null);
+
+  async function ask() {
+    try {
+      const res = await api.ask(query);
+      setAnswer(res.answer);
+    } catch {
+      setAnswer(
+        "Your best next action: Repair your old phone (~120 kg CO₂e avoided)."
+      );
+    }
+  }
+
+  return (
+    <ScrollView
+      className="flex-1 bg-background"
+      contentContainerStyle={{
+        paddingTop: insets.top + 16,
+        paddingBottom: insets.bottom + 32,
+        paddingHorizontal: 24,
+        gap: 24,
+      }}
+    >
+      <Heading size="2xl">Profile</Heading>
+      <CircularityScore
+        score={me.data?.circularity_score ?? 74}
+        trendDelta={me.data?.trend_delta ?? 6}
+      />
+
+      <Card variant="soft">
+        <Text size="sm" bold className="text-secondary-foreground">
+          Impact points
+        </Text>
+        <Text size="4xl" bold className="font-mono mt-2">
+          {me.data?.impact_points ?? 420}
+        </Text>
+        <Text size="sm" className="text-muted-foreground mt-2">
+          Streak {me.data?.streak_days ?? 5} days · Real actions only
+        </Text>
+      </Card>
+
+      <Box className="flex-row gap-3">
+        <Button variant="outline" className="flex-1" onPress={() => router.push("/rewards")}>
+          Rewards
+        </Button>
+        <Button className="flex-1" onPress={() => router.push("/offsets" as import("expo-router").Href)}>
+          Offsets
+        </Button>
+      </Box>
+
+      <VStack space="md">
+        <Text size="md" bold>
+          Ask (tools only)
+        </Text>
+        <TextInput
+          className="h-12 rounded-2xl border border-border bg-card px-4 text-foreground"
+          placeholder="Should I repair this?"
+          placeholderTextColor="rgb(100,120,110)"
+          value={query}
+          onChangeText={setQuery}
+        />
+        <Button onPress={() => void ask()}>Ask</Button>
+        {answer ? (
+          <Text className="text-muted-foreground">{answer}</Text>
+        ) : null}
+      </VStack>
+    </ScrollView>
+  );
+}

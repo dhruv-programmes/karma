@@ -1,0 +1,57 @@
+{
+  "expo": {
+    "name": "Carbon Loop",
+    "slug": "carbon-loop",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "carbonloop",
+    "newArchEnabled": true,
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Carbon Loop to scan product barcodes."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Carbon Loop to find nearby repair and recycling centers."
+        }
+      ]
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.carbonloop.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Scan product barcodes for circular decisions.",
+        "NSLocationWhenInUseUsageDescription": "Find nearby repair and recycling facilities."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+                "backgroundColor": "#F4FAF6",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "CAMERA",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
+      "package": "com.carbonloop.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

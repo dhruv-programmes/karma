@@ -1,0 +1,102 @@
+@import 'tailwindcss';
+@import 'uniwind';
+
+@layer theme {
+  /*
+   * Soft Loop — playful light circular-consumer theme
+   * Friendly mint canvas, soft white cards, pill CTAs. No brutal edges, no frosted glass.
+   */
+  :where(.light, .light *) {
+    --primary: 46 168 110;
+    --primary-foreground: 255 255 255;
+    --card: 255 255 255;
+    --card-foreground: 28 42 36;
+    --secondary: 232 248 238;
+    --secondary-foreground: 28 90 58;
+    --background: 244 250 246;
+    --popover: 255 255 255;
+    --popover-foreground: 28 42 36;
+    --muted: 234 244 238;
+    --muted-foreground: 100 120 110;
+    --destructive: 230 90 80;
+    --foreground: 28 42 36;
+    --border: 210 230 218;
+    --input: 210 230 218;
+    --ring: 46 168 110;
+    --accent: 255 150 120;
+    --accent-foreground: 80 40 28;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not(:where(.light, .light *, .dark, .dark *)) {
+      --primary: 46 168 110;
+      --primary-foreground: 255 255 255;
+      --card: 255 255 255;
+      --card-foreground: 28 42 36;
+      --secondary: 232 248 238;
+      --secondary-foreground: 28 90 58;
+      --background: 244 250 246;
+      --popover: 255 255 255;
+      --popover-foreground: 28 42 36;
+      --muted: 234 244 238;
+      --muted-foreground: 100 120 110;
+      --destructive: 230 90 80;
+      --foreground: 28 42 36;
+      --border: 210 230 218;
+      --input: 210 230 218;
+      --ring: 46 168 110;
+      --accent: 255 150 120;
+      --accent-foreground: 80 40 28;
+    }
+  }
+
+  :where(.dark, .dark *) {
+    --primary: 46 168 110;
+    --primary-foreground: 255 255 255;
+    --card: 30 42 36;
+    --card-foreground: 240 248 244;
+    --secondary: 36 56 46;
+    --secondary-foreground: 200 230 210;
+    --background: 18 26 22;
+    --popover: 30 42 36;
+    --popover-foreground: 240 248 244;
+    --muted: 40 54 48;
+    --muted-foreground: 140 160 150;
+    --destructive: 230 90 80;
+    --foreground: 240 248 244;
+    --border: 48 64 56;
+    --input: 48 64 56;
+    --ring: 46 168 110;
+    --accent: 255 150 120;
+    --accent-foreground: 255 240 234;
+  }
+}
+
+@theme inline {
+  --color-primary: rgb(var(--primary));
+  --color-primary-foreground: rgb(var(--primary-foreground));
+  --color-card: rgb(var(--card));
+  --color-card-foreground: rgb(var(--card-foreground));
+  --color-secondary: rgb(var(--secondary));
+  --color-secondary-foreground: rgb(var(--secondary-foreground));
+  --color-background: rgb(var(--background));
+  --color-popover: rgb(var(--popover));
+  --color-popover-foreground: rgb(var(--popover-foreground));
+  --color-muted: rgb(var(--muted));
+  --color-muted-foreground: rgb(var(--muted-foreground));
+  --color-destructive: rgb(var(--destructive));
+  --color-foreground: rgb(var(--foreground));
+  --color-border: rgb(var(--border));
+  --color-input: rgb(var(--input));
+  --color-ring: rgb(var(--ring));
+  --color-accent: rgb(var(--accent));
+  --color-accent-foreground: rgb(var(--accent-foreground));
+  --font-sans: 'Nunito_400Regular';
+  --font-mono: 'IBMPlexMono_500Medium';
+  --font-semibold: 'Nunito_600SemiBold';
+  --font-bold: 'Nunito_700Bold';
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+}

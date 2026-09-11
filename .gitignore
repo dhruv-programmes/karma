@@ -7,3 +7,5 @@ dist/
 .pytest_cache/
 *.pyc
 .DS_Store
+
+apps/api/venv

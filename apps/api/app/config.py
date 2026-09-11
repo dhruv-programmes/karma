@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     open_products_facts_url: str = "https://world.openproductsfacts.org/api/v2/product"
     open_food_facts_url: str = "https://world.openfoodfacts.org/api/v2/product"
     request_timeout_seconds: float = 4.0
+    database_url: str = "sqlite:///./carbon_loop.db"
+    jwt_secret: str = "carbon-loop-super-secure-jwt-secret-key-2026"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
 
 
 settings = Settings()

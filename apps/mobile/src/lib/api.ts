@@ -1,7 +1,10 @@
+import { useAuthStore } from "@/src/store/auth";
 import type {
+  AuthResponse,
   Badge,
   CircularOptionsResponse,
   CompletedActionResult,
+  DemoUserSummary,
   Facility,
   ImpactBreakdown,
   OffsetProject,
@@ -22,25 +25,53 @@ function getBaseUrl() {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = useAuthStore.getState().token;
+  const authHeader = token ? `Bearer ${token}` : "Bearer demo-carbon-loop-token";
+
   try {
     const res = await fetch(`${getBaseUrl()}${path}`, {
       ...init,
       headers: {
         "Content-Type": "application/json",
-        Authorization: "Bearer demo-carbon-loop-token",
+        Authorization: authHeader,
         ...(init?.headers ?? {}),
       },
     });
     if (!res.ok) {
-      throw new Error(`API ${res.status}`);
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.detail || `API ${res.status}`);
     }
     return (await res.json()) as T;
-  } catch {
+  } catch (err: any) {
+    if (err?.message && err.message !== "API_UNAVAILABLE") {
+      throw err;
+    }
     throw new Error("API_UNAVAILABLE");
   }
 }
 
 export const api = {
+  // Authentication
+  signin: (email: string, password = "password123") =>
+    request<AuthResponse>("/api/v1/auth/signin", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }),
+  signup: (data: {
+    name: string;
+    email: string;
+    password: string;
+    monthly_budget_kg?: number;
+    persona?: string;
+  }) =>
+    request<AuthResponse>("/api/v1/auth/signup", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  getDemoUsers: () => request<DemoUserSummary[]>("/api/v1/auth/demo-users"),
+  getAuthMe: () => request<UserProfile>("/api/v1/auth/me"),
+
+  // Profile & Impact
   getMe: () => request<UserProfile>("/api/v1/users/me"),
   getImpact: () => request<ImpactBreakdown>("/api/v1/users/me/impact"),
   getImpactTimeseries: () =>
@@ -64,6 +95,8 @@ export const api = {
       loop_level: number;
       offset_kg_total: number;
     }>("/api/v1/profile/circularity-score"),
+
+  // Products
   lookupBarcode: (barcode: string) =>
     request<Product>("/api/v1/products/lookup/barcode", {
       method: "POST",
@@ -74,6 +107,8 @@ export const api = {
     request<CircularOptionsResponse>(
       `/api/v1/products/${id}/circular-options`
     ),
+
+  // Facilities
   getFacilitiesNearby: (
     type?: string,
     lat = 12.9716,
@@ -87,6 +122,8 @@ export const api = {
     request<Facility[]>(`/api/v1/repair/nearby?lat=${lat}&lng=${lng}`),
   getRecyclingNearby: (lat = 12.9716, lng = 77.5946) =>
     request<Facility[]>(`/api/v1/recycling/nearby?lat=${lat}&lng=${lng}`),
+
+  // Actions, Rewards, Offsets
   completeAction: (id: string, action_type?: string) =>
     request<CompletedActionResult>(`/api/v1/actions/${id}/complete`, {
       method: "POST",
@@ -100,12 +137,16 @@ export const api = {
     request<OffsetPurchaseResult>(`/api/v1/offsets/${id}/purchase`, {
       method: "POST",
     }),
+
+  // Transactions & Receipts
   getTransactions: () => request<Transaction[]>("/api/v1/transactions"),
   parseReceipt: (text?: string, use_demo = true) =>
     request<ReceiptParseResult>("/api/v1/receipts/parse", {
       method: "POST",
       body: JSON.stringify({ text: text ?? null, use_demo }),
     }),
+
+  // Assistant & Reset
   ask: (query: string, product_id?: string) =>
     request<{ answer: string; tools_used: string[] }>("/api/v1/ask", {
       method: "POST",

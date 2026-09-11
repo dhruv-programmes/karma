@@ -253,3 +253,20 @@ export function mapActionToFacilityType(
       return null;
   }
 }
+
+export interface DemoUserSummary {
+  id: string;
+  name: string;
+  email: string;
+  role_description: string;
+  circularity_score: number;
+  impact_points: number;
+  streak_days: number;
+  monthly_budget_kg: number;
+}
+
+export interface AuthResponse {
+  access_token: string;
+  token_type: string;
+  user: UserProfile;
+}

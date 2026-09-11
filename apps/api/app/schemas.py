@@ -289,3 +289,33 @@ class AskResponse(BaseModel):
     answer: str
     tools_used: list[str]
     data: dict[str, Any] = Field(default_factory=dict)
+
+
+class SignUpRequest(BaseModel):
+    name: str
+    email: str
+    password: str
+    monthly_budget_kg: float = 90.0
+    persona: str | None = None
+
+
+class SignInRequest(BaseModel):
+    email: str
+    password: str
+
+
+class AuthResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserProfile
+
+
+class DemoUserSummary(BaseModel):
+    id: str
+    name: str
+    email: str
+    role_description: str
+    circularity_score: int
+    impact_points: int
+    streak_days: int
+    monthly_budget_kg: float

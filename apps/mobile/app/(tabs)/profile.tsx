@@ -9,6 +9,7 @@ import { Box } from "@/components/ui/box";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Heading } from "@/components/ui/heading";
+import { HStack } from "@/components/ui/hstack";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
@@ -49,6 +50,27 @@ export default function ProfileScreen() {
         score={me.data?.circularity_score ?? 74}
         trendDelta={me.data?.trend_delta ?? 6}
       />
+
+      <Card variant="soft">
+        <HStack className="justify-between items-start">
+          <VStack space="xs">
+            <Text size="xs" bold className="text-primary uppercase tracking-wider">
+              Active Member
+            </Text>
+            <Heading size="xl">{me.data?.name ?? "Aisha Sharma"}</Heading>
+            <Text size="xs" className="text-muted-foreground font-mono">
+              {me.data?.email ?? "aisha@example.com"}
+            </Text>
+          </VStack>
+          <Button
+            size="sm"
+            variant="outline"
+            onPress={() => router.push("/auth/signin" as import("expo-router").Href)}
+          >
+            Switch User
+          </Button>
+        </HStack>
+      </Card>
 
       <Card variant="soft">
         <Text size="sm" bold className="text-secondary-foreground">

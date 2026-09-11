@@ -1,0 +1,321 @@
+from __future__ import annotations
+
+import json
+from datetime import datetime, timezone
+from uuid import UUID
+
+from sqlalchemy.orm import Session
+
+from app.auth.security import hash_password
+from app.config import settings
+from app.db.models import (
+    ActivityEventModel,
+    FacilityModel,
+    OffsetProjectModel,
+    ProductModel,
+    RecommendationModel,
+    RewardModel,
+    TransactionModel,
+    UserBadgeModel,
+    UserCompletedActionModel,
+    UserModel,
+    UserOffsetPurchaseModel,
+    UserProductModel,
+    UserRewardRedemptionModel,
+)
+from app.engines.carbon import estimate_from_spend
+from app.schemas import ProductCategory
+from app.seed.data import (
+    BASE_RECOMMENDATIONS,
+    FACILITIES,
+    OFFSETS,
+    PRODUCTS,
+    REWARDS,
+    TRANSACTIONS,
+    PHONE_ID,
+    JEANS_ID,
+    HEADPHONES_ID,
+    APPLIANCE_ID,
+    LAPTOP_ID,
+    TEE_ID,
+    BOTTLE_ID,
+    CHAIR_ID,
+    TV_ID,
+    POWERBANK_ID,
+    KETTLE_ID,
+    SHOES_ID,
+)
+
+
+def seed_database_if_empty(db: Session) -> None:
+    # 1. Seed Products if empty
+    if db.query(ProductModel).count() == 0:
+        for p in PRODUCTS.values():
+            product_row = ProductModel(
+                id=str(p.id),
+                barcode=p.barcode,
+                name=p.name,
+                brand=p.brand,
+                category=p.category.value,
+                image_url=p.image_url,
+                estimated_co2e_kg=float(p.estimated_co2e_kg),
+                circularity_score=p.circularity_score,
+                circularity_breakdown_json=json.dumps(p.circularity_breakdown.model_dump()),
+                repairability=p.repairability,
+                expected_remaining_life_months=p.expected_remaining_life_months,
+                condition=p.condition,
+                age_months=p.age_months,
+                attributes_json=json.dumps(p.attributes),
+                last_action_label=p.last_action_label,
+                next_action_label=p.next_action_label,
+            )
+            db.add(product_row)
+        db.flush()
+
+    # 2. Seed Facilities if empty
+    if db.query(FacilityModel).count() == 0:
+        for f in FACILITIES:
+            fac_row = FacilityModel(
+                id=str(f.id),
+                name=f.name,
+                facility_type=f.facility_type,
+                lat=f.lat,
+                lng=f.lng,
+                supported_categories_json=json.dumps([c.value for c in f.supported_categories]),
+                open_now=f.open_now,
+                verification_status=f.verification_status,
+                address=f.address,
+                cover_image_url=f.cover_image_url,
+            )
+            db.add(fac_row)
+        db.flush()
+
+    # 3. Seed Offsets if empty
+    if db.query(OffsetProjectModel).count() == 0:
+        for o in OFFSETS:
+            off_row = OffsetProjectModel(
+                id=str(o.id),
+                name=o.name,
+                provider=o.provider,
+                co2e_kg=float(o.co2e_kg),
+                price_inr=float(o.price_inr),
+                verification_status=o.verification_status,
+                geography=o.geography,
+                description=o.description,
+                methodology=o.methodology,
+                cover_image_url=o.cover_image_url,
+            )
+            db.add(off_row)
+        db.flush()
+
+    # 4. Seed Rewards if empty
+    if db.query(RewardModel).count() == 0:
+        for r in REWARDS:
+            rew_row = RewardModel(
+                id=str(r.id),
+                title=r.title,
+                description=r.description,
+                points_required=r.points_required,
+                brand=r.brand,
+                is_mock=r.is_mock,
+                expires_on=r.expires_on,
+            )
+            db.add(rew_row)
+        db.flush()
+
+    # 5. Seed Recommendations if empty
+    if db.query(RecommendationModel).count() == 0:
+        for rec in BASE_RECOMMENDATIONS:
+            rec_row = RecommendationModel(
+                id=str(rec.id),
+                category=rec.category.value,
+                action_type=rec.action_type.value,
+                title=rec.title,
+                subtitle=rec.subtitle,
+                co2e_avoided_kg=float(rec.co2e_avoided_kg),
+                money_impact_inr=float(rec.money_impact_inr),
+                effort=rec.effort.value,
+                local_availability=rec.local_availability,
+                product_id=str(rec.product_id) if rec.product_id else None,
+                explanation=rec.explanation,
+                score=rec.score,
+            )
+            db.add(rec_row)
+        db.flush()
+
+    # 6. Seed the 3 User Personas if empty
+    if db.query(UserModel).count() == 0:
+        default_pwd_hash = hash_password("password123")
+
+        # --- USER 1: AISHA SHARMA ---
+        aisha = UserModel(
+            id=str(settings.demo_user_id),
+            name="Aisha Sharma",
+            email="aisha@example.com",
+            password_hash=default_pwd_hash,
+            circularity_score=74,
+            impact_points=420,
+            streak_days=5,
+            trend_delta=6,
+            loop_level=2,
+            offset_kg_total=0.0,
+            monthly_budget_kg=90.0,
+            preferences_json=json.dumps({"budget_goal": "on_track", "persona": "balanced_commuter"}),
+        )
+        db.add(aisha)
+        db.flush()
+
+        # Aisha's owned products
+        for pid in [PHONE_ID, JEANS_ID, HEADPHONES_ID, APPLIANCE_ID]:
+            db.add(UserProductModel(user_id=aisha.id, product_id=str(pid), status="active", acquired_date="2025-10-15"))
+
+        # Aisha's transactions
+        for t in TRANSACTIONS:
+            est = estimate_from_spend(t.category, t.amount_inr)
+            db.add(
+                TransactionModel(
+                    id=str(t.id),
+                    user_id=aisha.id,
+                    date=t.date,
+                    merchant=t.merchant,
+                    amount_inr=float(t.amount_inr),
+                    category=t.category.value,
+                    co2e_kg=float(est.estimated_co2e_kg),
+                )
+            )
+
+        # Aisha's badges
+        db.add(UserBadgeModel(user_id=aisha.id, badge_id="first_repair"))
+        db.add(UserBadgeModel(user_id=aisha.id, badge_id="receipt_ranger"))
+
+        # Aisha's activities
+        db.add(ActivityEventModel(user_id=aisha.id, kind="scan", title="Scanned Galaxy phone", subtitle="Barcode matched · circularity 78", points_delta=0, created_at="2026-03-25T09:12:00Z"))
+        db.add(ActivityEventModel(user_id=aisha.id, kind="insight", title="Energy spike detected", subtitle="BESCOM bill pushed Energy into your top 3", points_delta=0, created_at="2026-03-22T18:40:00Z"))
+        db.add(ActivityEventModel(user_id=aisha.id, kind="streak", title="5-day streak", subtitle="Keep going — Week Streak unlocks at 7", points_delta=0, created_at="2026-03-26T08:00:00Z"))
+
+        # --- USER 2: ROHAN PATEL ---
+        rohan_id = "11111111-1111-1111-1111-111111111112"
+        rohan = UserModel(
+            id=rohan_id,
+            name="Rohan Patel",
+            email="rohan@example.com",
+            password_hash=default_pwd_hash,
+            circularity_score=88,
+            impact_points=850,
+            streak_days=19,
+            trend_delta=9,
+            loop_level=4,
+            offset_kg_total=25.0,
+            monthly_budget_kg=60.0,
+            preferences_json=json.dumps({"budget_goal": "strict", "persona": "low_carbon_minimalist"}),
+        )
+        db.add(rohan)
+        db.flush()
+
+        # Rohan's owned products
+        for pid in [LAPTOP_ID, TEE_ID, BOTTLE_ID, CHAIR_ID]:
+            db.add(UserProductModel(user_id=rohan.id, product_id=str(pid), status="active", acquired_date="2025-06-10"))
+
+        # Rohan's transactions (low carbon transit & repairs)
+        rohan_txns = [
+            ("2026-02-04", "Namma Metro Card Recharge", 300, ProductCategory.TRANSPORT),
+            ("2026-02-08", "Koramangala Repair Clinic Spare", 450, ProductCategory.ELECTRONICS),
+            ("2026-02-12", "Organic Farmers Market Indiranagar", 680, ProductCategory.FOOD),
+            ("2026-02-16", "BESCOM Solar Meter Billing", 620, ProductCategory.ENERGY),
+            ("2026-02-21", "BMTC Monthly Smart Card", 400, ProductCategory.TRANSPORT),
+            ("2026-02-27", "Secondhand Books Church Street", 250, ProductCategory.OTHER),
+            ("2026-03-02", "Jayanagar Cobbler Sole Fix", 180, ProductCategory.CLOTHING),
+            ("2026-03-05", "Namma Metro Card Recharge", 350, ProductCategory.TRANSPORT),
+            ("2026-03-08", "BESCOM Electricity Base", 590, ProductCategory.ENERGY),
+            ("2026-03-12", "Saahas Zero Waste Composting Bags", 290, ProductCategory.HOME),
+            ("2026-03-15", "BMTC Smart Card Tap", 120, ProductCategory.TRANSPORT),
+            ("2026-03-19", "Wildcraft Zipper Repair Service", 200, ProductCategory.CLOTHING),
+            ("2026-03-22", "GreenCart Local Refill Station", 420, ProductCategory.FOOD),
+            ("2026-03-25", "Namma Metro Pass", 250, ProductCategory.TRANSPORT),
+        ]
+        for dt, merch, amt, cat in rohan_txns:
+            est = estimate_from_spend(cat, amt)
+            db.add(
+                TransactionModel(
+                    user_id=rohan.id,
+                    date=dt,
+                    merchant=merch,
+                    amount_inr=float(amt),
+                    category=cat.value,
+                    co2e_kg=float(est.estimated_co2e_kg),
+                )
+            )
+
+        # Rohan's badges
+        for b in ["first_repair", "e_waste_hero", "streak_7", "brand_claimer"]:
+            db.add(UserBadgeModel(user_id=rohan.id, badge_id=b))
+
+        # Rohan's activities
+        db.add(ActivityEventModel(user_id=rohan.id, kind="streak", title="19-day streak active", subtitle="Fastest rising circular loop in Koramangala", points_delta=0, created_at="2026-03-26T07:30:00Z"))
+        db.add(ActivityEventModel(user_id=rohan.id, kind="complete", title="Repaired laptop keyboard", subtitle="+100 Impact Points · ~35 kg CO₂e avoided", points_delta=100, created_at="2026-03-24T14:15:00Z"))
+        db.add(ActivityEventModel(user_id=rohan.id, kind="redeem", title="Redeemed Eco packaging credit", subtitle="-250 points · GreenCart", points_delta=-250, created_at="2026-03-20T11:00:00Z"))
+        db.add(ActivityEventModel(user_id=rohan.id, kind="scan", title="E-waste drop verified", subtitle="Saahas Zero Waste Hub", points_delta=150, created_at="2026-03-16T16:20:00Z"))
+
+        # --- USER 3: MAYA SEN ---
+        maya_id = "11111111-1111-1111-1111-111111111113"
+        maya = UserModel(
+            id=maya_id,
+            name="Maya Sen",
+            email="maya@example.com",
+            password_hash=default_pwd_hash,
+            circularity_score=52,
+            impact_points=110,
+            streak_days=2,
+            trend_delta=2,
+            loop_level=1,
+            offset_kg_total=0.0,
+            monthly_budget_kg=140.0,
+            preferences_json=json.dumps({"budget_goal": "starter", "persona": "convenience_shopper"}),
+        )
+        db.add(maya)
+        db.flush()
+
+        # Maya's owned products
+        for pid in [TV_ID, POWERBANK_ID, KETTLE_ID, SHOES_ID]:
+            db.add(UserProductModel(user_id=maya.id, product_id=str(pid), status="active", acquired_date="2026-01-20"))
+
+        # Maya's transactions (high frequency quick-commerce & ride hailing)
+        maya_txns = [
+            ("2026-02-02", "Uber Premier HSR to Indiranagar", 420, ProductCategory.TRANSPORT),
+            ("2026-02-05", "Swiggy Gourmet Dinner", 850, ProductCategory.FOOD),
+            ("2026-02-09", "Zepto 10-minute Groceries", 650, ProductCategory.FOOD),
+            ("2026-02-13", "Amazon Fast Delivery Electronics", 2499, ProductCategory.ELECTRONICS),
+            ("2026-02-17", "Uber Ride Indiranagar", 380, ProductCategory.TRANSPORT),
+            ("2026-02-22", "BESCOM High Consumption Bill", 3200, ProductCategory.ENERGY),
+            ("2026-02-25", "Blinkit Late Night Order", 720, ProductCategory.FOOD),
+            ("2026-03-01", "Uber Premier Airport Ride", 1100, ProductCategory.TRANSPORT),
+            ("2026-03-04", "Nykaa Cosmetics & Beauty Care", 1450, ProductCategory.PERSONAL_CARE),
+            ("2026-03-07", "Zomato Delivery Bowl", 480, ProductCategory.FOOD),
+            ("2026-03-10", "Croma Gadget Charger Replacement", 1299, ProductCategory.ELECTRONICS),
+            ("2026-03-13", "Uber Trip Whitefield", 540, ProductCategory.TRANSPORT),
+            ("2026-03-16", "BESCOM AC Usage Billing", 3600, ProductCategory.ENERGY),
+            ("2026-03-20", "Swiggy Lunch Order", 390, ProductCategory.FOOD),
+            ("2026-03-23", "Zepto Snacks & Essentials", 510, ProductCategory.FOOD),
+            ("2026-03-25", "Uber Commute", 280, ProductCategory.TRANSPORT),
+        ]
+        for dt, merch, amt, cat in maya_txns:
+            est = estimate_from_spend(cat, amt)
+            db.add(
+                TransactionModel(
+                    user_id=maya.id,
+                    date=dt,
+                    merchant=merch,
+                    amount_inr=float(amt),
+                    category=cat.value,
+                    co2e_kg=float(est.estimated_co2e_kg),
+                )
+            )
+
+        # Maya's badges
+        db.add(UserBadgeModel(user_id=maya.id, badge_id="receipt_ranger"))
+
+        # Maya's activities
+        db.add(ActivityEventModel(user_id=maya.id, kind="receipt", title="Receipt parsed successfully", subtitle="Croma spare cable + Swiggy order logged", points_delta=50, created_at="2026-03-25T19:00:00Z"))
+        db.add(ActivityEventModel(user_id=maya.id, kind="streak", title="2-day streak started", subtitle="Targeting first repair milestone", points_delta=0, created_at="2026-03-26T09:00:00Z"))
+
+        db.commit()

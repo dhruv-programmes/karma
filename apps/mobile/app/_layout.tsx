@@ -16,6 +16,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { View } from "react-native";
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 import { useAppStore } from "@/src/store/app";
+import { useAuthStore } from "@/src/store/auth";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,6 +27,10 @@ const queryClient = new QueryClient({
 export default function RootLayout() {
   const router = useRouter();
   const onboardingDone = useAppStore((s) => s.onboardingDone);
+  const isHydrated = useAuthStore((s) => s.isHydrated);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hydrateAuth = useAuthStore((s) => s.hydrateAuth);
+
   const [fontsLoaded] = useFonts({
     Nunito_400Regular,
     Nunito_600SemiBold,
@@ -35,13 +40,17 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (!fontsLoaded) return;
-    if (!onboardingDone) {
+    hydrateAuth();
+  }, [hydrateAuth]);
+
+  useEffect(() => {
+    if (!fontsLoaded || !isHydrated) return;
+    if (!onboardingDone && !isAuthenticated) {
       router.replace("/onboarding");
     }
-  }, [fontsLoaded, onboardingDone, router]);
+  }, [fontsLoaded, isHydrated, onboardingDone, isAuthenticated, router]);
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded || !isHydrated) {
     return <View className="flex-1 bg-background" />;
   }
 
@@ -58,6 +67,8 @@ export default function RootLayout() {
           >
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="onboarding/index" options={{ animation: "fade" }} />
+            <Stack.Screen name="auth/signin" options={{ animation: "slide_from_bottom" }} />
+            <Stack.Screen name="auth/signup" options={{ animation: "slide_from_right" }} />
             <Stack.Screen
               name="scan/index"
               options={{ presentation: "fullScreenModal" }}

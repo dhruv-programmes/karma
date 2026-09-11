@@ -1,20 +1,26 @@
 from __future__ import annotations
 
 import math
-from uuid import UUID
+import re
+from datetime import date
+from uuid import UUID, uuid4
 
 import httpx
 
 from app.config import settings
-from app.schemas import Facility, Product, ProductCategory
+from app.engines.carbon import estimate_from_spend
+from app.schemas import Facility, Product, ProductCategory, Transaction
 from app.seed.data import (
+    DEMO_RECEIPT_TEXT,
     FACILITIES,
+    MERCHANT_CATEGORY_RULES,
+    OFFSETS,
+    REWARDS,
+    demo_state,
     get_product,
     get_product_by_barcode,
-    demo_state,
+    unlock_badge,
 )
-from app.engines.carbon import estimate_from_spend
-from app.seed.data import MERCHANT_CATEGORY_RULES, TRANSACTIONS
 
 
 def haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
@@ -44,10 +50,6 @@ async def lookup_barcode(barcode: str) -> Product:
                 p = payload.get("product", {})
                 name = p.get("product_name") or p.get("generic_name") or "Unknown product"
                 brand = (p.get("brands") or "Unknown").split(",")[0].strip()
-                # Map into closest seeded electronics/food shell if possible
-                if local := get_product_by_barcode(barcode):
-                    return local
-                # Fall through to default phone for demo reliability when unknown
                 from app.seed.data import PHONE_ID
 
                 seeded = get_product(PHONE_ID)
@@ -62,7 +64,6 @@ async def lookup_barcode(barcode: str) -> Product:
     except Exception:
         pass
 
-    # Absolute fallback — hero phone
     from app.seed.data import PHONE_ID
 
     product = get_product(PHONE_ID)
@@ -71,14 +72,14 @@ async def lookup_barcode(barcode: str) -> Product:
 
 
 def nearby_facilities(
-    facility_type: str,
+    facility_type: str | None = None,
     lat: float = 12.9716,
     lng: float = 77.5946,
     category: ProductCategory | None = None,
 ) -> list[Facility]:
     results: list[Facility] = []
     for f in FACILITIES:
-        if f.facility_type != facility_type:
+        if facility_type and f.facility_type != facility_type:
             continue
         if category and category not in f.supported_categories:
             continue
@@ -100,31 +101,217 @@ def user_impact() -> dict:
     purchases = 0.0
     transport = 0.0
     energy = 0.0
-    for t in TRANSACTIONS:
+    by_category: dict[str, float] = {}
+    for t in demo_state.transactions:
         est = estimate_from_spend(t.category, t.amount_inr)
+        kg = est.estimated_co2e_kg
+        by_category[t.category.value] = round(
+            by_category.get(t.category.value, 0.0) + kg, 1
+        )
         if t.category == ProductCategory.TRANSPORT:
-            transport += est.estimated_co2e_kg
+            transport += kg
         elif t.category == ProductCategory.ENERGY:
-            energy += est.estimated_co2e_kg
+            energy += kg
         else:
-            purchases += est.estimated_co2e_kg
+            purchases += kg
 
     total = purchases + transport + energy
-    biggest = "Electronics"
+    buckets = {
+        "Purchases": purchases,
+        "Transport": transport,
+        "Energy": energy,
+    }
+    # Prefer specific category hotspot when clear
+    biggest = max(buckets, key=buckets.get)
+    if by_category:
+        top_cat = max(by_category, key=by_category.get)
+        if by_category[top_cat] >= max(buckets.values()) * 0.45:
+            biggest = top_cat
+
+    offset_total = demo_state.user.offset_kg_total
+    residual = max(0.0, round(total - offset_total, 1))
     insight = (
-        "You do not need to change everything. "
-        "Your biggest opportunity is extending product lifetimes."
+        f"Biggest lever right now: {biggest}. "
+        "Extend product lifetimes, shift short trips, then offset what's left."
     )
     return {
         "purchases_kg": round(purchases, 1),
         "transport_kg": round(transport, 1),
         "energy_kg": round(energy, 1),
         "total_kg": round(total, 1),
-        "month_label": "March 2026",
+        "month_label": "Feb–Mar 2026",
         "biggest_opportunity": biggest,
         "insight": insight,
+        "offset_kg_total": round(offset_total, 1),
+        "residual_kg": residual,
+        "by_category": by_category,
     }
 
 
 def get_recommendations():
     return sorted(demo_state.recommendations, key=lambda r: r.score, reverse=True)
+
+
+def list_transactions() -> list[Transaction]:
+    return list(demo_state.transactions)
+
+
+def import_transactions(rows: list[dict]) -> list[Transaction]:
+    created: list[Transaction] = []
+    today = date.today().isoformat()
+    for row in rows:
+        merchant = str(row.get("merchant", "Unknown"))
+        amount = float(row.get("amount_inr", row.get("amount", 0)) or 0)
+        txn = Transaction(
+            id=uuid4(),
+            date=str(row.get("date") or today),
+            merchant=merchant,
+            amount_inr=amount,
+            category=categorize_merchant(merchant),
+        )
+        demo_state.transactions.append(txn)
+        created.append(txn)
+    return created
+
+
+def parse_receipt_text(text: str | None, use_demo: bool = True) -> dict:
+    raw = (text or "").strip()
+    if use_demo or not raw:
+        raw = DEMO_RECEIPT_TEXT
+
+    lines = [ln.strip() for ln in raw.splitlines() if ln.strip()]
+    merchant = "Receipt Import"
+    rows: list[dict] = []
+    amount_re = re.compile(r"(\d+(?:\.\d+)?)\s*$")
+
+    for ln in lines:
+        upper = ln.upper()
+        if any(
+            k in upper
+            for k in (
+                "SWIGGY",
+                "ZOMATO",
+                "UBER",
+                "CROMA",
+                "AMAZON",
+                "FLIPKART",
+                "BESCOM",
+                "PHILIPS",
+                "BIGBASKET",
+                "BLINKIT",
+            )
+        ):
+            merchant = ln.title() if len(ln) < 40 else merchant
+            # Prefer known merchant tokens
+            for token in (
+                "Swiggy",
+                "Zomato",
+                "Uber",
+                "Croma",
+                "Amazon",
+                "Flipkart",
+                "BESCOM",
+                "Philips",
+                "BigBasket",
+                "Blinkit",
+            ):
+                if token.upper() in upper:
+                    merchant = token
+                    break
+            continue
+        if ln.startswith("---"):
+            continue
+        m = amount_re.search(ln.replace(",", ""))
+        if not m:
+            continue
+        amount = float(m.group(1))
+        if amount <= 0:
+            continue
+        rows.append({"merchant": merchant, "amount_inr": amount, "date": date.today().isoformat()})
+
+    if not rows:
+        rows = [
+            {"merchant": "Croma", "amount_inr": 899, "date": date.today().isoformat()},
+            {"merchant": "Swiggy", "amount_inr": 320, "date": date.today().isoformat()},
+            {"merchant": "Uber", "amount_inr": 180, "date": date.today().isoformat()},
+        ]
+
+    created = import_transactions(rows)
+    badges: list[str] = []
+    if unlock_badge("receipt_ranger"):
+        badges.append("receipt_ranger")
+    return {
+        "imported": len(created),
+        "transactions": created,
+        "message": f"Parsed {len(created)} line items into your footprint (demo NLP stub).",
+        "badges_unlocked": badges,
+    }
+
+
+def redeem_reward(reward_id: UUID) -> dict:
+    reward = next((r for r in REWARDS if r.id == reward_id), None)
+    if not reward:
+        raise ValueError("Reward not found")
+    if reward_id in demo_state.redeemed_reward_ids:
+        raise ValueError("Reward already redeemed")
+    user = demo_state.user
+    if user.impact_points < reward.points_required:
+        raise ValueError("Not enough impact points")
+
+    user.impact_points -= reward.points_required
+    demo_state.redeemed_reward_ids.add(reward_id)
+    demo_state.sync_level()
+    code = f"LOOP-{str(reward_id)[-4:].upper()}-{user.impact_points}"
+    entry = {
+        "reward_id": str(reward_id),
+        "claim_code": code,
+        "points_spent": reward.points_required,
+    }
+    demo_state.redeem_ledger.append(entry)
+    badges: list[str] = []
+    if unlock_badge("brand_claimer"):
+        badges.append("brand_claimer")
+    return {
+        "reward_id": reward_id,
+        "claim_code": code,
+        "points_spent": reward.points_required,
+        "points_remaining": user.impact_points,
+        "message": f"Demo claim code ready for {reward.brand or reward.title}",
+        "is_mock": True,
+        "badges_unlocked": badges,
+    }
+
+
+def purchase_offset(offset_id: UUID) -> dict:
+    project = next((o for o in OFFSETS if o.id == offset_id), None)
+    if not project:
+        raise ValueError("Offset not found")
+    user = demo_state.user
+    user.offset_kg_total = round(user.offset_kg_total + project.co2e_kg, 1)
+    demo_state.purchased_offset_ids.append(offset_id)
+    impact = user_impact()
+    badges: list[str] = []
+    if unlock_badge("offset_starter"):
+        badges.append("offset_starter")
+    return {
+        "offset_id": offset_id,
+        "co2e_kg": project.co2e_kg,
+        "price_inr": project.price_inr,
+        "offset_kg_total": user.offset_kg_total,
+        "residual_kg": impact["residual_kg"],
+        "message": (
+            f"Demo purchase: +{int(project.co2e_kg)} kg offset. "
+            f"Residual footprint ~{impact['residual_kg']} kg."
+        ),
+        "badges_unlocked": badges,
+        "is_mock": True,
+    }
+
+
+def owned_products() -> list[Product]:
+    out: list[Product] = []
+    for pid in demo_state.user.owned_product_ids:
+        p = get_product(pid)
+        if p:
+            out.append(p)
+    return out

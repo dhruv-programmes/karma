@@ -79,6 +79,10 @@ export interface UserProfile {
   impact_points: number;
   streak_days: number;
   trend_delta: number;
+  loop_level?: number;
+  offset_kg_total?: number;
+  owned_product_ids?: string[];
+  unlocked_badge_ids?: string[];
 }
 
 export interface ImpactBreakdown {
@@ -89,6 +93,9 @@ export interface ImpactBreakdown {
   month_label: string;
   biggest_opportunity: string;
   insight: string;
+  offset_kg_total?: number;
+  residual_kg?: number;
+  by_category?: Record<string, number>;
 }
 
 export interface Recommendation {
@@ -128,12 +135,61 @@ export interface Reward {
   is_mock: boolean;
 }
 
+export interface OffsetProject {
+  id: string;
+  name: string;
+  provider: string;
+  co2e_kg: number;
+  price_inr: number;
+  verification_status: string;
+  geography: string;
+  description: string;
+  methodology?: string;
+}
+
+export interface Badge {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  unlocked: boolean;
+}
+
 export interface CompletedActionResult {
   action_id: string;
   points_awarded: number;
   previous_score: number;
   new_score: number;
   message: string;
+  badges_unlocked?: string[];
+  loop_level?: number;
+}
+
+export interface RedeemResult {
+  reward_id: string;
+  claim_code: string;
+  points_spent: number;
+  points_remaining: number;
+  message: string;
+  is_mock: boolean;
+}
+
+export interface OffsetPurchaseResult {
+  offset_id: string;
+  co2e_kg: number;
+  price_inr: number;
+  offset_kg_total: number;
+  residual_kg: number;
+  message: string;
+  badges_unlocked?: string[];
+  is_mock: boolean;
+}
+
+export interface ReceiptParseResult {
+  imported: number;
+  transactions: Transaction[];
+  message: string;
+  badges_unlocked?: string[];
 }
 
 export interface Transaction {
@@ -148,3 +204,21 @@ export interface Transaction {
 export const DEMO_PHONE_BARCODE = "8901030865822";
 export const DEMO_PHONE_ID = "22222222-2222-2222-2222-222222222201";
 export const DEMO_REPAIR_ACTION_ID = "66666666-6666-6666-6666-666666666601";
+
+export function mapActionToFacilityType(
+  action: ActionType
+): "repair" | "recycling" | "donation" | "resale" | null {
+  switch (action) {
+    case "REPAIR":
+    case "REFURBISH":
+      return "repair";
+    case "RECYCLE":
+      return "recycling";
+    case "DONATE":
+      return "donation";
+    case "RESELL":
+      return "resale";
+    default:
+      return null;
+  }
+}

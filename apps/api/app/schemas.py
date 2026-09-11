@@ -103,6 +103,14 @@ class UserPreferences(BaseModel):
     city: str = "Bengaluru"
 
 
+class Badge(BaseModel):
+    id: str
+    title: str
+    description: str
+    icon: str = "leaf"
+    unlocked: bool = False
+
+
 class UserProfile(BaseModel):
     id: UUID
     name: str
@@ -112,6 +120,10 @@ class UserProfile(BaseModel):
     streak_days: int
     preferences: UserPreferences
     trend_delta: int = 6
+    loop_level: int = 1
+    offset_kg_total: float = 0.0
+    owned_product_ids: list[UUID] = Field(default_factory=list)
+    unlocked_badge_ids: list[str] = Field(default_factory=list)
 
 
 class ImpactBreakdown(BaseModel):
@@ -122,6 +134,9 @@ class ImpactBreakdown(BaseModel):
     month_label: str
     biggest_opportunity: str
     insight: str
+    offset_kg_total: float = 0.0
+    residual_kg: float = 0.0
+    by_category: dict[str, float] = Field(default_factory=dict)
 
 
 class Recommendation(BaseModel):
@@ -170,6 +185,7 @@ class OffsetProject(BaseModel):
     verification_status: str
     geography: str
     description: str
+    methodology: str = "demo-methodology-v1"
 
 
 class CompletedActionResult(BaseModel):
@@ -178,6 +194,40 @@ class CompletedActionResult(BaseModel):
     previous_score: int
     new_score: int
     message: str
+    badges_unlocked: list[str] = Field(default_factory=list)
+    loop_level: int = 1
+
+
+class RedeemResult(BaseModel):
+    reward_id: UUID
+    claim_code: str
+    points_spent: int
+    points_remaining: int
+    message: str
+    is_mock: bool = True
+
+
+class OffsetPurchaseResult(BaseModel):
+    offset_id: UUID
+    co2e_kg: float
+    price_inr: float
+    offset_kg_total: float
+    residual_kg: float
+    message: str
+    badges_unlocked: list[str] = Field(default_factory=list)
+    is_mock: bool = True
+
+
+class ReceiptParseRequest(BaseModel):
+    text: str | None = None
+    use_demo: bool = True
+
+
+class ReceiptParseResult(BaseModel):
+    imported: int
+    transactions: list[Transaction]
+    message: str
+    badges_unlocked: list[str] = Field(default_factory=list)
 
 
 class BarcodeLookupRequest(BaseModel):

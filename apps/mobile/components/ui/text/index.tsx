@@ -48,7 +48,7 @@ export function Text({
               : "IBMPlexMono_500Medium"
             : bold
               ? "Nunito_700Bold"
-              : "Nunito_400Regular",
+              : "Nunito_600SemiBold",
         },
         style,
       ]}

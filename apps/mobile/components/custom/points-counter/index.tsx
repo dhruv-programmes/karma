@@ -10,9 +10,10 @@ import { Text } from "@/components/ui/text";
 type Props = {
   points: number;
   visible: boolean;
+  label?: string;
 };
 
-export function PointsCounter({ points, visible }: Props) {
+export function PointsCounter({ points, visible, label }: Props) {
   const opacity = useSharedValue(0);
   const scale = useSharedValue(0.9);
 
@@ -24,7 +25,7 @@ export function PointsCounter({ points, visible }: Props) {
       withTiming(0, { duration: 400 })
     );
     scale.value = withSequence(
-      withTiming(1.05, { duration: 250 }),
+      withTiming(1.08, { duration: 250 }),
       withTiming(1, { duration: 200 })
     );
   }, [visible, points, opacity, scale]);
@@ -42,7 +43,7 @@ export function PointsCounter({ points, visible }: Props) {
       className="absolute bottom-28 self-center bg-accent px-6 py-3 rounded-full"
     >
       <Text bold className="text-accent-foreground">
-        +{points} Impact Points
+        {label ?? `+${points} Impact Points`}
       </Text>
     </Animated.View>
   );

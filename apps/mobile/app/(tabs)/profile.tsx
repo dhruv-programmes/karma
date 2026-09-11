@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import { TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { FadeInRight } from "react-native-reanimated";
 import { CircularityScore } from "@/components/custom/circularity-score";
+import { Badge } from "@/components/ui/badge";
 import { Box } from "@/components/ui/box";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,13 +12,14 @@ import { Heading } from "@/components/ui/heading";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
-import { useMe } from "@/src/hooks/queries";
+import { useBadges, useMe } from "@/src/hooks/queries";
 import { api } from "@/src/lib/api";
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const me = useMe();
+  const badges = useBadges();
   const [query, setQuery] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
 
@@ -55,15 +58,38 @@ export default function ProfileScreen() {
           {me.data?.impact_points ?? 420}
         </Text>
         <Text size="sm" className="text-muted-foreground mt-2">
-          Streak {me.data?.streak_days ?? 5} days · Real actions only
+          Loop Level {me.data?.loop_level ?? 2} · Streak{" "}
+          {me.data?.streak_days ?? 5} days · Offsets ~
+          {Math.round(me.data?.offset_kg_total ?? 0)} kg
         </Text>
       </Card>
 
+      <VStack space="md">
+        <Text bold>Badges</Text>
+        <Box className="flex-row flex-wrap gap-2">
+          {(badges.data ?? []).map((b, i) => (
+            <Animated.View key={b.id} entering={FadeInRight.delay(i * 40)}>
+              <Badge
+                action={b.unlocked ? "playful" : "muted"}
+                label={b.unlocked ? b.title : `Locked · ${b.title}`}
+              />
+            </Animated.View>
+          ))}
+        </Box>
+      </VStack>
+
       <Box className="flex-row gap-3">
-        <Button variant="outline" className="flex-1" onPress={() => router.push("/rewards")}>
+        <Button
+          variant="outline"
+          className="flex-1"
+          onPress={() => router.push("/rewards")}
+        >
           Rewards
         </Button>
-        <Button className="flex-1" onPress={() => router.push("/offsets" as import("expo-router").Href)}>
+        <Button
+          className="flex-1"
+          onPress={() => router.push("/offsets" as import("expo-router").Href)}
+        >
           Offsets
         </Button>
       </Box>
@@ -74,7 +100,7 @@ export default function ProfileScreen() {
         </Text>
         <TextInput
           className="h-12 rounded-2xl border border-border bg-card px-4 text-foreground"
-          placeholder="Should I repair this?"
+          placeholder="Offsets? Streak? Energy hotspot?"
           placeholderTextColor="rgb(100,120,110)"
           value={query}
           onChangeText={setQuery}

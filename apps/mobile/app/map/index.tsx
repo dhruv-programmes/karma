@@ -2,18 +2,26 @@ import React, { useMemo, useState } from "react";
 import MapView, { Marker } from "react-native-maps";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
 import { FacilityCard } from "@/components/custom/facility-card";
 import { PointsCounter } from "@/components/custom/points-counter";
+import { Badge } from "@/components/ui/badge";
 import { Box } from "@/components/ui/box";
 import { Button } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Text } from "@/components/ui/text";
-import { useCompleteAction, useRepairNearby } from "@/src/hooks/queries";
+import { useCompleteAction, useFacilitiesNearby } from "@/src/hooks/queries";
 import { api } from "@/src/lib/api";
-import { fallbackFacilities } from "@/src/lib/fallbacks";
 import { useAppStore } from "@/src/store/app";
 import { DEMO_REPAIR_ACTION_ID } from "@/src/types/api";
+
+const TITLE: Record<string, string> = {
+  repair: "Find repair",
+  recycling: "Recycle nearby",
+  donation: "Donate nearby",
+  resale: "Resale nearby",
+};
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
@@ -21,46 +29,56 @@ export default function MapScreen() {
   const params = useLocalSearchParams<{
     type?: string;
     actionId?: string;
+    actionType?: string;
   }>();
-  const repair = useRepairNearby();
+  const facilityType = params.type || "repair";
+  const facilitiesQuery = useFacilitiesNearby(facilityType);
   const complete = useCompleteAction();
   const [selected, setSelected] = useState<string | null>(null);
   const [showPoints, setShowPoints] = useState(false);
   const [awarded, setAwarded] = useState(0);
+  const [badgeNote, setBadgeNote] = useState<string | null>(null);
   const setLastPoints = useAppStore((s) => s.setLastPointsAwarded);
 
-  const facilities = useMemo(() => {
-    if (params.type === "recycling") {
-      return fallbackFacilities.map((f, i) =>
-        i === 0
-          ? {
-              ...f,
-              id: "33333333-3333-3333-3333-333333333303",
-              name: "Saahas Zero Waste Hub",
-              facility_type: "recycling",
-              distance_km: 3.2,
-              verification_status: "Verified",
-            }
-          : f
-      );
-    }
-    return repair.data ?? fallbackFacilities;
-  }, [params.type, repair.data]);
+  const facilities = useMemo(
+    () => facilitiesQuery.data ?? [],
+    [facilitiesQuery.data]
+  );
 
   async function markComplete() {
     const actionId = params.actionId ?? DEMO_REPAIR_ACTION_ID;
+    const actionType = (
+      params.actionType ||
+      (facilityType === "recycling"
+        ? "RECYCLE"
+        : facilityType === "donation"
+          ? "DONATE"
+          : facilityType === "resale"
+            ? "RESELL"
+            : "REPAIR")
+    ).toUpperCase();
     try {
       const result = await complete.mutateAsync({
         id: actionId,
-        action_type: "REPAIR",
+        action_type: actionType,
       });
       setAwarded(result.points_awarded);
       setLastPoints(result.points_awarded);
+      if (result.badges_unlocked?.length) {
+        setBadgeNote(`Badge: ${result.badges_unlocked[0].replace(/_/g, " ")}`);
+      }
+      try {
+        await Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Success
+        );
+      } catch {
+        /* sim */
+      }
       setShowPoints(true);
-      setTimeout(() => router.replace("/rewards"), 1600);
+      setTimeout(() => router.replace("/rewards"), 1800);
     } catch {
       try {
-        const result = await api.completeAction(actionId, "REPAIR");
+        const result = await api.completeAction(actionId, actionType);
         setAwarded(result.points_awarded || 100);
       } catch {
         setAwarded(100);
@@ -76,14 +94,17 @@ export default function MapScreen() {
         <Pressable onPress={() => router.back()}>
           <Text className="text-primary">Back</Text>
         </Pressable>
-        <Text bold>
-          {params.type === "recycling" ? "Recycle nearby" : "Find repair"}
-        </Text>
+        <Text bold>{TITLE[facilityType] ?? "Nearby places"}</Text>
         <Box className="w-10" />
       </Box>
 
       <MapView
-        style={{ height: 260, marginHorizontal: 24, borderRadius: 24, overflow: "hidden" }}
+        style={{
+          height: 260,
+          marginHorizontal: 24,
+          borderRadius: 24,
+          overflow: "hidden",
+        }}
         initialRegion={{
           latitude: 12.9716,
           longitude: 77.5946,
@@ -117,9 +138,10 @@ export default function MapScreen() {
       </ScrollView>
 
       <Box
-        className="absolute left-0 right-0 bottom-0 px-6 bg-background"
+        className="absolute left-0 right-0 bottom-0 px-6 bg-background gap-2"
         style={{ paddingBottom: insets.bottom + 16 }}
       >
+        {badgeNote ? <Badge action="playful" label={badgeNote} /> : null}
         <Button
           disabled={!selected}
           loading={complete.isPending}

@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/src/lib/api";
 import {
+  fallbackBadges,
+  fallbackCloset,
   fallbackFacilities,
   fallbackImpact,
   fallbackPhone,
@@ -35,6 +37,20 @@ export function useRecommendations() {
     queryKey: ["recommendations"],
     queryFn: () =>
       withFallback(api.getRecommendations, fallbackRecommendations),
+  });
+}
+
+export function useCloset() {
+  return useQuery({
+    queryKey: ["closet"],
+    queryFn: () => withFallback(api.getCloset, fallbackCloset),
+  });
+}
+
+export function useBadges() {
+  return useQuery({
+    queryKey: ["badges"],
+    queryFn: () => withFallback(api.getBadges, fallbackBadges),
   });
 }
 
@@ -73,46 +89,6 @@ export function useCircularOptions(id: string) {
               explanation: "Best circular option for this device.",
               score: 92,
               next_action: "FIND_REPAIR",
-            },
-            {
-              action_type: "REFURBISH" as const,
-              title: "Buy refurbished",
-              estimated_cost_inr: 28000,
-              estimated_co2e_impact_kg: 40,
-              co2e_avoided_kg: 85,
-              convenience: 0.7,
-              availability: "Refurbished market available",
-              effort: "medium" as const,
-              explanation: "",
-              score: 70,
-              next_action: "COMPARE_REFURB",
-            },
-            {
-              action_type: "RESELL" as const,
-              title: "Resell",
-              estimated_cost_inr: 0,
-              estimated_co2e_impact_kg: 1,
-              co2e_avoided_kg: 55,
-              money_return_inr: 16000,
-              convenience: 0.75,
-              availability: "Resale platforms available",
-              effort: "low" as const,
-              explanation: "",
-              score: 68,
-              next_action: "LIST_FOR_SALE",
-            },
-            {
-              action_type: "DONATE" as const,
-              title: "Donate",
-              estimated_cost_inr: 0,
-              estimated_co2e_impact_kg: 0.5,
-              co2e_avoided_kg: 40,
-              convenience: 0.8,
-              availability: "Donation centers nearby",
-              effort: "low" as const,
-              explanation: "",
-              score: 60,
-              next_action: "FIND_DONATION",
             },
             {
               action_type: "RECYCLE" as const,
@@ -168,11 +144,19 @@ export function useCircularOptions(id: string) {
   });
 }
 
-export function useRepairNearby() {
+export function useFacilitiesNearby(type?: string) {
   return useQuery({
-    queryKey: ["repair-nearby"],
-    queryFn: () => withFallback(() => api.getRepairNearby(), fallbackFacilities),
+    queryKey: ["facilities-nearby", type ?? "all"],
+    queryFn: () =>
+      withFallback(
+        () => api.getFacilitiesNearby(type),
+        fallbackFacilities.filter((f) => !type || f.facility_type === type)
+      ),
   });
+}
+
+export function useRepairNearby() {
+  return useFacilitiesNearby("repair");
 }
 
 export function useCompleteAction() {
@@ -188,6 +172,7 @@ export function useCompleteAction() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["me"] });
       qc.invalidateQueries({ queryKey: ["recommendations"] });
+      qc.invalidateQueries({ queryKey: ["badges"] });
     },
   });
 }
@@ -205,23 +190,63 @@ export function useRewards() {
           brand: "Indiranagar Device Care",
           is_mock: true,
         },
+      ]),
+  });
+}
+
+export function useRedeemReward() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.redeemReward(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["me"] });
+      qc.invalidateQueries({ queryKey: ["badges"] });
+      qc.invalidateQueries({ queryKey: ["rewards"] });
+    },
+  });
+}
+
+export function useOffsets() {
+  return useQuery({
+    queryKey: ["offsets"],
+    queryFn: () =>
+      withFallback(api.getOffsets, [
         {
-          id: "55555555-5555-5555-5555-555555555503",
-          title: "Eco packaging credit",
-          description: "Demo brand channel reward for circular actions.",
-          points_required: 250,
-          brand: "GreenCart (demo)",
-          is_mock: true,
-        },
-        {
-          id: "55555555-5555-5555-5555-555555555504",
-          title: "Secondhand fashion credit",
-          description: "Mock reward for resale/donation completion.",
-          points_required: 350,
-          brand: "ReWear Hub (demo)",
-          is_mock: true,
+          id: "77777777-7777-7777-7777-777777777701",
+          name: "Mangrove restoration — Sundarbans",
+          provider: "EcoVerified Demo",
+          co2e_kg: 100,
+          price_inr: 450,
+          verification_status: "Verified",
+          geography: "IN",
+          description: "Community mangrove project. Demo listing only.",
         },
       ]),
+  });
+}
+
+export function usePurchaseOffset() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.purchaseOffset(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["me"] });
+      qc.invalidateQueries({ queryKey: ["impact"] });
+      qc.invalidateQueries({ queryKey: ["badges"] });
+    },
+  });
+}
+
+export function useParseReceipt() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.parseReceipt(undefined, true),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["transactions"] });
+      qc.invalidateQueries({ queryKey: ["impact"] });
+      qc.invalidateQueries({ queryKey: ["badges"] });
+      qc.invalidateQueries({ queryKey: ["me"] });
+    },
   });
 }
 

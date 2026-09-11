@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
 import { CircularityRing } from "@/components/custom/circularity-ring";
+import { PointsCounter } from "@/components/custom/points-counter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,7 +12,7 @@ import { Pressable } from "@/components/ui/pressable";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
-import { useMe, useRewards } from "@/src/hooks/queries";
+import { useMe, useRedeemReward, useRewards } from "@/src/hooks/queries";
 import { useAppStore } from "@/src/store/app";
 
 export default function RewardsScreen() {
@@ -18,8 +20,29 @@ export default function RewardsScreen() {
   const router = useRouter();
   const me = useMe();
   const rewards = useRewards();
+  const redeem = useRedeemReward();
   const lastPoints = useAppStore((s) => s.lastPointsAwarded);
+  const [claimCode, setClaimCode] = useState<string | null>(null);
+  const [spentFlash, setSpentFlash] = useState(0);
   const brandRewards = (rewards.data ?? []).filter((r) => r.brand);
+
+  async function onRedeem(id: string) {
+    try {
+      const result = await redeem.mutateAsync(id);
+      setClaimCode(result.claim_code);
+      setSpentFlash(result.points_spent);
+      try {
+        await Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Success
+        );
+      } catch {
+        /* sim */
+      }
+      setTimeout(() => setSpentFlash(0), 1600);
+    } catch {
+      setClaimCode("Need more points — complete a circular action first.");
+    }
+  }
 
   return (
     <ScrollView
@@ -36,7 +59,7 @@ export default function RewardsScreen() {
       </Pressable>
       <Heading size="2xl">Impact rewards</Heading>
       <Text className="text-muted-foreground -mt-2">
-        Earned only by real circular actions.
+        Earned only by real circular actions. Demo brand codes only.
       </Text>
 
       <Card variant="soft" className="flex-row items-center gap-4">
@@ -46,13 +69,26 @@ export default function RewardsScreen() {
             {me.data?.impact_points ?? 420} pts
           </Text>
           <Text size="sm" className="text-muted-foreground">
-            Streak {me.data?.streak_days ?? 5} days
+            Loop Level {me.data?.loop_level ?? 2} · Streak{" "}
+            {me.data?.streak_days ?? 5}d
           </Text>
           {lastPoints ? (
-            <Text className="font-mono text-primary">Last award +{lastPoints}</Text>
+            <Text className="font-mono text-primary">
+              Last award +{lastPoints}
+            </Text>
           ) : null}
         </VStack>
       </Card>
+
+      {claimCode ? (
+        <Card variant="softPop">
+          <Text bold>Claim code</Text>
+          <Text className="font-mono mt-2">{claimCode}</Text>
+          <Text size="xs" className="text-muted-foreground mt-2">
+            Mock voucher — not a real brand endorsement.
+          </Text>
+        </Card>
+      ) : null}
 
       <Text bold>Brand partners</Text>
       <Text size="xs" className="text-muted-foreground -mt-2">
@@ -60,17 +96,38 @@ export default function RewardsScreen() {
       </Text>
       {brandRewards.map((r) => (
         <Card key={r.id} variant="soft">
-          <VStack space="xs">
+          <VStack space="sm">
             <Text bold>{r.title}</Text>
             <Text size="sm" className="text-muted-foreground">
               {r.description}
             </Text>
-            <Badge action="muted" label={`${r.points_required} pts · ${r.brand}`} />
+            <Badge
+              action="muted"
+              label={`${r.points_required} pts · ${r.brand}`}
+            />
+            <Button
+              size="sm"
+              variant="playful"
+              loading={redeem.isPending}
+              onPress={() => void onRedeem(r.id)}
+            >
+              Redeem
+            </Button>
           </VStack>
         </Card>
       ))}
 
-      <Button onPress={() => router.push("/offsets" as import("expo-router").Href)}>Browse offsets</Button>
+      <Button
+        onPress={() => router.push("/offsets" as import("expo-router").Href)}
+      >
+        Browse offsets
+      </Button>
+
+      <PointsCounter
+        points={spentFlash}
+        visible={spentFlash > 0}
+        label="Reward unlocked!"
+      />
     </ScrollView>
   );
 }

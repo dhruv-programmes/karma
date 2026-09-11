@@ -17,7 +17,11 @@ import { ScrollView } from "@/components/ui/scroll-view";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 import { useCircularOptions } from "@/src/hooks/queries";
-import { DEMO_REPAIR_ACTION_ID } from "@/src/types/api";
+import {
+  DEMO_REPAIR_ACTION_ID,
+  mapActionToFacilityType,
+  type ActionType,
+} from "@/src/types/api";
 
 export default function ProductScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -27,6 +31,26 @@ export default function ProductScreen() {
   const payload = data.data;
   const product = payload?.product;
   const best = payload?.best_option;
+
+  function goForAction(actionType: ActionType, actionId?: string) {
+    const facilityType = mapActionToFacilityType(actionType);
+    if (!facilityType) {
+      if (actionType === "REDUCE") {
+        router.push("/offsets" as import("expo-router").Href);
+        return;
+      }
+      return;
+    }
+    router.push({
+      pathname: "/map",
+      params: {
+        type: facilityType,
+        actionId: actionId ?? DEMO_REPAIR_ACTION_ID,
+        actionType,
+        productId: product?.id,
+      },
+    });
+  }
 
   return (
     <ScrollView
@@ -68,7 +92,11 @@ export default function ProductScreen() {
             <VStack space="xs" className="flex-1">
               <Text bold>Product circularity</Text>
               {Object.entries(product.circularity_breakdown).map(([k, v]) => (
-                <Text key={k} size="xs" className="text-muted-foreground capitalize">
+                <Text
+                  key={k}
+                  size="xs"
+                  className="text-muted-foreground capitalize"
+                >
                   {k.replace("_", " ")} {v}
                 </Text>
               ))}
@@ -76,21 +104,24 @@ export default function ProductScreen() {
           </Box>
 
           <Text bold>What should you do?</Text>
-          <RNScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <Box className="flex-row gap-3 py-2">
-              {payload.options.map((opt) => (
-                <CompareOption
-                  key={opt.action_type}
-                  option={opt}
-                  selected={opt.action_type === best?.action_type}
-                />
-              ))}
-            </Box>
+          <RNScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 12, paddingVertical: 4 }}
+          >
+            {payload.options.map((opt) => (
+              <CompareOption
+                key={opt.action_type}
+                option={opt}
+                selected={opt.action_type === best?.action_type}
+                onPress={() => goForAction(opt.action_type)}
+              />
+            ))}
           </RNScrollView>
 
           {best ? (
             <Animated.View entering={FadeInDown.delay(200)}>
-              <Card variant="softPop" className="gap-2">
+              <Card variant="softPop" className="gap-3">
                 <Badge action="playful" label="Best for you" />
                 <Heading size="xl">{best.title}</Heading>
                 <Text className="text-muted-foreground">
@@ -103,30 +134,25 @@ export default function ProductScreen() {
                 <Text size="xs" className="text-muted-foreground">
                   {best.explanation}
                 </Text>
-                <Box className="flex-row gap-3 mt-3">
-                  <Button
-                    className="flex-1"
-                    onPress={() =>
-                      router.push({
-                        pathname: "/map",
-                        params: {
-                          type: "repair",
-                          actionId: DEMO_REPAIR_ACTION_ID,
-                          productId: product.id,
-                        },
-                      })
-                    }
-                  >
-                    Find repair
+                <VStack space="sm" className="mt-1">
+                  <Button onPress={() => goForAction(best.action_type)}>
+                    {best.action_type === "REPAIR"
+                      ? "Find repair nearby"
+                      : best.action_type === "RECYCLE"
+                        ? "Find recycle drop"
+                        : best.action_type === "DONATE"
+                          ? "Find donation point"
+                          : best.action_type === "RESELL"
+                            ? "Find resale desk"
+                            : "Take this action"}
                   </Button>
                   <Button
                     variant="outline"
-                    className="flex-1"
-                    onPress={() => router.push("/map?type=recycling")}
+                    onPress={() => goForAction("RECYCLE")}
                   >
-                    Recycle device
+                    Recycle instead
                   </Button>
-                </Box>
+                </VStack>
               </Card>
             </Animated.View>
           ) : null}

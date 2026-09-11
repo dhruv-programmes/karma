@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+import Animated, { FadeInDown, ZoomIn } from "react-native-reanimated";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CircularityRing } from "@/components/custom/circularity-ring";
@@ -35,7 +35,7 @@ export default function ScanResultScreen() {
         paddingBottom: insets.bottom + 24,
       }}
     >
-      <Animated.View entering={FadeInUp.duration(400)}>
+      <Animated.View entering={ZoomIn.duration(380)}>
         <Badge action="playful" label="Found it!" />
       </Animated.View>
       {p?.image_url ? (

@@ -67,7 +67,7 @@ export function Button({
       {loading ? (
         <ActivityIndicator color="rgb(var(--primary-foreground))" />
       ) : typeof children === "string" ? (
-        <Text bold className={textVariantMap[variant]}>
+        <Text bold className={textVariantMap[variant]} numberOfLines={1}>
           {children}
         </Text>
       ) : (

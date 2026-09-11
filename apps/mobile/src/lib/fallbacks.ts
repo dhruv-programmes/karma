@@ -18,6 +18,15 @@ export const fallbackUser: UserProfile = {
   impact_points: 420,
   streak_days: 5,
   trend_delta: 6,
+  loop_level: 2,
+  offset_kg_total: 0,
+  owned_product_ids: [
+    DEMO_PHONE_ID,
+    "22222222-2222-2222-2222-222222222202",
+    "22222222-2222-2222-2222-222222222203",
+    "22222222-2222-2222-2222-222222222208",
+  ],
+  unlocked_badge_ids: [],
 };
 
 export const fallbackImpact: ImpactBreakdown = {
@@ -25,10 +34,13 @@ export const fallbackImpact: ImpactBreakdown = {
   transport_kg: 12.4,
   energy_kg: 22.1,
   total_kg: 82.7,
-  month_label: "March 2026",
+  month_label: "Feb–Mar 2026",
   biggest_opportunity: "Electronics",
   insight:
-    "You do not need to change everything. Your biggest opportunity is extending product lifetimes.",
+    "Biggest lever right now: Electronics. Extend product lifetimes, shift short trips, then offset what's left.",
+  offset_kg_total: 0,
+  residual_kg: 82.7,
+  by_category: { Electronics: 40, Food: 18, Energy: 22 },
 };
 
 export const fallbackRecommendations: Recommendation[] = [
@@ -110,5 +122,96 @@ export const fallbackFacilities: Facility[] = [
     open_now: true,
     verification_status: "Verified",
     address: "5th Block, Koramangala, Bengaluru",
+  },
+  {
+    id: "33333333-3333-3333-3333-333333333303",
+    name: "Saahas Zero Waste Hub",
+    facility_type: "recycling",
+    lat: 12.9698,
+    lng: 77.7499,
+    distance_km: 3.2,
+    supported_categories: ["Electronics", "Home", "Other"],
+    open_now: true,
+    verification_status: "Verified",
+    address: "Whitefield, Bengaluru",
+  },
+  {
+    id: "33333333-3333-3333-3333-333333333305",
+    name: "Goonj Collection Point",
+    facility_type: "donation",
+    lat: 12.9592,
+    lng: 77.6974,
+    distance_km: 5.1,
+    supported_categories: ["Clothing", "Other"],
+    open_now: true,
+    verification_status: "Verified",
+    address: "HSR Layout, Bengaluru",
+  },
+];
+
+export const fallbackBadges = [
+  {
+    id: "first_repair",
+    title: "First Repair",
+    description: "Completed your first repair action",
+    icon: "wrench",
+    unlocked: false,
+  },
+  {
+    id: "e_waste_hero",
+    title: "e-Waste Hero",
+    description: "Recycled electronics responsibly",
+    icon: "recycle",
+    unlocked: false,
+  },
+  {
+    id: "streak_7",
+    title: "Week Streak",
+    description: "Kept a 7-day circular streak",
+    icon: "flame",
+    unlocked: false,
+  },
+  {
+    id: "offset_starter",
+    title: "Offset Starter",
+    description: "Bought your first demo offset",
+    icon: "leaf",
+    unlocked: false,
+  },
+  {
+    id: "receipt_ranger",
+    title: "Receipt Ranger",
+    description: "Parsed a receipt into footprint data",
+    icon: "receipt",
+    unlocked: false,
+  },
+  {
+    id: "brand_claimer",
+    title: "Brand Claimer",
+    description: "Redeemed a partner reward",
+    icon: "gift",
+    unlocked: false,
+  },
+];
+
+export const fallbackCloset: Product[] = [
+  fallbackPhone,
+  {
+    ...fallbackPhone,
+    id: "22222222-2222-2222-2222-222222222202",
+    name: "Slim Fit Denim Jeans",
+    brand: "Levi's",
+    category: "Clothing",
+    estimated_co2e_kg: 33,
+    circularity_score: 71,
+  },
+  {
+    ...fallbackPhone,
+    id: "22222222-2222-2222-2222-222222222203",
+    name: "Wireless Noise-Cancel Headphones",
+    brand: "Sony",
+    category: "Electronics",
+    estimated_co2e_kg: 22,
+    circularity_score: 69,
   },
 ];

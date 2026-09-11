@@ -3,7 +3,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from app.schemas import ActionType, CircularityBreakdown, Product
-from app.seed.data import demo_state
+from app.seed.data import demo_state, unlock_badge
 
 ACTION_POINTS = {
     ActionType.REPAIR: 100,
@@ -55,9 +55,10 @@ def complete_action(action_id: UUID, action_type: ActionType | None = None) -> d
             "previous_score": user.circularity_score,
             "new_score": user.circularity_score,
             "message": "Action already completed",
+            "badges_unlocked": [],
+            "loop_level": user.loop_level,
         }
 
-    # Infer type from recommendation id / default repair for demo
     inferred = action_type
     if inferred is None:
         for rec in demo_state.recommendations:
@@ -76,6 +77,15 @@ def complete_action(action_id: UUID, action_type: ActionType | None = None) -> d
     user.circularity_score = min(100, previous + bump)
     user.streak_days += 1
     user.trend_delta = max(user.trend_delta, bump)
+    demo_state.sync_level()
+
+    badges: list[str] = []
+    if inferred == ActionType.REPAIR and unlock_badge("first_repair"):
+        badges.append("first_repair")
+    if inferred == ActionType.RECYCLE and unlock_badge("e_waste_hero"):
+        badges.append("e_waste_hero")
+    if user.streak_days >= 7 and unlock_badge("streak_7"):
+        badges.append("streak_7")
 
     return {
         "action_id": action_id,
@@ -83,4 +93,6 @@ def complete_action(action_id: UUID, action_type: ActionType | None = None) -> d
         "previous_score": previous,
         "new_score": user.circularity_score,
         "message": f"+{points} Impact Points",
+        "badges_unlocked": badges,
+        "loop_level": user.loop_level,
     }

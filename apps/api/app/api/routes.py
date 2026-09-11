@@ -14,13 +14,18 @@ from app.schemas import (
     AskResponse,
     BarcodeLookupRequest,
     CompletedActionResult,
+    OffsetPurchaseResult,
+    ProductCategory,
+    ReceiptParseRequest,
+    ReceiptParseResult,
+    RedeemResult,
 )
 from app.seed.data import (
     OFFSETS,
     REWARDS,
-    TRANSACTIONS,
     demo_state,
     get_product,
+    list_badges,
 )
 from app.services import core as services
 
@@ -29,7 +34,7 @@ router = APIRouter(prefix="/api/v1")
 
 def require_demo_auth(authorization: str | None) -> None:
     if not authorization:
-        return  # demo mode allows open access
+        return
     token = authorization.replace("Bearer ", "").strip()
     if token and token != settings.demo_token:
         raise HTTPException(status_code=401, detail="Invalid token")
@@ -41,14 +46,17 @@ def health():
 
 
 @router.post("/products/lookup/barcode")
-async def lookup_barcode(body: BarcodeLookupRequest, authorization: str | None = Header(default=None)):
+async def lookup_barcode(
+    body: BarcodeLookupRequest, authorization: str | None = Header(default=None)
+):
     require_demo_auth(authorization)
-    product = await services.lookup_barcode(body.barcode)
-    return product
+    return await services.lookup_barcode(body.barcode)
 
 
 @router.get("/products/{product_id}")
-def get_product_endpoint(product_id: UUID, authorization: str | None = Header(default=None)):
+def get_product_endpoint(
+    product_id: UUID, authorization: str | None = Header(default=None)
+):
     require_demo_auth(authorization)
     product = get_product(product_id)
     if not product:
@@ -57,7 +65,9 @@ def get_product_endpoint(product_id: UUID, authorization: str | None = Header(de
 
 
 @router.get("/products/{product_id}/circular-options")
-def circular_options(product_id: UUID, authorization: str | None = Header(default=None)):
+def circular_options(
+    product_id: UUID, authorization: str | None = Header(default=None)
+):
     require_demo_auth(authorization)
     product = get_product(product_id)
     if not product:
@@ -68,6 +78,7 @@ def circular_options(product_id: UUID, authorization: str | None = Header(defaul
 @router.get("/users/me")
 def users_me(authorization: str | None = Header(default=None)):
     require_demo_auth(authorization)
+    demo_state.sync_level()
     return demo_state.user
 
 
@@ -83,10 +94,22 @@ def users_recommendations(authorization: str | None = Header(default=None)):
     return services.get_recommendations()
 
 
+@router.get("/users/me/closet")
+def users_closet(authorization: str | None = Header(default=None)):
+    require_demo_auth(authorization)
+    return services.owned_products()
+
+
+@router.get("/users/me/badges")
+def users_badges(authorization: str | None = Header(default=None)):
+    require_demo_auth(authorization)
+    return list_badges()
+
+
 @router.get("/transactions")
 def list_transactions(authorization: str | None = Header(default=None)):
     require_demo_auth(authorization)
-    return TRANSACTIONS
+    return services.list_transactions()
 
 
 class ImportBody(BaseModel):
@@ -94,19 +117,39 @@ class ImportBody(BaseModel):
 
 
 @router.post("/transactions/import")
-def import_transactions(body: ImportBody, authorization: str | None = Header(default=None)):
-    """Deterministic merchant-rule categorization stub (no unauthorized scraping)."""
+def import_transactions(
+    body: ImportBody, authorization: str | None = Header(default=None)
+):
+    """Deterministic merchant-rule categorization — persists into DemoState."""
     require_demo_auth(authorization)
-    categorized = []
-    for row in body.rows:
-        merchant = str(row.get("merchant", "Unknown"))
-        categorized.append(
-            {
-                **row,
-                "category": services.categorize_merchant(merchant).value,
-            }
-        )
-    return {"imported": len(categorized), "transactions": categorized}
+    created = services.import_transactions(body.rows)
+    return {
+        "imported": len(created),
+        "transactions": created,
+    }
+
+
+@router.post("/receipts/parse", response_model=ReceiptParseResult)
+def parse_receipt(
+    body: ReceiptParseRequest | None = None,
+    authorization: str | None = Header(default=None),
+):
+    require_demo_auth(authorization)
+    payload = body or ReceiptParseRequest()
+    result = services.parse_receipt_text(payload.text, payload.use_demo)
+    return ReceiptParseResult(**result)
+
+
+@router.get("/facilities/nearby")
+def facilities_nearby(
+    type: str | None = Query(default=None, alias="type"),
+    lat: float = Query(12.9716),
+    lng: float = Query(77.5946),
+    category: ProductCategory | None = Query(default=None),
+    authorization: str | None = Header(default=None),
+):
+    require_demo_auth(authorization)
+    return services.nearby_facilities(type, lat, lng, category)
 
 
 @router.get("/repair/nearby")
@@ -139,6 +182,16 @@ def donation_nearby(
     return services.nearby_facilities("donation", lat, lng)
 
 
+@router.get("/resale/nearby")
+def resale_nearby(
+    lat: float = Query(12.9716),
+    lng: float = Query(77.5946),
+    authorization: str | None = Header(default=None),
+):
+    require_demo_auth(authorization)
+    return services.nearby_facilities("resale", lat, lng)
+
+
 class CompleteActionBody(BaseModel):
     action_type: ActionType | None = None
 
@@ -161,38 +214,93 @@ def rewards(authorization: str | None = Header(default=None)):
     return REWARDS
 
 
+@router.post("/rewards/{reward_id}/redeem", response_model=RedeemResult)
+def redeem_reward(
+    reward_id: UUID, authorization: str | None = Header(default=None)
+):
+    require_demo_auth(authorization)
+    try:
+        result = services.redeem_reward(reward_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return RedeemResult(**{k: v for k, v in result.items() if k != "badges_unlocked"})
+
+
 @router.get("/offsets")
 def offsets(authorization: str | None = Header(default=None)):
     require_demo_auth(authorization)
     return OFFSETS
 
 
+@router.post("/offsets/{offset_id}/purchase", response_model=OffsetPurchaseResult)
+def purchase_offset(
+    offset_id: UUID, authorization: str | None = Header(default=None)
+):
+    require_demo_auth(authorization)
+    try:
+        result = services.purchase_offset(offset_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return OffsetPurchaseResult(**result)
+
+
 @router.get("/profile/circularity-score")
 def circularity_score(authorization: str | None = Header(default=None)):
     require_demo_auth(authorization)
+    demo_state.sync_level()
     return {
         "score": user_circularity_score(),
         "impact_points": demo_state.user.impact_points,
         "streak_days": demo_state.user.streak_days,
         "trend_delta": demo_state.user.trend_delta,
+        "loop_level": demo_state.user.loop_level,
+        "offset_kg_total": demo_state.user.offset_kg_total,
     }
 
 
 @router.post("/ask", response_model=AskResponse)
-def ask_assistant(body: AskRequest, authorization: str | None = Header(default=None)):
+def ask_assistant(
+    body: AskRequest, authorization: str | None = Header(default=None)
+):
     """Lightweight NL interface — tools only, no invented numbers."""
     require_demo_auth(authorization)
     q = body.query.lower()
     tools: list[str] = []
     data: dict = {}
 
-    if "biggest" in q or "carbon source" in q:
+    if "biggest" in q or "carbon source" in q or "energy" in q:
         tools.append("get_carbon_breakdown")
         data = services.user_impact()
         answer = (
             f"Your biggest opportunity is {data['biggest_opportunity']}. "
-            f"Estimated monthly total ~{int(data['total_kg'])} kg CO₂e. {data['insight']}"
+            f"Estimated total ~{int(data['total_kg'])} kg CO₂e "
+            f"(residual ~{int(data['residual_kg'])} kg after offsets). {data['insight']}"
         )
+    elif "offset" in q:
+        tools.append("list_offsets")
+        verified = [o for o in OFFSETS if o.verification_status == "Verified"]
+        top = verified[0] if verified else OFFSETS[0]
+        data = {"offset": top.model_dump()}
+        answer = (
+            f"Try verified offset “{top.name}” (~{int(top.co2e_kg)} kg for ₹{int(top.price_inr)}). "
+            "Demo purchase only — not a real climate claim."
+        )
+    elif "reward" in q or "points" in q:
+        tools.append("list_rewards")
+        affordable = [r for r in REWARDS if r.points_required <= demo_state.user.impact_points]
+        top = affordable[0] if affordable else REWARDS[0]
+        data = {"reward": top.model_dump(), "points": demo_state.user.impact_points}
+        answer = (
+            f"You have {demo_state.user.impact_points} pts (Loop Level {demo_state.user.loop_level}). "
+            f"Suggested demo reward: {top.title} ({top.points_required} pts)."
+        )
+    elif "streak" in q:
+        tools.append("get_profile")
+        answer = (
+            f"Your streak is {demo_state.user.streak_days} days. "
+            "Complete a real circular action today to keep it going."
+        )
+        data = {"streak_days": demo_state.user.streak_days}
     elif "repair" in q:
         tools.extend(["get_product", "compare_actions"])
         from app.seed.data import PHONE_ID
@@ -240,4 +348,5 @@ def ask_assistant(body: AskRequest, authorization: str | None = Header(default=N
 def reset_demo(authorization: str | None = Header(default=None)):
     require_demo_auth(authorization)
     demo_state.reset()
+    demo_state.sync_level()
     return {"status": "reset", "score": demo_state.user.circularity_score}

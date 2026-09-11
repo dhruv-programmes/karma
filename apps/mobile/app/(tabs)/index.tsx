@@ -2,10 +2,12 @@ import React from "react";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Camera, Leaf, Recycle, Receipt } from "lucide-react-native";
+import { Image } from "expo-image";
 import { CircularityScore } from "@/components/custom/circularity-score";
 import { RecommendationCard } from "@/components/custom/recommendation-card";
 import { SkeletonCard } from "@/components/custom/skeleton-card";
 import { TickerStrip } from "@/components/custom/ticker-strip";
+import { Badge } from "@/components/ui/badge";
 import { Box } from "@/components/ui/box";
 import { Card } from "@/components/ui/card";
 import { Heading } from "@/components/ui/heading";
@@ -13,7 +15,12 @@ import { Pressable } from "@/components/ui/pressable";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
-import { useImpact, useMe, useRecommendations } from "@/src/hooks/queries";
+import {
+  useCloset,
+  useImpact,
+  useMe,
+  useRecommendations,
+} from "@/src/hooks/queries";
 
 function greeting() {
   const h = new Date().getHours();
@@ -28,6 +35,7 @@ export default function HomeScreen() {
   const me = useMe();
   const impact = useImpact();
   const recs = useRecommendations();
+  const closet = useCloset();
   const best = recs.data?.[0];
 
   return (
@@ -54,6 +62,7 @@ export default function HomeScreen() {
         points={me.data?.impact_points ?? 420}
         streak={me.data?.streak_days ?? 5}
         trend={me.data?.trend_delta ?? 6}
+        level={me.data?.loop_level ?? 2}
       />
 
       {me.isLoading ? (
@@ -89,6 +98,35 @@ export default function HomeScreen() {
 
       <VStack space="md">
         <Text size="sm" bold className="text-secondary-foreground">
+          My Loop Closet
+        </Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <Box className="flex-row gap-3">
+            {(closet.data ?? []).map((item) => (
+              <Pressable
+                key={item.id}
+                onPress={() => router.push(`/product/${item.id}`)}
+              >
+                <Card variant="soft" className="w-[148px] gap-2">
+                  {item.image_url ? (
+                    <Image
+                      source={{ uri: item.image_url }}
+                      style={{ width: "100%", height: 88, borderRadius: 16 }}
+                    />
+                  ) : null}
+                  <Text bold numberOfLines={2} size="sm">
+                    {item.name}
+                  </Text>
+                  <Badge action="muted" label={item.category} />
+                </Card>
+              </Pressable>
+            ))}
+          </Box>
+        </ScrollView>
+      </VStack>
+
+      <VStack space="md">
+        <Text size="sm" bold className="text-secondary-foreground">
           Your footprint mix
         </Text>
         <Box className="flex-row gap-3">
@@ -107,6 +145,12 @@ export default function HomeScreen() {
             </Card>
           ))}
         </Box>
+        {impact.data?.residual_kg != null ? (
+          <Text size="xs" className="text-muted-foreground">
+            Residual after offsets ~{Math.round(impact.data.residual_kg)} kg ·
+            hotspot {impact.data.biggest_opportunity}
+          </Text>
+        ) : null}
       </VStack>
 
       <VStack space="md">
@@ -114,10 +158,28 @@ export default function HomeScreen() {
           Jump in
         </Text>
         <Box className="flex-row flex-wrap gap-3">
-          <Quick icon={<Camera color="rgb(46,168,110)" size={20} />} label="Scan" onPress={() => router.push("/scan")} />
-          <Quick icon={<Receipt color="rgb(46,168,110)" size={20} />} label="Receipt" onPress={() => router.push("/receipt")} />
-          <Quick icon={<Recycle color="rgb(46,168,110)" size={20} />} label="Recycle" onPress={() => router.push("/map?type=recycling")} />
-          <Quick icon={<Leaf color="rgb(46,168,110)" size={20} />} label="Offsets" onPress={() => router.push("/offsets" as import("expo-router").Href)} />
+          <Quick
+            icon={<Camera color="rgb(46,168,110)" size={20} />}
+            label="Scan"
+            onPress={() => router.push("/scan")}
+          />
+          <Quick
+            icon={<Receipt color="rgb(46,168,110)" size={20} />}
+            label="Receipt"
+            onPress={() => router.push("/receipt")}
+          />
+          <Quick
+            icon={<Recycle color="rgb(46,168,110)" size={20} />}
+            label="Recycle"
+            onPress={() => router.push("/map?type=recycling")}
+          />
+          <Quick
+            icon={<Leaf color="rgb(46,168,110)" size={20} />}
+            label="Offsets"
+            onPress={() =>
+              router.push("/offsets" as import("expo-router").Href)
+            }
+          />
         </Box>
       </VStack>
     </ScrollView>

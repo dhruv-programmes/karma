@@ -7,14 +7,32 @@ import { Button } from "@/components/ui/button";
 import { Heading } from "@/components/ui/heading";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
+import { useParseReceipt } from "@/src/hooks/queries";
 
 export default function ReceiptScanScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const parse = useParseReceipt();
 
   async function pick() {
     await ImagePicker.requestCameraPermissionsAsync();
-    router.push("/receipt/result");
+    await runParse();
+  }
+
+  async function runParse() {
+    try {
+      const result = await parse.mutateAsync();
+      router.push({
+        pathname: "/receipt/result",
+        params: {
+          imported: String(result.imported),
+          message: result.message,
+          badge: result.badges_unlocked?.[0] ?? "",
+        },
+      });
+    } catch {
+      router.push("/receipt/result");
+    }
   }
 
   return (
@@ -27,11 +45,17 @@ export default function ReceiptScanScreen() {
       </Pressable>
       <Heading size="2xl">Scan receipt</Heading>
       <Text className="text-muted-foreground">
-        Secondary path. Deterministic demo mapping — LLM never decides recommendations.
+        Demo NLP stub categorizes merchants into your footprint. Not live OCR.
       </Text>
-      <Button onPress={() => void pick()}>Take / choose photo</Button>
-      <Button variant="outline" onPress={() => router.push("/receipt/result")}>
-        Use demo receipt
+      <Button loading={parse.isPending} onPress={() => void pick()}>
+        Take / choose photo
+      </Button>
+      <Button
+        variant="playful"
+        loading={parse.isPending}
+        onPress={() => void runParse()}
+      >
+        Parse demo receipt
       </Button>
     </Box>
   );

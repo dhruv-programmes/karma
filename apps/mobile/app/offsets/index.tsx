@@ -1,66 +1,43 @@
-import React from "react";
+import React, { useState } from "react";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useQuery } from "@tanstack/react-query";
+import * as Haptics from "expo-haptics";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Heading } from "@/components/ui/heading";
+import { HStack } from "@/components/ui/hstack";
 import { Pressable } from "@/components/ui/pressable";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
-import { HStack } from "@/components/ui/hstack";
-import { api } from "@/src/lib/api";
-
-const FALLBACK = [
-  {
-    id: "1",
-    name: "Mangrove restoration — Sundarbans",
-    provider: "EcoVerified Demo",
-    co2e_kg: 100,
-    price_inr: 450,
-    verification_status: "Verified",
-    geography: "IN",
-    description: "Community mangrove project. Demo listing only.",
-  },
-  {
-    id: "2",
-    name: "Rural biogas clusters",
-    provider: "ClimateLink Demo",
-    co2e_kg: 250,
-    price_inr: 980,
-    verification_status: "Verified",
-    geography: "IN",
-    description: "Household biogas displacing firewood. Demo listing only.",
-  },
-  {
-    id: "3",
-    name: "Urban tree pledge",
-    provider: "Local NGO",
-    co2e_kg: 40,
-    price_inr: 199,
-    verification_status: "Unverified",
-    geography: "IN-KA",
-    description: "Unverified local pledge — shown for transparency.",
-  },
-];
+import { useImpact, useOffsets, usePurchaseOffset } from "@/src/hooks/queries";
 
 export default function OffsetsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const offsets = useQuery({
-    queryKey: ["offsets"],
-    queryFn: async () => {
-      try {
-        return await api.getOffsets();
-      } catch {
-        return FALLBACK;
-      }
-    },
-  });
+  const offsets = useOffsets();
+  const purchase = usePurchaseOffset();
+  const impact = useImpact();
+  const [note, setNote] = useState<string | null>(null);
 
-  const items = offsets.data ?? FALLBACK;
+  const items = offsets.data ?? [];
+
+  async function buy(id: string) {
+    try {
+      const result = await purchase.mutateAsync(id);
+      setNote(result.message);
+      try {
+        await Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Success
+        );
+      } catch {
+        /* sim */
+      }
+    } catch {
+      setNote("Could not complete demo offset purchase.");
+    }
+  }
 
   return (
     <ScrollView
@@ -80,6 +57,22 @@ export default function OffsetsScreen() {
         Optional after circular actions. Prefer repair/reuse first. Demo data.
       </Text>
 
+      <Card variant="softPop">
+        <Text bold>
+          Offset so far ~{Math.round(impact.data?.offset_kg_total ?? 0)} kg
+        </Text>
+        <Text size="sm" className="text-muted-foreground mt-1">
+          Residual footprint ~{Math.round(impact.data?.residual_kg ?? impact.data?.total_kg ?? 0)}{" "}
+          kg
+        </Text>
+      </Card>
+
+      {note ? (
+        <Card variant="soft">
+          <Text size="sm">{note}</Text>
+        </Card>
+      ) : null}
+
       {items.map((o) => (
         <Card key={o.id} variant="soft">
           <VStack space="sm">
@@ -88,12 +81,15 @@ export default function OffsetsScreen() {
                 {o.name}
               </Text>
               <Badge
-                action={o.verification_status === "Verified" ? "success" : "warning"}
+                action={
+                  o.verification_status === "Verified" ? "success" : "warning"
+                }
                 label={o.verification_status}
               />
             </HStack>
             <Text size="xs" className="text-muted-foreground">
               {o.provider} · {o.geography}
+              {o.methodology ? ` · ${o.methodology}` : ""}
             </Text>
             <Text size="sm" className="text-muted-foreground">
               {o.description}
@@ -102,6 +98,14 @@ export default function OffsetsScreen() {
               <Text className="font-mono">~{o.co2e_kg} kg CO₂e</Text>
               <Text className="font-mono">₹{o.price_inr}</Text>
             </HStack>
+            <Button
+              size="sm"
+              variant="secondary"
+              loading={purchase.isPending}
+              onPress={() => void buy(o.id)}
+            >
+              Demo purchase
+            </Button>
           </VStack>
         </Card>
       ))}

@@ -11,12 +11,13 @@ import { Heading } from "@/components/ui/heading";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
-import { useImpact } from "@/src/hooks/queries";
+import { useImpact, useTransactions } from "@/src/hooks/queries";
 
 export default function ImpactScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const impact = useImpact();
+  const txns = useTransactions();
 
   return (
     <ScrollView
@@ -58,8 +59,46 @@ export default function ImpactScreen() {
             title={`Biggest opportunity: ${impact.data.biggest_opportunity}`}
             body={impact.data.insight}
           />
+          {impact.data.by_category ? (
+            <Card variant="soft">
+              <Text bold className="mb-2">
+                Category drill-down
+              </Text>
+              <VStack space="sm">
+                {Object.entries(impact.data.by_category)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([cat, kg]) => (
+                    <Box key={cat} className="flex-row justify-between">
+                      <Text size="sm">{cat}</Text>
+                      <Text size="sm" bold className="font-mono">
+                        ~{Math.round(kg)} kg
+                      </Text>
+                    </Box>
+                  ))}
+              </VStack>
+            </Card>
+          ) : null}
         </>
       )}
+
+      <VStack space="md">
+        <Text bold>Recent transactions</Text>
+        {(txns.data ?? []).slice(0, 8).map((t) => (
+          <Card key={t.id} variant="flat" className="flex-row justify-between">
+            <VStack>
+              <Text bold size="sm">
+                {t.merchant}
+              </Text>
+              <Text size="xs" className="text-muted-foreground">
+                {t.category} · {t.date}
+              </Text>
+            </VStack>
+            <Text bold className="font-mono">
+              ₹{Math.round(t.amount_inr).toLocaleString("en-IN")}
+            </Text>
+          </Card>
+        ))}
+      </VStack>
 
       <Box className="flex-row gap-3">
         <Button
@@ -69,7 +108,10 @@ export default function ImpactScreen() {
         >
           Find recycle
         </Button>
-        <Button className="flex-1" onPress={() => router.push("/offsets" as import("expo-router").Href)}>
+        <Button
+          className="flex-1"
+          onPress={() => router.push("/offsets" as import("expo-router").Href)}
+        >
           View offsets
         </Button>
       </Box>

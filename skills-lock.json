@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "gluestack-ui-v5": {
+      "source": "local",
+      "sourceType": "local",
+      "skillPath": ".agents/skills/gluestack-ui-v5/SKILL.md",
+      "computedHash": "local-gluestack-ui-v5"
+    },
     "imagegen-frontend-mobile": {
       "source": "leonxlnx/taste-skill",
       "sourceType": "github",

@@ -1,0 +1,8 @@
+{
+  "name": "carbon-loop-app",
+  "private": true,
+  "scripts": {
+    "mobile": "pnpm --dir apps/mobile start",
+    "api": "cd apps/api && .venv/Scripts/uvicorn app.main:app --reload --port 8000"
+  }
+}

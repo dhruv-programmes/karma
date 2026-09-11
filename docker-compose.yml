@@ -1,0 +1,8 @@
+# Optional later — Postgres + Redis
+# services:
+#   db:
+#     image: postgres:16
+#   redis:
+#     image: redis:7
+version: "3.9"
+services: {}

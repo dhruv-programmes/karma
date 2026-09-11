@@ -30,6 +30,8 @@ pnpm install
 pnpm start
 ```
 
+UI is **gluestack-ui v5 style** on **UniWind** (Tailwind v4) with a liquid-glass + brutalist circular-eco theme. Skills live in `.agents/skills/gluestack-ui-v5/`.
+
 Set `EXPO_PUBLIC_API_URL` in `apps/mobile/.env` (use your LAN IP for a physical device).
 
 ## Hero demo (90s)

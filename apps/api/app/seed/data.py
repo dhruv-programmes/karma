@@ -50,7 +50,7 @@ PRODUCTS: dict[UUID, Product] = {
         name="Galaxy S-series Smartphone",
         brand="Samsung",
         category=ProductCategory.ELECTRONICS,
-        image_url="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400",
+        image_url="https://images.unsplash.com/photo-1592890288564-76628a30a657?w=800&q=80&fit=crop",
         estimated_co2e_kg=70,
         circularity_score=78,
         circularity_breakdown=CircularityBreakdown(
@@ -82,7 +82,7 @@ PRODUCTS: dict[UUID, Product] = {
         name="Slim Fit Denim Jeans",
         brand="Levi's",
         category=ProductCategory.CLOTHING,
-        image_url="https://images.unsplash.com/photo-1542272604-787c3835535d?w=400",
+        image_url="https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800&q=80&fit=crop",
         estimated_co2e_kg=33,
         circularity_score=71,
         circularity_breakdown=CircularityBreakdown(
@@ -114,7 +114,7 @@ PRODUCTS: dict[UUID, Product] = {
         name="Wireless Noise-Cancel Headphones",
         brand="Sony",
         category=ProductCategory.ELECTRONICS,
-        image_url="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400",
+        image_url="https://images.unsplash.com/photo-1484704849700-f032a568e944?w=800&q=80&fit=crop",
         estimated_co2e_kg=22,
         circularity_score=69,
         circularity_breakdown=CircularityBreakdown(
@@ -146,7 +146,7 @@ PRODUCTS: dict[UUID, Product] = {
         name="Ultrabook 14-inch Laptop",
         brand="Dell",
         category=ProductCategory.ELECTRONICS,
-        image_url="https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400",
+        image_url="https://images.unsplash.com/photo-1525547719571-a2d4acaf0b43?w=800&q=80&fit=crop",
         estimated_co2e_kg=280,
         circularity_score=74,
         circularity_breakdown=CircularityBreakdown(
@@ -177,7 +177,7 @@ PRODUCTS: dict[UUID, Product] = {
         name="Everyday Running Shoes",
         brand="Nike",
         category=ProductCategory.CLOTHING,
-        image_url="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400",
+        image_url="https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=800&q=80&fit=crop",
         estimated_co2e_kg=14,
         circularity_score=58,
         circularity_breakdown=CircularityBreakdown(
@@ -207,7 +207,7 @@ PRODUCTS: dict[UUID, Product] = {
         name="Urban Daypack",
         brand="Wildcraft",
         category=ProductCategory.OTHER,
-        image_url="https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400",
+        image_url="https://images.unsplash.com/photo-1622560480605-d83b829acbf8?w=800&q=80&fit=crop",
         estimated_co2e_kg=18,
         circularity_score=66,
         circularity_breakdown=CircularityBreakdown(
@@ -237,7 +237,7 @@ PRODUCTS: dict[UUID, Product] = {
         name="Packaged Breakfast Cereal",
         brand="Kellogg's",
         category=ProductCategory.FOOD,
-        image_url="https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=400",
+        image_url="https://images.unsplash.com/photo-1621939514649-b07e4f0d0b6c?w=800&q=80&fit=crop",
         estimated_co2e_kg=1.2,
         circularity_score=42,
         circularity_breakdown=CircularityBreakdown(
@@ -268,7 +268,7 @@ PRODUCTS: dict[UUID, Product] = {
         name="Mixer Grinder",
         brand="Philips",
         category=ProductCategory.HOME,
-        image_url="https://images.unsplash.com/photo-1585515320310-259814833e7f?w=400",
+        image_url="https://images.unsplash.com/photo-1574269909862-7e1d70bb8078?w=800&q=80&fit=crop",
         estimated_co2e_kg=45,
         circularity_score=72,
         circularity_breakdown=CircularityBreakdown(
@@ -298,7 +298,7 @@ PRODUCTS: dict[UUID, Product] = {
         name="Smart LED TV 43-inch",
         brand="Samsung",
         category=ProductCategory.ELECTRONICS,
-        image_url="https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=400",
+        image_url="https://images.unsplash.com/photo-1461151304267-38535e780c79?w=800&q=80&fit=crop",
         estimated_co2e_kg=190,
         circularity_score=70,
         circularity_breakdown=CircularityBreakdown(
@@ -324,7 +324,7 @@ PRODUCTS: dict[UUID, Product] = {
         name="Organic Cotton Tee",
         brand="Levi's",
         category=ProductCategory.CLOTHING,
-        image_url="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400",
+        image_url="https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=800&q=80&fit=crop",
         estimated_co2e_kg=7,
         circularity_score=68,
         circularity_breakdown=CircularityBreakdown(
@@ -350,7 +350,7 @@ PRODUCTS: dict[UUID, Product] = {
         name="Ergo Office Chair",
         brand="Featherlite",
         category=ProductCategory.FURNITURE,
-        image_url="https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=400",
+        image_url="https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=800&q=80&fit=crop",
         estimated_co2e_kg=55,
         circularity_score=73,
         circularity_breakdown=CircularityBreakdown(
@@ -376,7 +376,7 @@ PRODUCTS: dict[UUID, Product] = {
         name="20,000 mAh Power Bank",
         brand="Mi",
         category=ProductCategory.ELECTRONICS,
-        image_url="https://images.unsplash.com/photo-1609091839311-b9b0e2c3b2e0?w=400",
+        image_url="https://images.unsplash.com/photo-1609091839311-b9b0e2c3b2e0?w=800&q=80&fit=crop",
         estimated_co2e_kg=12,
         circularity_score=54,
         circularity_breakdown=CircularityBreakdown(
@@ -402,7 +402,7 @@ PRODUCTS: dict[UUID, Product] = {
         name="6-Pack PET Water Bottles",
         brand="Bisleri",
         category=ProductCategory.OTHER,
-        image_url="https://images.unsplash.com/photo-1523362628745-0c100150b504?w=400",
+        image_url="https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=800&q=80&fit=crop",
         estimated_co2e_kg=0.8,
         circularity_score=38,
         circularity_breakdown=CircularityBreakdown(
@@ -429,7 +429,7 @@ PRODUCTS: dict[UUID, Product] = {
         name="Electric Kettle 1.5L",
         brand="Philips",
         category=ProductCategory.HOME,
-        image_url="https://images.unsplash.com/photo-1570824104453-508995ee1836?w=400",
+        image_url="https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=800&q=80&fit=crop",
         estimated_co2e_kg=16,
         circularity_score=67,
         circularity_breakdown=CircularityBreakdown(
@@ -455,7 +455,7 @@ PRODUCTS: dict[UUID, Product] = {
         name="Split AC Remote + PCB kit",
         brand="Voltas",
         category=ProductCategory.HOME,
-        image_url="https://images.unsplash.com/photo-1631545806609-5f64c8e0f0f0?w=400",
+        image_url="https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=800&q=80&fit=crop",
         estimated_co2e_kg=3,
         circularity_score=61,
         circularity_breakdown=CircularityBreakdown(
@@ -481,7 +481,7 @@ PRODUCTS: dict[UUID, Product] = {
         name="2-Slice Pop-up Toaster",
         brand="Bajaj",
         category=ProductCategory.HOME,
-        image_url="https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=400",
+        image_url="https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&q=80&fit=crop",
         estimated_co2e_kg=11,
         circularity_score=64,
         circularity_breakdown=CircularityBreakdown(
@@ -598,6 +598,7 @@ FACILITIES: list[Facility] = [
         open_now=True,
         verification_status="Verified",
         address="100 Feet Rd, Indiranagar, Bengaluru",
+        cover_image_url="https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=800&q=80&fit=crop",
     ),
     Facility(
         id=UUID("33333333-3333-3333-3333-333333333302"),
@@ -609,6 +610,7 @@ FACILITIES: list[Facility] = [
         open_now=True,
         verification_status="Verified",
         address="5th Block, Koramangala, Bengaluru",
+        cover_image_url="https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80&fit=crop",
     ),
     Facility(
         id=UUID("33333333-3333-3333-3333-333333333303"),
@@ -624,6 +626,7 @@ FACILITIES: list[Facility] = [
         open_now=True,
         verification_status="Verified",
         address="Whitefield, Bengaluru",
+        cover_image_url="https://images.unsplash.com/photo-1532996122724-e3c354a0b4ba?w=800&q=80&fit=crop",
     ),
     Facility(
         id=UUID("33333333-3333-3333-3333-333333333304"),
@@ -635,6 +638,7 @@ FACILITIES: list[Facility] = [
         open_now=False,
         verification_status="Unverified",
         address="Near Cubbon Park, Bengaluru",
+        cover_image_url="https://images.unsplash.com/photo-1611284446314-60a58ac0deb8?w=800&q=80&fit=crop",
     ),
     Facility(
         id=UUID("33333333-3333-3333-3333-333333333305"),
@@ -646,6 +650,7 @@ FACILITIES: list[Facility] = [
         open_now=True,
         verification_status="Verified",
         address="HSR Layout, Bengaluru",
+        cover_image_url="https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=800&q=80&fit=crop",
     ),
     Facility(
         id=UUID("33333333-3333-3333-3333-333333333306"),
@@ -657,6 +662,7 @@ FACILITIES: list[Facility] = [
         open_now=True,
         verification_status="Unverified",
         address="Forum Mall area, Bengaluru",
+        cover_image_url="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&q=80&fit=crop",
     ),
     Facility(
         id=UUID("33333333-3333-3333-3333-333333333307"),
@@ -668,6 +674,7 @@ FACILITIES: list[Facility] = [
         open_now=True,
         verification_status="Verified",
         address="4th Block, Jayanagar, Bengaluru",
+        cover_image_url="https://images.unsplash.com/photo-1514989940723-e8e51635b782?w=800&q=80&fit=crop",
     ),
     Facility(
         id=UUID("33333333-3333-3333-3333-333333333308"),
@@ -679,6 +686,7 @@ FACILITIES: list[Facility] = [
         open_now=True,
         verification_status="Verified",
         address="15th Cross, JP Nagar, Bengaluru",
+        cover_image_url="https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=800&q=80&fit=crop",
     ),
     Facility(
         id=UUID("33333333-3333-3333-3333-333333333309"),
@@ -690,6 +698,7 @@ FACILITIES: list[Facility] = [
         open_now=True,
         verification_status="Verified",
         address="Sampige Rd, Malleshwaram, Bengaluru",
+        cover_image_url="https://images.unsplash.com/photo-1611284446314-60a58ac0deb8?w=800&q=80&fit=crop",
     ),
     Facility(
         id=UUID("33333333-3333-3333-3333-333333333310"),
@@ -701,6 +710,7 @@ FACILITIES: list[Facility] = [
         open_now=False,
         verification_status="Unverified",
         address="Rajajinagar, Bengaluru",
+        cover_image_url="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&q=80&fit=crop",
     ),
     Facility(
         id=UUID("33333333-3333-3333-3333-333333333311"),
@@ -717,6 +727,7 @@ FACILITIES: list[Facility] = [
         open_now=True,
         verification_status="Verified",
         address="BTM Layout, Bengaluru",
+        cover_image_url="https://images.unsplash.com/photo-1593113598332-cd288d649433?w=800&q=80&fit=crop",
     ),
     Facility(
         id=UUID("33333333-3333-3333-3333-333333333312"),
@@ -728,6 +739,7 @@ FACILITIES: list[Facility] = [
         open_now=True,
         verification_status="Verified",
         address="Indiranagar Metro, Bengaluru",
+        cover_image_url="https://images.unsplash.com/photo-1556745757-8d76bdb6984b?w=800&q=80&fit=crop",
     ),
 ]
 
@@ -761,25 +773,25 @@ TRANSACTIONS: list[Transaction] = [
 ]
 
 REWARDS: list[Reward] = [
-    Reward(id=UUID("55555555-5555-5555-5555-555555555501"), title="₹200 repair voucher", description="Mock partner voucher for verified phone repair.", points_required=300, brand="Indiranagar Device Care", is_mock=True),
-    Reward(id=UUID("55555555-5555-5555-5555-555555555502"), title="Refurbished accessory discount", description="Demo brand reward — not a real endorsement.", points_required=500, brand="Cashify (demo)", is_mock=True),
-    Reward(id=UUID("55555555-5555-5555-5555-555555555503"), title="Eco packaging credit", description="Demo brand channel reward for completing a circular action.", points_required=250, brand="GreenCart (demo)", is_mock=True),
-    Reward(id=UUID("55555555-5555-5555-5555-555555555504"), title="Secondhand fashion credit", description="Mock reward for resale/donation completion.", points_required=350, brand="ReWear Hub (demo)", is_mock=True),
-    Reward(id=UUID("55555555-5555-5555-5555-555555555505"), title="Samsung Care+ day pass", description="Demo brand perk for circular electronics actions.", points_required=400, brand="Samsung (demo)", is_mock=True),
-    Reward(id=UUID("55555555-5555-5555-5555-555555555506"), title="Levi's repair denim credit", description="Mock brand reward for clothing repair/donate.", points_required=280, brand="Levi's (demo)", is_mock=True),
-    Reward(id=UUID("55555555-5555-5555-5555-555555555507"), title="Philips appliance service coupon", description="Demo voucher after home appliance repair.", points_required=320, brand="Philips (demo)", is_mock=True),
-    Reward(id=UUID("55555555-5555-5555-5555-555555555508"), title="Wildcraft gear refresh", description="Mock outdoor brand credit for backpack repair.", points_required=200, brand="Wildcraft (demo)", is_mock=True),
-    Reward(id=UUID("55555555-5555-5555-5555-555555555509"), title="e-Waste drop bonus", description="Demo reward for verified recycling check-in.", points_required=150, brand="Saahas (demo)", is_mock=True),
-    Reward(id=UUID("55555555-5555-5555-5555-555555555510"), title="Metro week pass nudge", description="Demo transport-reduce perk.", points_required=180, brand="BMTC/Namma Metro (demo)", is_mock=True),
+    Reward(id=UUID("55555555-5555-5555-5555-555555555501"), title="₹200 repair voucher", description="Mock partner voucher for verified phone repair.", points_required=300, brand="Indiranagar Device Care", is_mock=True, expires_on="2026-06-30"),
+    Reward(id=UUID("55555555-5555-5555-5555-555555555502"), title="Refurbished accessory discount", description="Demo brand reward — not a real endorsement.", points_required=500, brand="Cashify (demo)", is_mock=True, expires_on="2026-06-30"),
+    Reward(id=UUID("55555555-5555-5555-5555-555555555503"), title="Eco packaging credit", description="Demo brand channel reward for completing a circular action.", points_required=250, brand="GreenCart (demo)", is_mock=True, expires_on="2026-06-30"),
+    Reward(id=UUID("55555555-5555-5555-5555-555555555504"), title="Secondhand fashion credit", description="Mock reward for resale/donation completion.", points_required=350, brand="ReWear Hub (demo)", is_mock=True, expires_on="2026-06-30"),
+    Reward(id=UUID("55555555-5555-5555-5555-555555555505"), title="Samsung Care+ day pass", description="Demo brand perk for circular electronics actions.", points_required=400, brand="Samsung (demo)", is_mock=True, expires_on="2026-06-30"),
+    Reward(id=UUID("55555555-5555-5555-5555-555555555506"), title="Levi's repair denim credit", description="Mock brand reward for clothing repair/donate.", points_required=280, brand="Levi's (demo)", is_mock=True, expires_on="2026-06-30"),
+    Reward(id=UUID("55555555-5555-5555-5555-555555555507"), title="Philips appliance service coupon", description="Demo voucher after home appliance repair.", points_required=320, brand="Philips (demo)", is_mock=True, expires_on="2026-06-30"),
+    Reward(id=UUID("55555555-5555-5555-5555-555555555508"), title="Wildcraft gear refresh", description="Mock outdoor brand credit for backpack repair.", points_required=200, brand="Wildcraft (demo)", is_mock=True, expires_on="2026-06-30"),
+    Reward(id=UUID("55555555-5555-5555-5555-555555555509"), title="e-Waste drop bonus", description="Demo reward for verified recycling check-in.", points_required=150, brand="Saahas (demo)", is_mock=True, expires_on="2026-06-30"),
+    Reward(id=UUID("55555555-5555-5555-5555-555555555510"), title="Metro week pass nudge", description="Demo transport-reduce perk.", points_required=180, brand="BMTC/Namma Metro (demo)", is_mock=True, expires_on="2026-06-30"),
 ]
 
 OFFSETS: list[OffsetProject] = [
-    OffsetProject(id=UUID("77777777-7777-7777-7777-777777777701"), name="Mangrove restoration — Sundarbans", provider="EcoVerified Demo", co2e_kg=100, price_inr=450, verification_status="Verified", geography="IN", description="Community mangrove project. Demo listing only.", methodology="community-mangrove-v1"),
-    OffsetProject(id=UUID("77777777-7777-7777-7777-777777777702"), name="Rural biogas clusters", provider="ClimateLink Demo", co2e_kg=250, price_inr=980, verification_status="Verified", geography="IN", description="Household biogas displacing firewood. Demo listing only.", methodology="biogas-cluster-v1"),
-    OffsetProject(id=UUID("77777777-7777-7777-7777-777777777703"), name="Urban tree pledge", provider="Local NGO", co2e_kg=40, price_inr=199, verification_status="Unverified", geography="IN-KA", description="Unverified local pledge — shown for transparency.", methodology="local-pledge"),
-    OffsetProject(id=UUID("77777777-7777-7777-7777-777777777704"), name="Solar for rural schools", provider="SunShare Demo", co2e_kg=180, price_inr=720, verification_status="Verified", geography="IN", description="Rooftop solar displacing diesel gensets. Demo only.", methodology="solar-school-v1"),
-    OffsetProject(id=UUID("77777777-7777-7777-7777-777777777705"), name="Cookstove upgrade program", provider="CleanCook Demo", co2e_kg=90, price_inr=380, verification_status="Verified", geography="IN", description="Improved cookstoves reducing black carbon. Demo only.", methodology="cookstove-v1"),
-    OffsetProject(id=UUID("77777777-7777-7777-7777-777777777706"), name="City park carbon pledge", provider="GreenBengaluru", co2e_kg=25, price_inr=149, verification_status="Unverified", geography="IN-KA", description="Unverified municipal pledge for demo contrast.", methodology="city-pledge"),
+    OffsetProject(id=UUID("77777777-7777-7777-7777-777777777701"), name="Mangrove restoration — Sundarbans", provider="EcoVerified Demo", co2e_kg=100, price_inr=450, verification_status="Verified", geography="IN", description="Community mangrove project. Demo listing only.", methodology="community-mangrove-v1", cover_image_url="https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&q=80&fit=crop"),
+    OffsetProject(id=UUID("77777777-7777-7777-7777-777777777702"), name="Rural biogas clusters", provider="ClimateLink Demo", co2e_kg=250, price_inr=980, verification_status="Verified", geography="IN", description="Household biogas displacing firewood. Demo listing only.", methodology="biogas-cluster-v1", cover_image_url="https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=800&q=80&fit=crop"),
+    OffsetProject(id=UUID("77777777-7777-7777-7777-777777777703"), name="Urban tree pledge", provider="Local NGO", co2e_kg=40, price_inr=199, verification_status="Unverified", geography="IN-KA", description="Unverified local pledge — shown for transparency.", methodology="local-pledge", cover_image_url="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&q=80&fit=crop"),
+    OffsetProject(id=UUID("77777777-7777-7777-7777-777777777704"), name="Solar for rural schools", provider="SunShare Demo", co2e_kg=180, price_inr=720, verification_status="Verified", geography="IN", description="Rooftop solar displacing diesel gensets. Demo only.", methodology="solar-school-v1", cover_image_url="https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800&q=80&fit=crop"),
+    OffsetProject(id=UUID("77777777-7777-7777-7777-777777777705"), name="Cookstove upgrade program", provider="CleanCook Demo", co2e_kg=90, price_inr=380, verification_status="Verified", geography="IN", description="Improved cookstoves reducing black carbon. Demo only.", methodology="cookstove-v1", cover_image_url="https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=800&q=80&fit=crop"),
+    OffsetProject(id=UUID("77777777-7777-7777-7777-777777777706"), name="City park carbon pledge", provider="GreenBengaluru", co2e_kg=25, price_inr=149, verification_status="Unverified", geography="IN-KA", description="Unverified municipal pledge for demo contrast.", methodology="city-pledge", cover_image_url="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&q=80&fit=crop"),
 ]
 
 BASE_RECOMMENDATIONS: list[Recommendation] = [
@@ -853,6 +865,7 @@ class DemoState:
             offset_kg_total=0.0,
             owned_product_ids=list(OWNED_PRODUCT_IDS),
             unlocked_badge_ids=[],
+            monthly_budget_kg=90.0,
         )
         self.completed_action_ids: set[UUID] = set()
         self.redeemed_reward_ids: set[UUID] = set()
@@ -861,6 +874,46 @@ class DemoState:
         self.products = deepcopy(PRODUCTS)
         self.recommendations = deepcopy(BASE_RECOMMENDATIONS)
         self.transactions = deepcopy(TRANSACTIONS)
+        hints = {
+            PHONE_ID: ("Scanned last week", "Repair nearby"),
+            JEANS_ID: ("In closet", "Donate or resell"),
+            HEADPHONES_ID: ("Battery degrading", "Recycle e-waste"),
+            APPLIANCE_ID: ("Motor noise noted", "Book repair"),
+        }
+        for pid, (last, nxt) in hints.items():
+            if pid in self.products:
+                self.products[pid] = self.products[pid].model_copy(
+                    update={"last_action_label": last, "next_action_label": nxt}
+                )
+        self.activity_events: list[dict] = [
+            {
+                "id": "act-seed-1",
+                "kind": "scan",
+                "title": "Scanned Galaxy phone",
+                "subtitle": "Barcode matched · circularity 78",
+                "points_delta": 0,
+                "created_at": "2026-03-25T09:12:00",
+                "meta": {},
+            },
+            {
+                "id": "act-seed-2",
+                "kind": "insight",
+                "title": "Energy spike detected",
+                "subtitle": "BESCOM bill pushed Energy into your top 3",
+                "points_delta": 0,
+                "created_at": "2026-03-22T18:40:00",
+                "meta": {},
+            },
+            {
+                "id": "act-seed-3",
+                "kind": "streak",
+                "title": "5-day streak",
+                "subtitle": "Keep going — Week Streak unlocks at 7",
+                "points_delta": 0,
+                "created_at": "2026-03-26T08:00:00",
+                "meta": {},
+            },
+        ]
 
     def reset(self) -> None:
         self.__init__()
@@ -892,6 +945,24 @@ def unlock_badge(badge_id: str) -> bool:
         return False
     demo_state.user.unlocked_badge_ids.append(badge_id)
     return True
+
+
+
+def log_activity(kind: str, title: str, subtitle: str, points_delta: int = 0, meta: dict | None = None) -> dict:
+    from datetime import datetime, timezone
+    from uuid import uuid4
+
+    event = {
+        "id": str(uuid4()),
+        "kind": kind,
+        "title": title,
+        "subtitle": subtitle,
+        "points_delta": points_delta,
+        "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "meta": meta or {},
+    }
+    demo_state.activity_events.insert(0, event)
+    return event
 
 
 def list_badges() -> list[dict]:

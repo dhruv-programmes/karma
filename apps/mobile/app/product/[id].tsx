@@ -1,11 +1,11 @@
 import React from "react";
 import { ScrollView as RNScrollView } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Image } from "expo-image";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CircularityRing } from "@/components/custom/circularity-ring";
 import { CompareOption } from "@/components/custom/compare-option";
+import { ProductImage } from "@/components/custom/product-image";
 import { SkeletonCard } from "@/components/custom/skeleton-card";
 import { Badge } from "@/components/ui/badge";
 import { Box } from "@/components/ui/box";
@@ -71,12 +71,7 @@ export default function ProductScreen() {
       ) : (
         <>
           <Box className="flex-row gap-4">
-            {product.image_url ? (
-              <Image
-                source={{ uri: product.image_url }}
-                style={{ width: 96, height: 96, borderRadius: 20 }}
-              />
-            ) : null}
+            <ProductImage uri={product.image_url} size={96} radius={20} />
             <VStack space="xs" className="flex-1">
               <Badge action="muted" label={product.category} />
               <Heading size="xl">{product.name}</Heading>

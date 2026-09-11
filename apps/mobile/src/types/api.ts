@@ -42,6 +42,8 @@ export interface Product {
   expected_remaining_life_months: number;
   condition: string;
   age_months: number;
+  last_action_label?: string | null;
+  next_action_label?: string | null;
 }
 
 export interface CircularOption {
@@ -83,6 +85,7 @@ export interface UserProfile {
   offset_kg_total?: number;
   owned_product_ids?: string[];
   unlocked_badge_ids?: string[];
+  monthly_budget_kg?: number;
 }
 
 export interface ImpactBreakdown {
@@ -96,6 +99,11 @@ export interface ImpactBreakdown {
   offset_kg_total?: number;
   residual_kg?: number;
   by_category?: Record<string, number>;
+  monthly_budget_kg?: number;
+  budget_used_pct?: number;
+  budget_status?: string;
+  previous_month_kg?: number;
+  this_month_kg?: number;
 }
 
 export interface Recommendation {
@@ -124,6 +132,7 @@ export interface Facility {
   open_now?: boolean | null;
   verification_status: string;
   address: string;
+  cover_image_url?: string | null;
 }
 
 export interface Reward {
@@ -133,6 +142,8 @@ export interface Reward {
   points_required: number;
   brand?: string | null;
   is_mock: boolean;
+  expires_on?: string | null;
+  cover_image_url?: string | null;
 }
 
 export interface OffsetProject {
@@ -145,6 +156,26 @@ export interface OffsetProject {
   geography: string;
   description: string;
   methodology?: string;
+  cover_image_url?: string | null;
+}
+
+export interface ActivityEvent {
+  id: string;
+  kind: string;
+  title: string;
+  subtitle: string;
+  points_delta: number;
+  created_at: string;
+  meta?: Record<string, unknown>;
+}
+
+export interface ImpactTimeseries {
+  points: { label: string; week_start: string; kg: number }[];
+  purchases_kg: number;
+  transport_kg: number;
+  energy_kg: number;
+  this_month_kg: number;
+  previous_month_kg: number;
 }
 
 export interface Badge {

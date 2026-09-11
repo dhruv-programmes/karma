@@ -87,6 +87,16 @@ def complete_action(action_id: UUID, action_type: ActionType | None = None) -> d
     if user.streak_days >= 7 and unlock_badge("streak_7"):
         badges.append("streak_7")
 
+    from app.seed.data import log_activity
+
+    log_activity(
+        "complete",
+        f"Completed {inferred.value.title()}",
+        f"+{points} Impact Points",
+        points_delta=points,
+        meta={"action_id": str(action_id)},
+    )
+
     return {
         "action_id": action_id,
         "points_awarded": points,

@@ -19,6 +19,7 @@ from app.seed.data import (
     demo_state,
     get_product,
     get_product_by_barcode,
+    log_activity,
     unlock_badge,
 )
 
@@ -36,6 +37,15 @@ async def lookup_barcode(barcode: str) -> Product:
     """Try Open Products Facts, then seed fallback. Never fail the demo."""
     local = get_product_by_barcode(barcode)
     if local:
+        log_activity(
+            "scan",
+            f"Scanned {local.name}",
+            f"{local.brand} · circularity {local.circularity_score}",
+        )
+        if local.id in demo_state.products:
+            demo_state.products[local.id] = local.model_copy(
+                update={"last_action_label": "Just scanned", "next_action_label": "Compare options"}
+            )
         return local
 
     try:
@@ -54,13 +64,15 @@ async def lookup_barcode(barcode: str) -> Product:
 
                 seeded = get_product(PHONE_ID)
                 if seeded:
-                    return seeded.model_copy(
+                    product = seeded.model_copy(
                         update={
                             "name": name[:80],
                             "brand": brand[:40],
                             "barcode": barcode,
                         }
                     )
+                    log_activity("scan", f"Scanned {product.name}", "Matched via Open Facts + seed")
+                    return product
     except Exception:
         pass
 
@@ -68,6 +80,7 @@ async def lookup_barcode(barcode: str) -> Product:
 
     product = get_product(PHONE_ID)
     assert product is not None
+    log_activity("scan", f"Scanned {product.name}", "Demo fallback match")
     return product
 
 
@@ -97,6 +110,18 @@ def categorize_merchant(merchant: str) -> ProductCategory:
     return ProductCategory.OTHER
 
 
+def _month_totals() -> tuple[float, float]:
+    this_m = 0.0
+    prev_m = 0.0
+    for t in demo_state.transactions:
+        kg = estimate_from_spend(t.category, t.amount_inr).estimated_co2e_kg
+        if t.date.startswith("2026-03"):
+            this_m += kg
+        elif t.date.startswith("2026-02"):
+            prev_m += kg
+    return round(this_m, 1), round(prev_m, 1)
+
+
 def user_impact() -> dict:
     purchases = 0.0
     transport = 0.0
@@ -121,7 +146,6 @@ def user_impact() -> dict:
         "Transport": transport,
         "Energy": energy,
     }
-    # Prefer specific category hotspot when clear
     biggest = max(buckets, key=buckets.get)
     if by_category:
         top_cat = max(by_category, key=by_category.get)
@@ -130,9 +154,13 @@ def user_impact() -> dict:
 
     offset_total = demo_state.user.offset_kg_total
     residual = max(0.0, round(total - offset_total, 1))
+    this_m, prev_m = _month_totals()
+    budget = demo_state.user.monthly_budget_kg
+    used_pct = round(min(200.0, (this_m / budget) * 100), 1) if budget else 0.0
+    status = "on_track" if used_pct <= 90 else ("watch" if used_pct <= 110 else "over")
     insight = (
         f"Biggest lever right now: {biggest}. "
-        "Extend product lifetimes, shift short trips, then offset what's left."
+        f"March is ~{int(this_m)} kg vs budget {int(budget)} kg ({status.replace('_', ' ')})."
     )
     return {
         "purchases_kg": round(purchases, 1),
@@ -145,7 +173,48 @@ def user_impact() -> dict:
         "offset_kg_total": round(offset_total, 1),
         "residual_kg": residual,
         "by_category": by_category,
+        "monthly_budget_kg": budget,
+        "budget_used_pct": used_pct,
+        "budget_status": status,
+        "previous_month_kg": prev_m,
+        "this_month_kg": this_m,
     }
+
+
+def impact_timeseries() -> dict:
+    from datetime import datetime, timedelta
+
+    weeks: dict[str, float] = {}
+    purchases = transport = energy = 0.0
+    for t in demo_state.transactions:
+        kg = estimate_from_spend(t.category, t.amount_inr).estimated_co2e_kg
+        if t.category == ProductCategory.TRANSPORT:
+            transport += kg
+        elif t.category == ProductCategory.ENERGY:
+            energy += kg
+        else:
+            purchases += kg
+        d = datetime.strptime(t.date, "%Y-%m-%d")
+        week_start = (d - timedelta(days=d.weekday())).date().isoformat()
+        weeks[week_start] = round(weeks.get(week_start, 0.0) + kg, 1)
+
+    points = [
+        {"label": f"W{i+1}", "week_start": ws, "kg": weeks[ws]}
+        for i, ws in enumerate(sorted(weeks.keys()))
+    ]
+    this_m, prev_m = _month_totals()
+    return {
+        "points": points,
+        "purchases_kg": round(purchases, 1),
+        "transport_kg": round(transport, 1),
+        "energy_kg": round(energy, 1),
+        "this_month_kg": this_m,
+        "previous_month_kg": prev_m,
+    }
+
+
+def list_activity(limit: int = 30) -> list[dict]:
+    return list(demo_state.activity_events[:limit])
 
 
 def get_recommendations():
@@ -240,6 +309,12 @@ def parse_receipt_text(text: str | None, use_demo: bool = True) -> dict:
     badges: list[str] = []
     if unlock_badge("receipt_ranger"):
         badges.append("receipt_ranger")
+    log_activity(
+        "receipt",
+        f"Parsed receipt · {len(created)} items",
+        "Added to footprint (demo NLP)",
+        meta={"imported": len(created)},
+    )
     return {
         "imported": len(created),
         "transactions": created,
@@ -271,6 +346,12 @@ def redeem_reward(reward_id: UUID) -> dict:
     badges: list[str] = []
     if unlock_badge("brand_claimer"):
         badges.append("brand_claimer")
+    log_activity(
+        "redeem",
+        f"Redeemed {reward.title}",
+        f"Code ready · −{reward.points_required} pts",
+        points_delta=-reward.points_required,
+    )
     return {
         "reward_id": reward_id,
         "claim_code": code,
@@ -293,6 +374,11 @@ def purchase_offset(offset_id: UUID) -> dict:
     badges: list[str] = []
     if unlock_badge("offset_starter"):
         badges.append("offset_starter")
+    log_activity(
+        "offset",
+        f"Offset +{int(project.co2e_kg)} kg",
+        project.name,
+    )
     return {
         "offset_id": offset_id,
         "co2e_kg": project.co2e_kg,

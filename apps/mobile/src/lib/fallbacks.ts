@@ -41,6 +41,11 @@ export const fallbackImpact: ImpactBreakdown = {
   offset_kg_total: 0,
   residual_kg: 82.7,
   by_category: { Electronics: 40, Food: 18, Energy: 22 },
+  monthly_budget_kg: 90,
+  budget_used_pct: 61,
+  budget_status: "on_track",
+  previous_month_kg: 40,
+  this_month_kg: 55,
 };
 
 export const fallbackRecommendations: Recommendation[] = [
@@ -82,7 +87,7 @@ export const fallbackPhone: Product = {
   brand: "Samsung",
   category: "Electronics",
   image_url:
-    "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400",
+    "https://images.unsplash.com/photo-1592890288564-76628a30a657?w=800&q=80&fit=crop",
   estimated_co2e_kg: 70,
   circularity_score: 78,
   circularity_breakdown: {
@@ -96,6 +101,8 @@ export const fallbackPhone: Product = {
   expected_remaining_life_months: 24,
   condition: "good",
   age_months: 28,
+  last_action_label: "Scanned last week",
+  next_action_label: "Repair nearby",
 };
 
 export const fallbackFacilities: Facility[] = [

@@ -32,6 +32,47 @@ export function useImpact() {
   });
 }
 
+export function useImpactTimeseries() {
+  return useQuery({
+    queryKey: ["impact-timeseries"],
+    queryFn: () =>
+      withFallback(api.getImpactTimeseries, {
+        points: [
+          { label: "W1", week_start: "2026-02-03", kg: 18 },
+          { label: "W2", week_start: "2026-02-10", kg: 22 },
+          { label: "W3", week_start: "2026-02-17", kg: 16 },
+          { label: "W4", week_start: "2026-02-24", kg: 28 },
+          { label: "W5", week_start: "2026-03-03", kg: 34 },
+          { label: "W6", week_start: "2026-03-10", kg: 41 },
+          { label: "W7", week_start: "2026-03-17", kg: 29 },
+          { label: "W8", week_start: "2026-03-24", kg: 24 },
+        ],
+        purchases_kg: 48,
+        transport_kg: 12,
+        energy_kg: 22,
+        this_month_kg: 55,
+        previous_month_kg: 40,
+      }),
+  });
+}
+
+export function useActivity() {
+  return useQuery({
+    queryKey: ["activity"],
+    queryFn: () =>
+      withFallback(api.getActivity, [
+        {
+          id: "1",
+          kind: "scan",
+          title: "Scanned Galaxy phone",
+          subtitle: "Barcode matched",
+          points_delta: 0,
+          created_at: "2026-03-25T09:12:00",
+        },
+      ]),
+  });
+}
+
 export function useRecommendations() {
   return useQuery({
     queryKey: ["recommendations"],
@@ -144,12 +185,12 @@ export function useCircularOptions(id: string) {
   });
 }
 
-export function useFacilitiesNearby(type?: string) {
+export function useFacilitiesNearby(type?: string, lat?: number, lng?: number) {
   return useQuery({
-    queryKey: ["facilities-nearby", type ?? "all"],
+    queryKey: ["facilities-nearby", type ?? "all", lat ?? 12.9716, lng ?? 77.5946],
     queryFn: () =>
       withFallback(
-        () => api.getFacilitiesNearby(type),
+        () => api.getFacilitiesNearby(type, lat, lng),
         fallbackFacilities.filter((f) => !type || f.facility_type === type)
       ),
   });
@@ -173,6 +214,7 @@ export function useCompleteAction() {
       qc.invalidateQueries({ queryKey: ["me"] });
       qc.invalidateQueries({ queryKey: ["recommendations"] });
       qc.invalidateQueries({ queryKey: ["badges"] });
+      qc.invalidateQueries({ queryKey: ["activity"] });
     },
   });
 }
@@ -202,6 +244,7 @@ export function useRedeemReward() {
       qc.invalidateQueries({ queryKey: ["me"] });
       qc.invalidateQueries({ queryKey: ["badges"] });
       qc.invalidateQueries({ queryKey: ["rewards"] });
+      qc.invalidateQueries({ queryKey: ["activity"] });
     },
   });
 }
@@ -233,6 +276,7 @@ export function usePurchaseOffset() {
       qc.invalidateQueries({ queryKey: ["me"] });
       qc.invalidateQueries({ queryKey: ["impact"] });
       qc.invalidateQueries({ queryKey: ["badges"] });
+      qc.invalidateQueries({ queryKey: ["activity"] });
     },
   });
 }
@@ -246,6 +290,8 @@ export function useParseReceipt() {
       qc.invalidateQueries({ queryKey: ["impact"] });
       qc.invalidateQueries({ queryKey: ["badges"] });
       qc.invalidateQueries({ queryKey: ["me"] });
+      qc.invalidateQueries({ queryKey: ["activity"] });
+      qc.invalidateQueries({ queryKey: ["impact-timeseries"] });
     },
   });
 }

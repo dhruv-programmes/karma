@@ -2,25 +2,33 @@ import React from "react";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Camera, Leaf, Recycle, Receipt } from "lucide-react-native";
-import { Image } from "expo-image";
 import { CircularityScore } from "@/components/custom/circularity-score";
+import { FootprintTrend } from "@/components/custom/footprint-trend";
+import { ProductImage } from "@/components/custom/product-image";
 import { RecommendationCard } from "@/components/custom/recommendation-card";
 import { SkeletonCard } from "@/components/custom/skeleton-card";
 import { TickerStrip } from "@/components/custom/ticker-strip";
-import { Badge } from "@/components/ui/badge";
+import { Avatar } from "@/components/ui/avatar";
 import { Box } from "@/components/ui/box";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Chip } from "@/components/ui/chip";
 import { Heading } from "@/components/ui/heading";
+import { ListRow } from "@/components/ui/list-row";
 import { Pressable } from "@/components/ui/pressable";
 import { ScrollView } from "@/components/ui/scroll-view";
+import { StatTile } from "@/components/ui/stat-tile";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 import {
+  useActivity,
   useCloset,
   useImpact,
+  useImpactTimeseries,
   useMe,
   useRecommendations,
 } from "@/src/hooks/queries";
+import { DEMO_REPAIR_ACTION_ID } from "@/src/types/api";
 
 function greeting() {
   const h = new Date().getHours();
@@ -29,14 +37,24 @@ function greeting() {
   return "Good evening";
 }
 
+function nudge(streak: number, hour: number) {
+  if (hour < 11) return "Morning loop: clear one action before lunch.";
+  if (hour > 18) return "Evening check-in: log a circular win today.";
+  if (streak >= 5) return "Streak is hot — one more action locks Week Streak.";
+  return "Your next circular move is ready.";
+}
+
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const me = useMe();
   const impact = useImpact();
+  const series = useImpactTimeseries();
   const recs = useRecommendations();
   const closet = useCloset();
+  const activity = useActivity();
   const best = recs.data?.[0];
+  const hour = new Date().getHours();
 
   return (
     <ScrollView
@@ -45,24 +63,86 @@ export default function HomeScreen() {
         paddingTop: insets.top + 16,
         paddingBottom: insets.bottom + 32,
         paddingHorizontal: 24,
-        gap: 24,
+        gap: 20,
       }}
     >
-      <VStack space="xs">
-        <Text size="sm" bold className="text-primary">
-          Carbon Loop
-        </Text>
-        <Heading size="2xl">
-          {greeting()}
-          {me.data?.name ? `, ${me.data.name}` : ""}
-        </Heading>
-      </VStack>
+      <Box className="flex-row items-center justify-between">
+        <VStack space="xs" className="flex-1">
+          <Text size="sm" bold className="text-primary">
+            Carbon Loop
+          </Text>
+          <Heading size="2xl">
+            {greeting()}
+            {me.data?.name ? `, ${me.data.name}` : ""}
+          </Heading>
+        </VStack>
+        <Avatar name={me.data?.name || "A"} size="lg" />
+      </Box>
+
+      <Chip tone="info" label={nudge(me.data?.streak_days ?? 5, hour)} />
 
       <TickerStrip
         points={me.data?.impact_points ?? 420}
         streak={me.data?.streak_days ?? 5}
         trend={me.data?.trend_delta ?? 6}
         level={me.data?.loop_level ?? 2}
+      />
+
+      {best ? (
+        <Card variant="softPop" className="gap-3">
+          <Chip tone="accent" label="Today · do this first" />
+          <Text bold size="xl">
+            {best.title}
+          </Text>
+          <Text size="sm" className="text-muted-foreground">
+            {best.subtitle} · ~{Math.round(best.co2e_avoided_kg)} kg CO₂e ·{" "}
+            {best.local_availability}
+          </Text>
+          <Button
+            onPress={() =>
+              router.push({
+                pathname: "/map",
+                params: {
+                  type: "repair",
+                  actionId: best.id || DEMO_REPAIR_ACTION_ID,
+                  actionType: best.action_type,
+                },
+              })
+            }
+          >
+            Start nearby action
+          </Button>
+        </Card>
+      ) : (
+        <SkeletonCard height={140} />
+      )}
+
+      <Box className="flex-row gap-3">
+        <StatTile
+          label="Residual"
+          value={`~${Math.round(impact.data?.residual_kg ?? 0)}`}
+          hint="kg left"
+          tone="primary"
+        />
+        <StatTile
+          label="Budget"
+          value={`${Math.round(impact.data?.budget_used_pct ?? 0)}%`}
+          hint={impact.data?.budget_status?.replace("_", " ") || "on track"}
+          tone={
+            impact.data?.budget_status === "over"
+              ? "warning"
+              : impact.data?.budget_status === "watch"
+                ? "accent"
+                : "info"
+          }
+        />
+      </Box>
+
+      <FootprintTrend
+        points={(series.data?.points ?? []).map((p) => ({
+          label: p.label,
+          kg: p.kg,
+        }))}
       />
 
       {me.isLoading ? (
@@ -107,17 +187,17 @@ export default function HomeScreen() {
                 key={item.id}
                 onPress={() => router.push(`/product/${item.id}`)}
               >
-                <Card variant="soft" className="w-[148px] gap-2">
-                  {item.image_url ? (
-                    <Image
-                      source={{ uri: item.image_url }}
-                      style={{ width: "100%", height: 88, borderRadius: 16 }}
-                    />
-                  ) : null}
+                <Card variant="soft" className="w-[156px] gap-2 overflow-hidden p-3">
+                  <ProductImage uri={item.image_url} size="full" radius={16} />
                   <Text bold numberOfLines={2} size="sm">
                     {item.name}
                   </Text>
-                  <Badge action="muted" label={item.category} />
+                  <Chip tone="muted" label={item.next_action_label || item.category} />
+                  {item.last_action_label ? (
+                    <Text size="xs" className="text-muted-foreground">
+                      {item.last_action_label}
+                    </Text>
+                  ) : null}
                 </Card>
               </Pressable>
             ))}
@@ -125,32 +205,24 @@ export default function HomeScreen() {
         </ScrollView>
       </VStack>
 
-      <VStack space="md">
+      <VStack space="sm">
         <Text size="sm" bold className="text-secondary-foreground">
-          Your footprint mix
+          Activity
         </Text>
-        <Box className="flex-row gap-3">
-          {[
-            { label: "Purchases", value: impact.data?.purchases_kg },
-            { label: "Transport", value: impact.data?.transport_kg },
-            { label: "Energy", value: impact.data?.energy_kg },
-          ].map((item) => (
-            <Card key={item.label} variant="soft" className="flex-1 p-3">
-              <Text size="lg" bold className="font-mono">
-                ~{Math.round(item.value ?? 0)}
-              </Text>
-              <Text size="xs" className="text-muted-foreground mt-1">
-                {item.label}
-              </Text>
-            </Card>
+        <Card variant="soft" className="py-1">
+          {(activity.data ?? []).slice(0, 6).map((ev) => (
+            <ListRow
+              key={ev.id}
+              title={ev.title}
+              subtitle={ev.subtitle}
+              trailing={
+                ev.points_delta
+                  ? `${ev.points_delta > 0 ? "+" : ""}${ev.points_delta}`
+                  : undefined
+              }
+            />
           ))}
-        </Box>
-        {impact.data?.residual_kg != null ? (
-          <Text size="xs" className="text-muted-foreground">
-            Residual after offsets ~{Math.round(impact.data.residual_kg)} kg ·
-            hotspot {impact.data.biggest_opportunity}
-          </Text>
-        ) : null}
+        </Card>
       </VStack>
 
       <VStack space="md">

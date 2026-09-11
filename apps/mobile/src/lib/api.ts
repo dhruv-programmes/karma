@@ -43,6 +43,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   getMe: () => request<UserProfile>("/api/v1/users/me"),
   getImpact: () => request<ImpactBreakdown>("/api/v1/users/me/impact"),
+  getImpactTimeseries: () =>
+    request<import("@/src/types/api").ImpactTimeseries>(
+      "/api/v1/users/me/impact/timeseries"
+    ),
+  getActivity: () =>
+    request<import("@/src/types/api").ActivityEvent[]>(
+      "/api/v1/users/me/activity"
+    ),
   getRecommendations: () =>
     request<Recommendation[]>("/api/v1/users/me/recommendations"),
   getCloset: () => request<Product[]>("/api/v1/users/me/closet"),

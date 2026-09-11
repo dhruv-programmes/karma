@@ -3,8 +3,7 @@
 
 @layer theme {
   /*
-   * Soft Loop — playful light circular-consumer theme
-   * Friendly mint canvas, soft white cards, pill CTAs. No brutal edges, no frosted glass.
+   * Soft Loop SaaS — light mint canvas with richer chart/semantic colors.
    */
   :where(.light, .light *) {
     --primary: 46 168 110;
@@ -25,6 +24,15 @@
     --ring: 46 168 110;
     --accent: 255 150 120;
     --accent-foreground: 80 40 28;
+    --chart-1: 46 168 110;
+    --chart-2: 255 150 120;
+    --chart-3: 56 152 196;
+    --chart-4: 232 168 56;
+    --chart-5: 140 110 168;
+    --success: 46 168 110;
+    --warning: 232 168 56;
+    --info: 56 152 196;
+    --danger: 230 90 80;
   }
 
   @media (prefers-color-scheme: light) {
@@ -47,6 +55,15 @@
       --ring: 46 168 110;
       --accent: 255 150 120;
       --accent-foreground: 80 40 28;
+      --chart-1: 46 168 110;
+      --chart-2: 255 150 120;
+      --chart-3: 56 152 196;
+      --chart-4: 232 168 56;
+      --chart-5: 140 110 168;
+      --success: 46 168 110;
+      --warning: 232 168 56;
+      --info: 56 152 196;
+      --danger: 230 90 80;
     }
   }
 
@@ -69,6 +86,15 @@
     --ring: 46 168 110;
     --accent: 255 150 120;
     --accent-foreground: 255 240 234;
+    --chart-1: 46 168 110;
+    --chart-2: 255 150 120;
+    --chart-3: 56 152 196;
+    --chart-4: 232 168 56;
+    --chart-5: 140 110 168;
+    --success: 46 168 110;
+    --warning: 232 168 56;
+    --info: 56 152 196;
+    --danger: 230 90 80;
   }
 }
 
@@ -91,6 +117,15 @@
   --color-ring: rgb(var(--ring));
   --color-accent: rgb(var(--accent));
   --color-accent-foreground: rgb(var(--accent-foreground));
+  --color-chart-1: rgb(var(--chart-1));
+  --color-chart-2: rgb(var(--chart-2));
+  --color-chart-3: rgb(var(--chart-3));
+  --color-chart-4: rgb(var(--chart-4));
+  --color-chart-5: rgb(var(--chart-5));
+  --color-success: rgb(var(--success));
+  --color-warning: rgb(var(--warning));
+  --color-info: rgb(var(--info));
+  --color-danger: rgb(var(--danger));
   --font-sans: 'Nunito_600SemiBold';
   --font-mono: 'IBMPlexMono_500Medium';
   --font-semibold: 'Nunito_600SemiBold';

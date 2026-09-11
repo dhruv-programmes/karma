@@ -59,6 +59,8 @@ class Product(BaseModel):
     condition: str = "used"
     age_months: int = 24
     attributes: dict[str, Any] = Field(default_factory=dict)
+    last_action_label: str | None = None
+    next_action_label: str | None = None
 
 
 class CarbonEstimate(BaseModel):
@@ -124,6 +126,7 @@ class UserProfile(BaseModel):
     offset_kg_total: float = 0.0
     owned_product_ids: list[UUID] = Field(default_factory=list)
     unlocked_badge_ids: list[str] = Field(default_factory=list)
+    monthly_budget_kg: float = 90.0
 
 
 class ImpactBreakdown(BaseModel):
@@ -137,6 +140,11 @@ class ImpactBreakdown(BaseModel):
     offset_kg_total: float = 0.0
     residual_kg: float = 0.0
     by_category: dict[str, float] = Field(default_factory=dict)
+    monthly_budget_kg: float = 90.0
+    budget_used_pct: float = 0.0
+    budget_status: str = "on_track"
+    previous_month_kg: float = 0.0
+    this_month_kg: float = 0.0
 
 
 class Recommendation(BaseModel):
@@ -165,6 +173,7 @@ class Facility(BaseModel):
     open_now: bool | None = None
     verification_status: str
     address: str
+    cover_image_url: str | None = None
 
 
 class Reward(BaseModel):
@@ -174,6 +183,8 @@ class Reward(BaseModel):
     points_required: int
     brand: str | None = None
     is_mock: bool = True
+    expires_on: str | None = None
+    cover_image_url: str | None = None
 
 
 class OffsetProject(BaseModel):
@@ -186,6 +197,32 @@ class OffsetProject(BaseModel):
     geography: str
     description: str
     methodology: str = "demo-methodology-v1"
+    cover_image_url: str | None = None
+
+
+class ActivityEvent(BaseModel):
+    id: str
+    kind: str
+    title: str
+    subtitle: str
+    points_delta: int = 0
+    created_at: str
+    meta: dict[str, Any] = Field(default_factory=dict)
+
+
+class TimeseriesPoint(BaseModel):
+    label: str
+    week_start: str
+    kg: float
+
+
+class ImpactTimeseries(BaseModel):
+    points: list[TimeseriesPoint]
+    purchases_kg: float
+    transport_kg: float
+    energy_kg: float
+    this_month_kg: float
+    previous_month_kg: float
 
 
 class CompletedActionResult(BaseModel):
@@ -223,6 +260,15 @@ class ReceiptParseRequest(BaseModel):
     use_demo: bool = True
 
 
+class Transaction(BaseModel):
+    id: UUID
+    date: str
+    merchant: str
+    amount_inr: float
+    category: ProductCategory
+    type: str = "debit"
+
+
 class ReceiptParseResult(BaseModel):
     imported: int
     transactions: list[Transaction]
@@ -232,15 +278,6 @@ class ReceiptParseResult(BaseModel):
 
 class BarcodeLookupRequest(BaseModel):
     barcode: str
-
-
-class Transaction(BaseModel):
-    id: UUID
-    date: str
-    merchant: str
-    amount_inr: float
-    category: ProductCategory
-    type: str = "debit"
 
 
 class AskRequest(BaseModel):

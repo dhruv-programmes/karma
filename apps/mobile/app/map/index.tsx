@@ -1,13 +1,15 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import MapView, { Marker } from "react-native-maps";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
+import * as Location from "expo-location";
 import { FacilityCard } from "@/components/custom/facility-card";
 import { PointsCounter } from "@/components/custom/points-counter";
 import { Badge } from "@/components/ui/badge";
 import { Box } from "@/components/ui/box";
 import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
 import { Pressable } from "@/components/ui/pressable";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Text } from "@/components/ui/text";
@@ -23,6 +25,8 @@ const TITLE: Record<string, string> = {
   resale: "Resale nearby",
 };
 
+const BLR = { lat: 12.9716, lng: 77.5946 };
+
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -32,18 +36,45 @@ export default function MapScreen() {
     actionType?: string;
   }>();
   const facilityType = params.type || "repair";
-  const facilitiesQuery = useFacilitiesNearby(facilityType);
+  const [coords, setCoords] = useState(BLR);
+  const facilitiesQuery = useFacilitiesNearby(
+    facilityType,
+    coords.lat,
+    coords.lng
+  );
   const complete = useCompleteAction();
   const [selected, setSelected] = useState<string | null>(null);
   const [showPoints, setShowPoints] = useState(false);
   const [awarded, setAwarded] = useState(0);
   const [badgeNote, setBadgeNote] = useState<string | null>(null);
+  const [checkInNote, setCheckInNote] = useState<string | null>(null);
   const setLastPoints = useAppStore((s) => s.setLastPointsAwarded);
 
-  const facilities = useMemo(
-    () => facilitiesQuery.data ?? [],
-    [facilitiesQuery.data]
-  );
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") return;
+        const loc = await Location.getCurrentPositionAsync({});
+        if (!cancelled) {
+          setCoords({
+            lat: loc.coords.latitude,
+            lng: loc.coords.longitude,
+          });
+        }
+      } catch {
+        /* keep Bengaluru fallback */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const facilities = useMemo(() => {
+    return [...(facilitiesQuery.data ?? [])];
+  }, [facilitiesQuery.data]);
 
   async function markComplete() {
     const actionId = params.actionId ?? DEMO_REPAIR_ACTION_ID;
@@ -57,6 +88,12 @@ export default function MapScreen() {
             ? "RESELL"
             : "REPAIR")
     ).toUpperCase();
+    const place = facilities.find((f) => f.id === selected);
+    setCheckInNote(
+      place
+        ? `Checked in at ${place.name}${place.distance_km != null ? ` · ${place.distance_km} km` : ""}`
+        : "Checked in"
+    );
     try {
       const result = await complete.mutateAsync({
         id: actionId,
@@ -98,16 +135,27 @@ export default function MapScreen() {
         <Box className="w-10" />
       </Box>
 
+      <Box className="px-6 mb-2">
+        <Chip
+          tone="info"
+          label={
+            coords.lat === BLR.lat
+              ? "Using Bengaluru demo location"
+              : "Sorted from your location"
+          }
+        />
+      </Box>
+
       <MapView
         style={{
-          height: 260,
+          height: 240,
           marginHorizontal: 24,
           borderRadius: 24,
           overflow: "hidden",
         }}
-        initialRegion={{
-          latitude: 12.9716,
-          longitude: 77.5946,
+        region={{
+          latitude: coords.lat,
+          longitude: coords.lng,
           latitudeDelta: 0.08,
           longitudeDelta: 0.08,
         }}
@@ -125,7 +173,7 @@ export default function MapScreen() {
 
       <ScrollView
         className="flex-1 px-6 mt-4"
-        contentContainerStyle={{ gap: 12, paddingBottom: insets.bottom + 100 }}
+        contentContainerStyle={{ gap: 12, paddingBottom: insets.bottom + 120 }}
       >
         {facilities.map((f) => (
           <FacilityCard
@@ -141,13 +189,14 @@ export default function MapScreen() {
         className="absolute left-0 right-0 bottom-0 px-6 bg-background gap-2"
         style={{ paddingBottom: insets.bottom + 16 }}
       >
+        {checkInNote ? <Chip tone="success" label={checkInNote} /> : null}
         {badgeNote ? <Badge action="playful" label={badgeNote} /> : null}
         <Button
           disabled={!selected}
           loading={complete.isPending}
           onPress={() => void markComplete()}
         >
-          Mark action complete
+          Check in & complete
         </Button>
       </Box>
 

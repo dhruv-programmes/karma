@@ -1,7 +1,9 @@
 import React from "react";
 import type { Facility } from "@/src/types/api";
+import { ProductImage } from "@/components/custom/product-image";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Chip } from "@/components/ui/chip";
 import { HStack } from "@/components/ui/hstack";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
@@ -16,8 +18,11 @@ type Props = {
 export function FacilityCard({ facility, onPress, selected }: Props) {
   return (
     <Pressable onPress={onPress}>
-      <Card variant={selected ? "softPop" : "soft"}>
-        <VStack space="sm">
+      <Card variant={selected ? "softPop" : "soft"} className="overflow-hidden p-0">
+        {facility.cover_image_url ? (
+          <ProductImage uri={facility.cover_image_url} size="full" radius={0} />
+        ) : null}
+        <VStack space="sm" className="p-4">
           <HStack className="justify-between gap-3">
             <Text size="md" bold className="flex-1">
               {facility.name}
@@ -29,7 +34,8 @@ export function FacilityCard({ facility, onPress, selected }: Props) {
           <Text size="xs" className="text-muted-foreground">
             {facility.address}
           </Text>
-          <HStack space="sm">
+          <HStack space="sm" className="flex-wrap">
+            <Chip tone="info" label={facility.facility_type} />
             <Badge
               action={
                 facility.verification_status === "Verified" ? "success" : "warning"

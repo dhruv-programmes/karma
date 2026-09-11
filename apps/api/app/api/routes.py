@@ -88,6 +88,21 @@ def users_impact(authorization: str | None = Header(default=None)):
     return services.user_impact()
 
 
+@router.get("/users/me/impact/timeseries")
+def users_impact_timeseries(authorization: str | None = Header(default=None)):
+    require_demo_auth(authorization)
+    return services.impact_timeseries()
+
+
+@router.get("/users/me/activity")
+def users_activity(
+    limit: int = Query(30, ge=1, le=100),
+    authorization: str | None = Header(default=None),
+):
+    require_demo_auth(authorization)
+    return services.list_activity(limit)
+
+
 @router.get("/users/me/recommendations")
 def users_recommendations(authorization: str | None = Header(default=None)):
     require_demo_auth(authorization)

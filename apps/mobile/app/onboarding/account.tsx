@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Platform,
   TextInput,
   View,
 } from "react-native";
@@ -9,19 +10,20 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ArrowLeft,
   ArrowRight,
+  ChartColumn,
   Eye,
   EyeOff,
+  Gift,
+  Leaf,
   Lock,
   Mail,
   User,
 } from "lucide-react-native";
-import { Image } from "react-native";
-import { DecorativeBackground } from "@/components/custom/decorative-background";
+import { Image, Text as RNText } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Heading } from "@/components/ui/heading";
 import { HStack } from "@/components/ui/hstack";
 import { Pressable } from "@/components/ui/pressable";
 import { ScrollView } from "@/components/ui/scroll-view";
@@ -32,7 +34,7 @@ import { useAuthStore } from "@/src/store/auth";
 
 function GoogleLogo() {
   return (
-    <Svg width={18} height={18} viewBox="0 0 48 48">
+    <Svg width={20} height={20} viewBox="0 0 48 48">
       <Path
         fill="#EA4335"
         d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
@@ -53,7 +55,7 @@ function GoogleLogo() {
   );
 }
 
-export default function AccountScreen() {
+export default function OnboardingAccountScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
@@ -73,18 +75,17 @@ export default function AccountScreen() {
     try {
       const timestamp = Date.now();
       const mockEmail = `google.user.${timestamp}@carbonloop.app`;
-      // Call backend signup with default budget, marking onboarding incomplete
       const res = await api.signup({
-        name: "Google User",
+        name: "Google Member",
         email: mockEmail,
         password: "social-oauth-token-12345",
         monthly_budget_kg: 90,
       });
-      setAuth(res.user, res.access_token, false);
+      setAuth(res.user, res.access_token);
       setOnboardingStep("baseline");
-      router.push("/onboarding/baseline" as import("expo-router").Href);
+      router.replace("/onboarding/baseline");
     } catch {
-      // Offline fallback: create guest authenticated profile
+      // Offline fallback
       const guestUser = {
         id: `guest-${Date.now()}`,
         name: "Google Member",
@@ -97,17 +98,17 @@ export default function AccountScreen() {
         offset_kg_total: 0,
         monthly_budget_kg: 90,
       };
-      setAuth(guestUser, "social-session-token", false);
+      setAuth(guestUser, "social-session-token");
       setOnboardingStep("baseline");
-      router.push("/onboarding/baseline" as import("expo-router").Href);
+      router.replace("/onboarding/baseline");
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleEmailSignup() {
-    if (!email.trim() || !password.trim()) {
-      setError("Please enter your email and password.");
+  async function handleEmailSignUp() {
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      setError("Please fill in all fields.");
       return;
     }
     if (password.trim().length < 6) {
@@ -119,20 +120,20 @@ export default function AccountScreen() {
     setError(null);
     try {
       const res = await api.signup({
-        name: name.trim() || "New Member",
+        name: name.trim(),
         email: email.trim().toLowerCase(),
         password: password.trim(),
         monthly_budget_kg: 90,
       });
-      setAuth(res.user, res.access_token, false);
+      setAuth(res.user, res.access_token);
       setOnboardingStep("baseline");
-      router.push("/onboarding/baseline" as import("expo-router").Href);
+      router.replace("/onboarding/baseline");
     } catch (err: any) {
       const message = String(err?.message || "");
       setError(
         /account with this email already exists/i.test(message)
-          ? "An account with this email already exists. Sign in below to continue."
-          : message || "Could not create account. Please try again."
+          ? "An account with this email already exists. Use Sign In below."
+          : message || "Failed to create account. Please try again."
       );
     } finally {
       setLoading(false);
@@ -140,93 +141,136 @@ export default function AccountScreen() {
   }
 
   return (
-    <Box
-      className="flex-1 bg-background"
-      style={{
-        paddingTop: insets.top + 16,
-        paddingBottom: insets.bottom + 24,
-        paddingHorizontal: 24,
-      }}
-    >
-      <DecorativeBackground />
-
+    <Box className="flex-1" style={{ backgroundColor: "#F4F8F5" }}>
       {/* Top Navigation */}
-      <HStack className="items-center justify-between mb-4">
-        <Pressable
-          onPress={() => router.back()}
-          className="w-10 h-10 rounded-full bg-card items-center justify-center border border-border"
-          hitSlop={8}
-        >
-          <ArrowLeft size={18} color="rgb(28,42,36)" />
-        </Pressable>
-        <Image
-          source={require("@/assets/karma-text.png")}
-          style={{ width: 90, height: 26 }}
-          resizeMode="contain"
-        />
-        <Box className="w-10 h-10" />
-      </HStack>
+      <Box
+        style={{
+          paddingTop: insets.top + 8,
+          paddingHorizontal: 20,
+          paddingBottom: 8,
+        }}
+      >
+        <HStack className="items-center justify-between">
+          <Pressable
+            onPress={() => router.back()}
+            className="w-10 h-10 rounded-full bg-white items-center justify-center border border-[#E0ECE3] shadow-xs"
+            hitSlop={10}
+          >
+            <ArrowLeft size={18} color="#184A2C" />
+          </Pressable>
+
+          <Image
+            source={require("@/assets/karma-text.png")}
+            style={{ width: 130, height: 38 }}
+            resizeMode="contain"
+          />
+
+          {/* Empty spacer to center logo, no settings icon */}
+          <Box className="w-10 h-10" />
+        </HStack>
+      </Box>
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: 24, gap: 20 }}
+        contentContainerStyle={{
+          paddingHorizontal: 22,
+          paddingBottom: insets.bottom + 28,
+        }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header Block */}
-        <VStack space="xs" className="mt-2">
-          <Heading size="2xl" className="font-heading text-foreground">
-            Start your Carbon Loop
-          </Heading>
-          <Text size="sm" className="text-muted-foreground mt-1 leading-relaxed font-body">
-            Your Carbon Score, actions and rewards are saved to your account.
+        {/* Editorial Serif Hero Title */}
+        <VStack className="items-center mt-2 mb-1">
+          <RNText
+            style={{
+              fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+              fontSize: 38,
+              lineHeight: 44,
+              fontWeight: "700",
+              color: "#182820",
+              textAlign: "center",
+            }}
+          >
+            Start your
+          </RNText>
+          <RNText
+            style={{
+              fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+              fontSize: 40,
+              lineHeight: 46,
+              fontWeight: "700",
+              color: "#185331",
+              textAlign: "center",
+            }}
+          >
+            Carbon Loop
+          </RNText>
+
+          <Text
+            size="sm"
+            className="text-muted-foreground text-center mt-2 leading-relaxed font-body px-4 text-[15px]"
+          >
+            Your Carbon Score, actions and rewards{"\n"}are saved to your account.
           </Text>
         </VStack>
 
         {error ? (
-          <Box className="p-3.5 rounded-xl bg-destructive/10 border border-destructive/30">
-            <Text size="xs" className="text-destructive font-medium">
+          <Box className="mt-3 p-3.5 rounded-xl bg-destructive/10 border border-destructive/30">
+            <Text size="xs" className="text-destructive font-medium text-center">
               {error}
             </Text>
           </Box>
         ) : null}
 
-        {/* Primary Social Option */}
-        <Box className="mt-2">
+        {/* Continue with Google */}
+        <Box className="mt-5">
           <Pressable
             onPress={handleContinueWithGoogle}
             disabled={loading}
-            className="w-full h-13 rounded-2xl bg-card border border-border flex-row items-center justify-center gap-3 px-3 active:bg-secondary/40"
+            className="w-full h-14 rounded-2xl bg-white border border-[#DFEAE2] flex-row items-center justify-center gap-3 px-4 active:bg-neutral-50"
+            style={{
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 1.5 },
+              shadowOpacity: 0.04,
+              shadowRadius: 3,
+              elevation: 1,
+            }}
           >
-            <GoogleLogo />
-            <Text bold size="sm" numberOfLines={1} className="shrink min-w-0 text-foreground font-body">
-              Continue with Google
-            </Text>
+            {loading ? (
+              <ActivityIndicator size="small" color="#1E5E3A" />
+            ) : (
+              <>
+                <GoogleLogo />
+                <Text bold size="sm" className="text-[#1A2820] font-body text-[15px]">
+                  Continue with Google
+                </Text>
+              </>
+            )}
           </Pressable>
         </Box>
 
-        {/* Divider */}
-        <HStack className="items-center gap-3 my-1">
-          <Box className="flex-1 h-[1px] bg-border" />
-          <Text size="xs" numberOfLines={1} className="shrink text-muted-foreground font-body uppercase tracking-wider">
+        {/* OR Divider */}
+        <HStack className="items-center gap-3 my-3 px-2">
+          <Box className="flex-1 h-[1px] bg-[#DFEAE2]" />
+          <Text size="xs" className="text-[#7C9084] font-body uppercase tracking-[2px] text-[11px] font-medium">
             or
           </Text>
-          <Box className="flex-1 h-[1px] bg-border" />
+          <Box className="flex-1 h-[1px] bg-[#DFEAE2]" />
         </HStack>
 
-        {/* Email & Phone Section */}
+        {/* Continue with phone or email */}
         {!showEmailForm ? (
           <Pressable
             onPress={() => setShowEmailForm(true)}
-            className="w-full h-13 rounded-2xl bg-secondary/70 border border-border/80 flex-row items-center justify-center gap-2 px-3"
+            className="w-full h-14 rounded-2xl bg-[#EAF4ED] border border-[#C8E1D1] flex-row items-center justify-center gap-2.5 px-4 active:bg-[#DFEFE5]"
           >
-            <Mail size={18} color="rgb(46,168,110)" />
-            <Text bold size="sm" numberOfLines={1} className="shrink min-w-0 text-foreground font-body">
+            <Mail size={19} color="#1B5E39" strokeWidth={1.8} />
+            <Text bold size="sm" style={{ color: "#1B5E39" }} className="font-body text-[15px]">
               Continue with phone or email
             </Text>
           </Pressable>
         ) : (
-          <Card variant="outline" className="p-4 gap-3.5 border-border">
+          <Card variant="outline" className="p-4 gap-3.5 border-border rounded-2xl bg-card/90">
             <VStack space="xs">
               <Text size="xs" bold className="text-foreground font-body">
                 Full Name
@@ -286,8 +330,8 @@ export default function AccountScreen() {
             </VStack>
 
             <Button
-              onPress={handleEmailSignup}
-              disabled={loading || !email || !password}
+              onPress={handleEmailSignUp}
+              disabled={loading}
               className="mt-2 h-12 rounded-xl"
             >
               {loading ? (
@@ -308,22 +352,131 @@ export default function AccountScreen() {
             </Button>
           </Card>
         )}
-      </ScrollView>
 
-      {/* Footer Navigation */}
-      <HStack className="justify-center items-center gap-1.5 pt-2">
-        <Text size="sm" className="text-muted-foreground font-body">
-          Existing user?
-        </Text>
-        <Pressable
-          onPress={() => router.push("/auth/signin" as import("expo-router").Href)}
-          hitSlop={8}
-        >
-          <Text size="sm" bold className="text-primary font-body">
-            Sign in
+        {/* 3D Glass Carbon Loop Illustration with Floating Badges */}
+        <Box className="w-full mt-4 rounded-3xl overflow-hidden relative items-center justify-center" style={{ height: 340 }}>
+          <Image
+            source={require("@/assets/carbon-loop-ring.jpg")}
+            style={{ width: "100%", height: "100%", borderRadius: 28 }}
+            resizeMode="cover"
+          />
+
+          {/* Floating Badge 1: Actions */}
+          <Box
+            className="absolute top-4 left-2 flex-row items-center gap-2.5 px-3 py-2 rounded-full bg-white/95 border border-[#E0ECE3]"
+            style={{
+              shadowColor: "#184A2C",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 8,
+              elevation: 3,
+            }}
+          >
+            <Box className="w-8 h-8 rounded-full bg-[#EAF5ED] items-center justify-center">
+              <Leaf size={15} color="#184A2C" />
+            </Box>
+            <VStack>
+              <Text bold size="xs" className="text-foreground leading-tight">
+                Actions
+              </Text>
+              <Text size="xs" className="text-muted-foreground font-body text-[10px]">
+                Make better choices
+              </Text>
+            </VStack>
+          </Box>
+
+          {/* Floating Badge 2: Impact */}
+          <Box
+            className="absolute bottom-6 left-2 flex-row items-center gap-2.5 px-3 py-2 rounded-full bg-white/95 border border-[#E0ECE3]"
+            style={{
+              shadowColor: "#184A2C",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 8,
+              elevation: 3,
+            }}
+          >
+            <Box className="w-8 h-8 rounded-full bg-[#EAF5ED] items-center justify-center">
+              <ChartColumn size={15} color="#184A2C" />
+            </Box>
+            <VStack>
+              <Text bold size="xs" className="text-foreground leading-tight">
+                Impact
+              </Text>
+              <Text size="xs" className="text-muted-foreground font-body text-[10px]">
+                See the difference
+              </Text>
+            </VStack>
+          </Box>
+
+          {/* Floating Badge 3: Rewards */}
+          <Box
+            className="absolute top-[52%] right-2 flex-row items-center gap-2.5 px-3 py-2 rounded-full bg-white/95 border border-[#E0ECE3]"
+            style={{
+              shadowColor: "#184A2C",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 8,
+              elevation: 3,
+            }}
+          >
+            <Box className="w-8 h-8 rounded-full bg-[#EAF5ED] items-center justify-center">
+              <Gift size={15} color="#184A2C" />
+            </Box>
+            <VStack>
+              <Text bold size="xs" className="text-foreground leading-tight">
+                Rewards
+              </Text>
+              <Text size="xs" className="text-muted-foreground font-body text-[10px]">
+                Get more value
+              </Text>
+            </VStack>
+          </Box>
+
+          {/* Typographic Tagline: A CLEANER TOMORROW PAYS BACK */}
+          <VStack className="absolute top-5 right-5 items-start gap-0.5">
+            <Text style={{ letterSpacing: 2.2, fontSize: 8.5, color: "#4A725C", fontWeight: "700" }}>
+              A
+            </Text>
+            <Text style={{ letterSpacing: 2.2, fontSize: 8.5, color: "#4A725C", fontWeight: "700" }}>
+              CLEANER
+            </Text>
+            <Text style={{ letterSpacing: 2.2, fontSize: 8.5, color: "#4A725C", fontWeight: "700" }}>
+              TOMORROW
+            </Text>
+            <Text style={{ letterSpacing: 2.2, fontSize: 8.5, color: "#4A725C", fontWeight: "700" }}>
+              PAYS
+            </Text>
+            <Text style={{ letterSpacing: 2.2, fontSize: 8.5, color: "#4A725C", fontWeight: "700" }}>
+              BACK
+            </Text>
+            <Box className="w-6 h-[1.5px] bg-[#4A725C]/60 mt-0.5" />
+          </VStack>
+        </Box>
+
+        {/* Existing user? Sign in */}
+        <HStack className="justify-center items-center gap-1.5 mt-5">
+          <Text size="sm" className="text-muted-foreground font-body">
+            Existing user?
           </Text>
-        </Pressable>
-      </HStack>
+          <Pressable
+            onPress={() => router.push("/auth/signin" as import("expo-router").Href)}
+            hitSlop={8}
+          >
+            <Text size="sm" bold style={{ color: "#1E5E3A" }} className="font-body">
+              Sign in
+            </Text>
+          </Pressable>
+        </HStack>
+
+        {/* Privacy Terms Help */}
+        <Text
+          size="xs"
+          className="text-muted-foreground/70 text-center mt-3 font-body text-[11px]"
+        >
+          Privacy   ·   Terms   ·   Help
+        </Text>
+      </ScrollView>
     </Box>
   );
 }

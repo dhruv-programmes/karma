@@ -211,6 +211,14 @@ export default function SignInScreen() {
     router.replace("/(tabs)");
   }
 
+  function handleBack() {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/onboarding/account" as import("expo-router").Href);
+    }
+  }
+
   return (
     <Box
       className="flex-1 bg-background"
@@ -225,7 +233,7 @@ export default function SignInScreen() {
       {/* Top Header */}
       <HStack className="items-center justify-between mb-4">
         <Pressable
-          onPress={() => router.back()}
+          onPress={handleBack}
           className="w-10 h-10 rounded-full bg-card items-center justify-center border border-border"
           hitSlop={8}
         >

@@ -145,38 +145,54 @@ export default function SignUpScreen() {
     }
   }
 
+  function handleBack() {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/onboarding" as import("expo-router").Href);
+    }
+  }
+
   // Calculate dynamic vertical center for buttons: between subtitle and 3D ring
   const buttonsTop = Math.max(screenHeight * 0.365, 305);
 
   return (
     <Box className="flex-1" style={{ backgroundColor: "#F4F8F5" }}>
       {/* 1. Seamless Full-Screen Replica Background */}
-      <Image
-        source={require("@/assets/carbon-loop-fullscreen-replica.jpg")}
+      <View
+        pointerEvents="none"
         style={{
           position: "absolute",
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
-          width: "100%",
-          height: "100%",
         }}
-        resizeMode="cover"
-      />
+      >
+        <Image
+          source={require("@/assets/carbon-loop-fullscreen-replica.jpg")}
+          style={{
+            width: "100%",
+            height: "100%",
+          }}
+          resizeMode="cover"
+        />
+      </View>
 
       {/* 2. Interactive Back Button Hit Target */}
       <Pressable
-        onPress={() => router.back()}
+        onPress={handleBack}
         style={{
           position: "absolute",
-          top: insets.top + 6,
-          left: 18,
-          width: 44,
-          height: 44,
-          borderRadius: 22,
+          top: Math.max(insets.top, 50),
+          left: 10,
+          width: 54,
+          height: 54,
+          borderRadius: 27,
+          zIndex: 50,
         }}
-        hitSlop={14}
+        hitSlop={16}
+        className="active:opacity-60"
       />
 
       {/* 3. Interactive Middle Action Buttons */}

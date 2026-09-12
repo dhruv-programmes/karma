@@ -1,32 +1,29 @@
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Image,
+  Modal,
   Platform,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
-import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import {
-  ArrowLeft,
   ArrowRight,
-  ChartColumn,
   Eye,
   EyeOff,
-  Gift,
-  Leaf,
   Lock,
   Mail,
   User,
+  X,
 } from "lucide-react-native";
-import { Image, Text as RNText } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonText } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { HStack } from "@/components/ui/hstack";
 import { Pressable } from "@/components/ui/pressable";
-import { ScrollView } from "@/components/ui/scroll-view";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 import { api } from "@/src/lib/api";
@@ -57,11 +54,12 @@ function GoogleLogo() {
 
 export default function OnboardingAccountScreen() {
   const insets = useSafeAreaInsets();
+  const { height: screenHeight } = useWindowDimensions();
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
   const setOnboardingStep = useAuthStore((s) => s.setOnboardingStep);
 
-  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -127,6 +125,7 @@ export default function OnboardingAccountScreen() {
       });
       setAuth(res.user, res.access_token);
       setOnboardingStep("baseline");
+      setShowEmailModal(false);
       router.replace("/onboarding/baseline");
     } catch (err: any) {
       const message = String(err?.message || "");
@@ -140,117 +139,75 @@ export default function OnboardingAccountScreen() {
     }
   }
 
+  const buttonsTop = Math.max(screenHeight * 0.365, 305);
+
   return (
     <Box className="flex-1" style={{ backgroundColor: "#F4F8F5" }}>
-      {/* Top Navigation */}
+      {/* 1. Seamless Full-Screen Replica Background */}
+      <Image
+        source={require("@/assets/carbon-loop-fullscreen-replica.jpg")}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: "100%",
+          height: "100%",
+        }}
+        resizeMode="cover"
+      />
+
+      {/* 2. Interactive Back Button Hit Target */}
+      <Pressable
+        onPress={() => router.back()}
+        style={{
+          position: "absolute",
+          top: insets.top + 6,
+          left: 18,
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+        }}
+        hitSlop={14}
+      />
+
+      {/* 3. Interactive Middle Action Buttons */}
       <Box
         style={{
-          paddingTop: insets.top + 8,
-          paddingHorizontal: 20,
-          paddingBottom: 8,
+          position: "absolute",
+          top: buttonsTop,
+          left: 22,
+          right: 22,
         }}
       >
-        <HStack className="items-center justify-between">
-          <Pressable
-            onPress={() => router.back()}
-            className="w-10 h-10 rounded-full bg-white items-center justify-center border border-[#E0ECE3] shadow-xs"
-            hitSlop={10}
-          >
-            <ArrowLeft size={18} color="#184A2C" />
-          </Pressable>
-
-          <Image
-            source={require("@/assets/karma-text.png")}
-            style={{ width: 130, height: 38 }}
-            resizeMode="contain"
-          />
-
-          {/* Empty spacer to center logo, no settings icon */}
-          <Box className="w-10 h-10" />
-        </HStack>
-      </Box>
-
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{
-          paddingHorizontal: 22,
-          paddingBottom: insets.bottom + 28,
-        }}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Editorial Serif Hero Title */}
-        <VStack className="items-center mt-2 mb-1">
-          <RNText
-            style={{
-              fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-              fontSize: 38,
-              lineHeight: 44,
-              fontWeight: "700",
-              color: "#182820",
-              textAlign: "center",
-            }}
-          >
-            Start your
-          </RNText>
-          <RNText
-            style={{
-              fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-              fontSize: 40,
-              lineHeight: 46,
-              fontWeight: "700",
-              color: "#185331",
-              textAlign: "center",
-            }}
-          >
-            Carbon Loop
-          </RNText>
-
-          <Text
-            size="sm"
-            className="text-muted-foreground text-center mt-2 leading-relaxed font-body px-4 text-[15px]"
-          >
-            Your Carbon Score, actions and rewards{"\n"}are saved to your account.
-          </Text>
-        </VStack>
-
-        {error ? (
-          <Box className="mt-3 p-3.5 rounded-xl bg-destructive/10 border border-destructive/30">
-            <Text size="xs" className="text-destructive font-medium text-center">
-              {error}
-            </Text>
-          </Box>
-        ) : null}
-
         {/* Continue with Google */}
-        <Box className="mt-5">
-          <Pressable
-            onPress={handleContinueWithGoogle}
-            disabled={loading}
-            className="w-full h-14 rounded-2xl bg-white border border-[#DFEAE2] flex-row items-center justify-center gap-3 px-4 active:bg-neutral-50"
-            style={{
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 1.5 },
-              shadowOpacity: 0.04,
-              shadowRadius: 3,
-              elevation: 1,
-            }}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color="#1E5E3A" />
-            ) : (
-              <>
-                <GoogleLogo />
-                <Text bold size="sm" className="text-[#1A2820] font-body text-[15px]">
-                  Continue with Google
-                </Text>
-              </>
-            )}
-          </Pressable>
-        </Box>
+        <Pressable
+          onPress={handleContinueWithGoogle}
+          disabled={loading}
+          className="w-full h-14 rounded-2xl bg-white border border-[#DFEAE2] flex-row items-center justify-center gap-3 px-4 active:bg-neutral-50"
+          style={{
+            shadowColor: "#184A2C",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.06,
+            shadowRadius: 6,
+            elevation: 2,
+          }}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color="#1E5E3A" />
+          ) : (
+            <>
+              <GoogleLogo />
+              <Text bold size="sm" className="text-[#1A2820] font-body text-[15px]">
+                Continue with Google
+              </Text>
+            </>
+          )}
+        </Pressable>
 
         {/* OR Divider */}
-        <HStack className="items-center gap-3 my-3 px-2">
+        <HStack className="items-center gap-3 my-2.5 px-2">
           <Box className="flex-1 h-[1px] bg-[#DFEAE2]" />
           <Text size="xs" className="text-[#7C9084] font-body uppercase tracking-[2px] text-[11px] font-medium">
             or
@@ -258,225 +215,202 @@ export default function OnboardingAccountScreen() {
           <Box className="flex-1 h-[1px] bg-[#DFEAE2]" />
         </HStack>
 
-        {/* Continue with phone or email */}
-        {!showEmailForm ? (
-          <Pressable
-            onPress={() => setShowEmailForm(true)}
-            className="w-full h-14 rounded-2xl bg-[#EAF4ED] border border-[#C8E1D1] flex-row items-center justify-center gap-2.5 px-4 active:bg-[#DFEFE5]"
-          >
-            <Mail size={19} color="#1B5E39" strokeWidth={1.8} />
-            <Text bold size="sm" style={{ color: "#1B5E39" }} className="font-body text-[15px]">
-              Continue with phone or email
-            </Text>
-          </Pressable>
-        ) : (
-          <Card variant="outline" className="p-4 gap-3.5 border-border rounded-2xl bg-card/90">
-            <VStack space="xs">
-              <Text size="xs" bold className="text-foreground font-body">
-                Full Name
-              </Text>
-              <Box className="flex-row items-center h-12 px-3.5 rounded-xl border border-border bg-card">
-                <User size={18} color="rgb(100,120,110)" />
-                <TextInput
-                  className="flex-1 ml-3 text-foreground font-body text-sm"
-                  placeholder="e.g. Maya Sen"
-                  placeholderTextColor="rgb(150,170,160)"
-                  value={name}
-                  onChangeText={setName}
-                />
-              </Box>
-            </VStack>
+        {/* Continue with phone or email button */}
+        <Pressable
+          onPress={() => setShowEmailModal(true)}
+          className="w-full h-14 rounded-2xl bg-[#EAF4ED] border border-[#C8E1D1] flex-row items-center justify-center gap-2.5 px-4 active:bg-[#DFEFE5]"
+          style={{
+            shadowColor: "#184A2C",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.04,
+            shadowRadius: 4,
+            elevation: 1,
+          }}
+        >
+          <Mail size={19} color="#1B5E39" strokeWidth={1.8} />
+          <Text bold size="sm" style={{ color: "#1B5E39" }} className="font-body text-[15px]">
+            Continue with phone or email
+          </Text>
+        </Pressable>
+      </Box>
 
-            <VStack space="xs">
-              <Text size="xs" bold className="text-foreground font-body">
-                Email address
-              </Text>
-              <Box className="flex-row items-center h-12 px-3.5 rounded-xl border border-border bg-card">
-                <Mail size={18} color="rgb(100,120,110)" />
-                <TextInput
-                  className="flex-1 ml-3 text-foreground font-body text-sm"
-                  placeholder="you@example.com"
-                  placeholderTextColor="rgb(150,170,160)"
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                />
-              </Box>
-            </VStack>
-
-            <VStack space="xs">
-              <Text size="xs" bold className="text-foreground font-body">
-                Password
-              </Text>
-              <Box className="flex-row items-center h-12 px-3.5 rounded-xl border border-border bg-card">
-                <Lock size={18} color="rgb(100,120,110)" />
-                <TextInput
-                  className="flex-1 ml-3 text-foreground font-body text-sm"
-                  placeholder="At least 6 characters"
-                  placeholderTextColor="rgb(150,170,160)"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                />
-                <Pressable onPress={() => setShowPassword(!showPassword)}>
-                  {showPassword ? (
-                    <EyeOff size={18} color="rgb(100,120,110)" />
-                  ) : (
-                    <Eye size={18} color="rgb(100,120,110)" />
-                  )}
-                </Pressable>
-              </Box>
-            </VStack>
-
-            <Button
-              onPress={handleEmailSignUp}
-              disabled={loading}
-              className="mt-2 h-12 rounded-xl"
-            >
-              {loading ? (
-                <HStack className="items-center gap-2 min-w-0">
-                  <ActivityIndicator color="white" size="small" />
-                  <ButtonText className="text-primary-foreground font-body">
-                    Creating Account...
-                  </ButtonText>
-                </HStack>
-              ) : (
-                <HStack className="items-center justify-center gap-2 min-w-0 px-2">
-                  <ButtonText className="text-primary-foreground font-body">
-                    Continue to Baseline
-                  </ButtonText>
-                  <ArrowRight size={16} color="white" />
-                </HStack>
-              )}
-            </Button>
-          </Card>
-        )}
-
-        {/* 3D Glass Carbon Loop Illustration with Floating Badges */}
-        <Box className="w-full mt-4 rounded-3xl overflow-hidden relative items-center justify-center" style={{ height: 340 }}>
-          <Image
-            source={require("@/assets/carbon-loop-ring.jpg")}
-            style={{ width: "100%", height: "100%", borderRadius: 28 }}
-            resizeMode="cover"
-          />
-
-          {/* Floating Badge 1: Actions */}
-          <Box
-            className="absolute top-4 left-2 flex-row items-center gap-2.5 px-3 py-2 rounded-full bg-white/95 border border-[#E0ECE3]"
-            style={{
-              shadowColor: "#184A2C",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.1,
-              shadowRadius: 8,
-              elevation: 3,
-            }}
-          >
-            <Box className="w-8 h-8 rounded-full bg-[#EAF5ED] items-center justify-center">
-              <Leaf size={15} color="#184A2C" />
-            </Box>
-            <VStack>
-              <Text bold size="xs" className="text-foreground leading-tight">
-                Actions
-              </Text>
-              <Text size="xs" className="text-muted-foreground font-body text-[10px]">
-                Make better choices
-              </Text>
-            </VStack>
-          </Box>
-
-          {/* Floating Badge 2: Impact */}
-          <Box
-            className="absolute bottom-6 left-2 flex-row items-center gap-2.5 px-3 py-2 rounded-full bg-white/95 border border-[#E0ECE3]"
-            style={{
-              shadowColor: "#184A2C",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.1,
-              shadowRadius: 8,
-              elevation: 3,
-            }}
-          >
-            <Box className="w-8 h-8 rounded-full bg-[#EAF5ED] items-center justify-center">
-              <ChartColumn size={15} color="#184A2C" />
-            </Box>
-            <VStack>
-              <Text bold size="xs" className="text-foreground leading-tight">
-                Impact
-              </Text>
-              <Text size="xs" className="text-muted-foreground font-body text-[10px]">
-                See the difference
-              </Text>
-            </VStack>
-          </Box>
-
-          {/* Floating Badge 3: Rewards */}
-          <Box
-            className="absolute top-[52%] right-2 flex-row items-center gap-2.5 px-3 py-2 rounded-full bg-white/95 border border-[#E0ECE3]"
-            style={{
-              shadowColor: "#184A2C",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.1,
-              shadowRadius: 8,
-              elevation: 3,
-            }}
-          >
-            <Box className="w-8 h-8 rounded-full bg-[#EAF5ED] items-center justify-center">
-              <Gift size={15} color="#184A2C" />
-            </Box>
-            <VStack>
-              <Text bold size="xs" className="text-foreground leading-tight">
-                Rewards
-              </Text>
-              <Text size="xs" className="text-muted-foreground font-body text-[10px]">
-                Get more value
-              </Text>
-            </VStack>
-          </Box>
-
-          {/* Typographic Tagline: A CLEANER TOMORROW PAYS BACK */}
-          <VStack className="absolute top-5 right-5 items-start gap-0.5">
-            <Text style={{ letterSpacing: 2.2, fontSize: 8.5, color: "#4A725C", fontWeight: "700" }}>
-              A
-            </Text>
-            <Text style={{ letterSpacing: 2.2, fontSize: 8.5, color: "#4A725C", fontWeight: "700" }}>
-              CLEANER
-            </Text>
-            <Text style={{ letterSpacing: 2.2, fontSize: 8.5, color: "#4A725C", fontWeight: "700" }}>
-              TOMORROW
-            </Text>
-            <Text style={{ letterSpacing: 2.2, fontSize: 8.5, color: "#4A725C", fontWeight: "700" }}>
-              PAYS
-            </Text>
-            <Text style={{ letterSpacing: 2.2, fontSize: 8.5, color: "#4A725C", fontWeight: "700" }}>
-              BACK
-            </Text>
-            <Box className="w-6 h-[1.5px] bg-[#4A725C]/60 mt-0.5" />
-          </VStack>
-        </Box>
-
-        {/* Existing user? Sign in */}
-        <HStack className="justify-center items-center gap-1.5 mt-5">
-          <Text size="sm" className="text-muted-foreground font-body">
-            Existing user?
+      {/* 4. Real Interactive Bottom Text: Existing user? Sign in & Privacy Terms Help */}
+      <VStack
+        className="items-center"
+        style={{
+          position: "absolute",
+          bottom: Math.max(insets.bottom + 12, 24),
+          left: 0,
+          right: 0,
+        }}
+        space="xs"
+      >
+        <HStack className="items-center justify-center">
+          <Text className="text-[#3A5043] font-body text-[14.5px]">
+            Existing user?{" "}
           </Text>
           <Pressable
             onPress={() => router.push("/auth/signin" as import("expo-router").Href)}
-            hitSlop={8}
+            hitSlop={12}
+            className="active:opacity-70"
           >
-            <Text size="sm" bold style={{ color: "#1E5E3A" }} className="font-body">
+            <Text
+              bold
+              style={{ color: "#144D29" }}
+              className="font-body text-[14.5px]"
+            >
               Sign in
             </Text>
           </Pressable>
         </HStack>
 
-        {/* Privacy Terms Help */}
-        <Text
-          size="xs"
-          className="text-muted-foreground/70 text-center mt-3 font-body text-[11px]"
-        >
-          Privacy   ·   Terms   ·   Help
-        </Text>
-      </ScrollView>
+        <HStack className="items-center justify-center gap-2 mt-1">
+          <Pressable onPress={() => {}} hitSlop={8} className="active:opacity-70">
+            <Text className="text-[#7D9185] font-body text-[11.5px]">Privacy</Text>
+          </Pressable>
+          <Text className="text-[#7D9185] text-[11.5px]">•</Text>
+          <Pressable onPress={() => {}} hitSlop={8} className="active:opacity-70">
+            <Text className="text-[#7D9185] font-body text-[11.5px]">Terms</Text>
+          </Pressable>
+          <Text className="text-[#7D9185] text-[11.5px]">•</Text>
+          <Pressable onPress={() => {}} hitSlop={8} className="active:opacity-70">
+            <Text className="text-[#7D9185] font-body text-[11.5px]">Help</Text>
+          </Pressable>
+        </HStack>
+      </VStack>
+
+      {/* 6. Email/Password Signup Modal */}
+      <Modal
+        visible={showEmailModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowEmailModal(false)}
+      >
+        <View className="flex-1 justify-end bg-black/40">
+          <View
+            className="rounded-t-3xl bg-white p-6 pb-10 border-t border-[#DFEAE2]"
+            style={{
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: -4 },
+              shadowOpacity: 0.15,
+              shadowRadius: 16,
+              elevation: 10,
+            }}
+          >
+            <HStack className="justify-between items-center mb-4">
+              <VStack>
+                <Text
+                  style={{
+                    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+                    fontSize: 22,
+                    fontWeight: "700",
+                    color: "#182820",
+                  }}
+                >
+                  Create Account
+                </Text>
+                <Text size="xs" className="text-muted-foreground font-body">
+                  Save your Carbon Loop progress
+                </Text>
+              </VStack>
+              <Pressable
+                onPress={() => setShowEmailModal(false)}
+                className="w-9 h-9 rounded-full bg-secondary/80 items-center justify-center"
+              >
+                <X size={18} color="#182820" />
+              </Pressable>
+            </HStack>
+
+            {error ? (
+              <Box className="mb-4 p-3 rounded-xl bg-destructive/10 border border-destructive/30">
+                <Text size="xs" className="text-destructive font-medium text-center">
+                  {error}
+                </Text>
+              </Box>
+            ) : null}
+
+            <VStack space="md">
+              <VStack space="xs">
+                <Text size="xs" bold className="text-foreground font-body">
+                  Full Name
+                </Text>
+                <Box className="flex-row items-center h-12 px-3.5 rounded-xl border border-[#DFEAE2] bg-[#F7FAF8]">
+                  <User size={18} color="#668072" />
+                  <TextInput
+                    value={name}
+                    onChangeText={setName}
+                    placeholder="Alex Rivers"
+                    placeholderTextColor="#94A89E"
+                    className="flex-1 ml-2.5 text-foreground font-body text-sm"
+                    autoCapitalize="words"
+                  />
+                </Box>
+              </VStack>
+
+              <VStack space="xs">
+                <Text size="xs" bold className="text-foreground font-body">
+                  Email
+                </Text>
+                <Box className="flex-row items-center h-12 px-3.5 rounded-xl border border-[#DFEAE2] bg-[#F7FAF8]">
+                  <Mail size={18} color="#668072" />
+                  <TextInput
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="alex@example.com"
+                    placeholderTextColor="#94A89E"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    className="flex-1 ml-2.5 text-foreground font-body text-sm"
+                  />
+                </Box>
+              </VStack>
+
+              <VStack space="xs">
+                <Text size="xs" bold className="text-foreground font-body">
+                  Password
+                </Text>
+                <Box className="flex-row items-center h-12 px-3.5 rounded-xl border border-[#DFEAE2] bg-[#F7FAF8]">
+                  <Lock size={18} color="#668072" />
+                  <TextInput
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="At least 6 characters"
+                    placeholderTextColor="#94A89E"
+                    secureTextEntry={!showPassword}
+                    className="flex-1 ml-2.5 text-foreground font-body text-sm"
+                  />
+                  <Pressable onPress={() => setShowPassword(!showPassword)} hitSlop={8}>
+                    {showPassword ? (
+                      <EyeOff size={18} color="#668072" />
+                    ) : (
+                      <Eye size={18} color="#668072" />
+                    )}
+                  </Pressable>
+                </Box>
+              </VStack>
+
+              <Button
+                size="lg"
+                className="mt-2 h-13 rounded-2xl"
+                style={{ backgroundColor: "#184A2C" }}
+                onPress={handleEmailSignUp}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <HStack className="items-center gap-2">
+                    <ButtonText className="text-white font-semibold font-body text-[15px]">
+                      Sign Up with Email
+                    </ButtonText>
+                    <ArrowRight size={16} color="white" />
+                  </HStack>
+                )}
+              </Button>
+            </VStack>
+          </View>
+        </View>
+      </Modal>
     </Box>
   );
 }

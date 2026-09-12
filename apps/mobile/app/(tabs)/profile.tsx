@@ -15,12 +15,17 @@ import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 import { useBadges, useMe } from "@/src/hooks/queries";
 import { api } from "@/src/lib/api";
+import { useAuthStore } from "@/src/store/auth";
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const me = useMe();
   const badges = useBadges();
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+  const resetOnboarding = useAuthStore((s) => s.resetOnboarding);
+
   const [query, setQuery] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
 
@@ -35,6 +40,21 @@ export default function ProfileScreen() {
     }
   }
 
+  function handleReplayOnboarding() {
+    resetOnboarding();
+    router.replace("/onboarding");
+  }
+
+  function handleLogout() {
+    logout();
+    router.replace("/onboarding");
+  }
+
+  const displayName = me.data?.name || user?.name || "Aisha Sharma";
+  const displayEmail = me.data?.email || user?.email || "aisha@example.com";
+  const displayScore = me.data?.circularity_score ?? user?.circularity_score ?? 74;
+  const displayPoints = me.data?.impact_points ?? user?.impact_points ?? 420;
+
   return (
     <ScrollView
       className="flex-1 bg-background"
@@ -42,52 +62,74 @@ export default function ProfileScreen() {
         paddingTop: insets.top + 16,
         paddingBottom: insets.bottom + 32,
         paddingHorizontal: 24,
-        gap: 24,
+        gap: 20,
       }}
+      showsVerticalScrollIndicator={false}
     >
-      <Heading size="2xl">Profile</Heading>
+      <Heading size="2xl" className="font-heading">Profile</Heading>
       <CircularityScore
-        score={me.data?.circularity_score ?? 74}
+        score={displayScore}
         trendDelta={me.data?.trend_delta ?? 6}
       />
 
-      <Card variant="soft">
+      <Card variant="soft" className="p-4 border border-border">
         <HStack className="justify-between items-start">
-          <VStack space="xs">
-            <Text size="xs" bold className="text-primary uppercase tracking-wider">
+          <VStack space="xs" className="flex-1 pr-2">
+            <Text size="xs" bold className="text-primary uppercase tracking-wider font-mono">
               Active Member
             </Text>
-            <Heading size="xl">{me.data?.name ?? "Aisha Sharma"}</Heading>
+            <Heading size="xl" className="font-heading">{displayName}</Heading>
             <Text size="xs" className="text-muted-foreground font-mono">
-              {me.data?.email ?? "aisha@example.com"}
+              {displayEmail}
             </Text>
           </VStack>
+          <HStack className="gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onPress={() => router.push("/auth/signin" as import("expo-router").Href)}
+            >
+              Switch User
+            </Button>
+          </HStack>
+        </HStack>
+
+        <HStack className="gap-2 mt-4 pt-3 border-t border-border/60">
           <Button
             size="sm"
-            variant="outline"
-            onPress={() => router.push("/auth/signin" as import("expo-router").Href)}
+            variant="ghost"
+            className="flex-1"
+            onPress={handleReplayOnboarding}
           >
-            Switch User
+            Replay Onboarding
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="flex-1"
+            onPress={handleLogout}
+          >
+            Sign Out
           </Button>
         </HStack>
       </Card>
 
-      <Card variant="soft">
-        <Text size="sm" bold className="text-secondary-foreground">
-          Impact points
+      <Card variant="soft" className="p-4 border border-border">
+        <Text size="xs" bold className="text-muted-foreground uppercase tracking-wider font-mono">
+          Impact Points
         </Text>
-        <Text size="4xl" bold className="font-mono mt-2">
-          {me.data?.impact_points ?? 420}
+        <Text size="4xl" bold className="font-mono mt-1 text-foreground">
+          {displayPoints}
         </Text>
-        <Text size="sm" className="text-muted-foreground mt-2">
+        <Text size="xs" className="text-muted-foreground mt-1 font-body">
           Loop Level {me.data?.loop_level ?? 2} · Streak{" "}
           {me.data?.streak_days ?? 5} days · Offsets ~
           {Math.round(me.data?.offset_kg_total ?? 0)} kg
         </Text>
       </Card>
 
-      <VStack space="md">
-        <Text bold>Badges</Text>
+      <VStack space="sm">
+        <Text bold size="sm" className="font-heading">Badges</Text>
         <Box className="flex-row flex-wrap gap-2">
           {(badges.data ?? []).map((b, i) => (
             <Animated.View key={b.id} entering={FadeInRight.delay(i * 40)}>
@@ -116,12 +158,12 @@ export default function ProfileScreen() {
         </Button>
       </Box>
 
-      <VStack space="md">
-        <Text size="md" bold>
+      <VStack space="sm">
+        <Text size="sm" bold className="font-heading">
           Ask (tools only)
         </Text>
         <TextInput
-          className="h-12 rounded-2xl border border-border bg-card px-4 text-foreground"
+          className="h-12 rounded-2xl border border-border bg-card px-4 text-foreground font-body text-sm"
           placeholder="Offsets? Streak? Energy hotspot?"
           placeholderTextColor="rgb(100,120,110)"
           value={query}
@@ -129,7 +171,7 @@ export default function ProfileScreen() {
         />
         <Button onPress={() => void ask()}>Ask</Button>
         {answer ? (
-          <Text className="text-muted-foreground">{answer}</Text>
+          <Text className="text-muted-foreground text-xs font-body mt-1">{answer}</Text>
         ) : null}
       </VStack>
     </ScrollView>

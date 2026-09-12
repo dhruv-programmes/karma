@@ -15,7 +15,6 @@ import {
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { View } from "react-native";
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
-import { useAppStore } from "@/src/store/app";
 import { useAuthStore } from "@/src/store/auth";
 
 const queryClient = new QueryClient({
@@ -26,9 +25,11 @@ const queryClient = new QueryClient({
 
 export default function RootLayout() {
   const router = useRouter();
-  const onboardingDone = useAppStore((s) => s.onboardingDone);
   const isHydrated = useAuthStore((s) => s.isHydrated);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isDemoMode = useAuthStore((s) => s.isDemoMode);
+  const hasCompletedOnboarding = useAuthStore((s) => s.hasCompletedOnboarding);
+  const onboardingStep = useAuthStore((s) => s.onboardingStep);
   const hydrateAuth = useAuthStore((s) => s.hydrateAuth);
 
   const [fontsLoaded] = useFonts({
@@ -45,10 +46,27 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!fontsLoaded || !isHydrated) return;
-    if (!onboardingDone && !isAuthenticated) {
+
+    // Path B & D: Completed user or active demo mode -> straight to Home
+    if (hasCompletedOnboarding || isDemoMode) {
+      return;
+    }
+
+    // Path A & C: New user or incomplete sign-up -> resume exact step
+    if (onboardingStep === "account") {
+      router.replace("/onboarding/account");
+    } else if (onboardingStep === "baseline") {
+      router.replace("/onboarding/baseline");
+    } else if (onboardingStep === "goal") {
+      router.replace("/onboarding/goal");
+    } else if (onboardingStep === "reveal") {
+      router.replace("/onboarding/reveal");
+    } else if (onboardingStep === "location") {
+      router.replace("/onboarding/location");
+    } else {
       router.replace("/onboarding");
     }
-  }, [fontsLoaded, isHydrated, onboardingDone, isAuthenticated, router]);
+  }, [fontsLoaded, isHydrated, hasCompletedOnboarding, isDemoMode, onboardingStep, router]);
 
   if (!fontsLoaded || !isHydrated) {
     return <View className="flex-1 bg-background" />;
@@ -67,6 +85,11 @@ export default function RootLayout() {
           >
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="onboarding/index" options={{ animation: "fade" }} />
+            <Stack.Screen name="onboarding/account" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="onboarding/baseline" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="onboarding/goal" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="onboarding/reveal" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="onboarding/location" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="auth/signin" options={{ animation: "slide_from_bottom" }} />
             <Stack.Screen name="auth/signup" options={{ animation: "slide_from_right" }} />
             <Stack.Screen

@@ -1,0 +1,10 @@
+# Env
+.env
+.env.local
+.env*.local
+
+# Next
+.next/
+node_modules/
+out/
+*.log

@@ -75,6 +75,7 @@ export default function RootLayout() {
             <Stack.Screen name="rewards/index" />
             <Stack.Screen name="offsets/index" />
             <Stack.Screen name="receipt/index" />
+            <Stack.Screen name="receipt/review" />
             <Stack.Screen name="receipt/result" />
           </Stack>
         </QueryClientProvider>

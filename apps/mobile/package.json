@@ -16,8 +16,10 @@
     "@shopify/flash-list": "2.0.2",
     "@tanstack/react-query": "^5.90.2",
     "expo": "~57.0.22",
+    "expo-asset": "^57.0.17",
     "expo-camera": "~57.0.5",
     "expo-constants": "~57.0.18",
+    "expo-document-picker": "~57.0.2",
     "expo-file-system": "~57.0.7",
     "expo-font": "~57.0.4",
     "expo-haptics": "~57.0.3",
@@ -41,6 +43,7 @@
     "react-native-web": "~0.21.2",
     "react-native-worklets": "0.10.1",
     "uniwind": "^1.12.0",
+    "zod": "^3.25.76",
     "zustand": "^5.0.8"
   },
   "devDependencies": {

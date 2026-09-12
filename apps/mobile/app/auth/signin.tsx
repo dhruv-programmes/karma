@@ -13,7 +13,6 @@ import {
   EyeOff,
   Lock,
   Mail,
-  Sparkles,
   UserCheck,
 } from "lucide-react-native";
 import { Image } from "react-native";
@@ -33,11 +32,6 @@ import { VStack } from "@/components/ui/vstack";
 import { api } from "@/src/lib/api";
 import { useAuthStore } from "@/src/store/auth";
 import type { DemoUserSummary } from "@/src/types/api";
-
-const DEMO_QUICK_SIGNIN = {
-  email: "aisha@example.com",
-  password: "password123",
-};
 
 function GoogleLogo() {
   return (
@@ -207,22 +201,6 @@ export default function SignInScreen() {
     router.replace("/(tabs)");
   }
 
-  async function handleQuickDemoSignIn() {
-    setError(null);
-    setLoading(true);
-    try {
-      const res = await api.signin(DEMO_QUICK_SIGNIN.email, DEMO_QUICK_SIGNIN.password);
-      setAuth(res.user, res.access_token, true);
-      queryClient.invalidateQueries();
-      router.replace("/(tabs)");
-    } catch {
-      const aisha = demoUsers.find((u) => u.email === DEMO_QUICK_SIGNIN.email) ?? FALLBACK_DEMO_USERS[0];
-      launchDemoPersona(aisha);
-    } finally {
-      setLoading(false);
-    }
-  }
-
   return (
     <Box
       className="flex-1 bg-background"
@@ -276,31 +254,6 @@ export default function SignInScreen() {
             </Text>
           </Box>
         ) : null}
-
-        <Button
-          onPress={handleQuickDemoSignIn}
-          disabled={loading}
-          className="w-full h-13 rounded-2xl bg-primary"
-        >
-          {loading ? (
-            <HStack className="items-center gap-2 min-w-0">
-              <ActivityIndicator color="white" size="small" />
-              <ButtonText className="text-primary-foreground font-body">
-                Signing in...
-              </ButtonText>
-            </HStack>
-          ) : (
-            <HStack className="items-center justify-center gap-2 min-w-0 px-2">
-              <Sparkles size={16} color="white" />
-              <ButtonText className="text-primary-foreground text-base font-body">
-                Continue as Aisha
-              </ButtonText>
-            </HStack>
-          )}
-        </Button>
-        <Text size="xs" className="text-muted-foreground font-body -mt-2">
-          One-tap demo sign-in — no form fill required.
-        </Text>
 
         {/* Social Sign-In Button */}
         <Box>

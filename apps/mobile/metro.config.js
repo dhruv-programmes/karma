@@ -3,6 +3,10 @@ const { withUniwindConfig } = require("uniwind/metro");
 
 const config = getDefaultConfig(__dirname);
 
+config.resolver.assetExts = [
+  ...new Set([...(config.resolver.assetExts || []), "pdf"]),
+];
+
 module.exports = withUniwindConfig(config, {
   cssEntryFile: "./global.css",
   dtsFile: "./uniwind-types.d.ts",

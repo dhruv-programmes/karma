@@ -765,7 +765,7 @@ export default function HomeScreen() {
               />
               <ToolCard
                 icon={<Receipt size={20} color="#2EA86E" strokeWidth={1.8} />}
-                label="Import Receipt"
+                label="Import bill / receipt"
                 onPress={() => router.push("/receipt")}
               />
               <ToolCard

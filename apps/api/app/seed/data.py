@@ -847,6 +847,226 @@ UBER TRIP
 Indiranagar → Koramangala 180.00
 """
 
+# Seeded document-upload examples (OCR→LLM demo; real Vision/LLM later).
+# Future pipeline: Upload image|pdf → OCR / PDF text → LLM JSON → confidence split → review → import.
+DOCUMENT_EXAMPLES: list[dict] = [
+    {
+        "id": "doc-croma-receipt",
+        "title": "Croma electronics receipt",
+        "subtitle": "Earbuds + kettle spare",
+        "doc_type": "receipt",
+        "source": "image",
+        "pipeline_steps": [
+            "Reading document (OCR)…",
+            "Extracting line items with AI…",
+            "Matching merchants to footprint categories…",
+        ],
+        "ocr_text": """CROMA ELECTRONICS
+Store: Indiranagar
+Date: 10-09-2026
+Wireless earbuds cable    899.00
+Philips kettle spare      450.00
+TOTAL                    1349.00""",
+        "extracted_items": [
+            {
+                "id": "croma-1",
+                "merchant": "Croma",
+                "amount_inr": 899.0,
+                "date": "2026-09-10",
+                "category": ProductCategory.ELECTRONICS,
+                "confidence": "high",
+                "needs_review_reason": None,
+            },
+            {
+                "id": "croma-2",
+                "merchant": "Croma",
+                "amount_inr": 450.0,
+                "date": "2026-09-10",
+                "category": ProductCategory.ELECTRONICS,
+                "confidence": "high",
+                "needs_review_reason": None,
+            },
+        ],
+    },
+    {
+        "id": "doc-swiggy-order",
+        "title": "Swiggy food order",
+        "subtitle": "Dinner delivery",
+        "doc_type": "receipt",
+        "source": "image",
+        "pipeline_steps": [
+            "Reading document (OCR)…",
+            "Extracting line items with AI…",
+            "Matching merchants to footprint categories…",
+        ],
+        "ocr_text": """SWIGGY
+Order #SW-48291
+Dinner bowl               320.00
+Delivery fee               40.00
+TOTAL                     360.00""",
+        "extracted_items": [
+            {
+                "id": "swiggy-1",
+                "merchant": "Swiggy",
+                "amount_inr": 360.0,
+                "date": "2026-09-11",
+                "category": ProductCategory.FOOD,
+                "confidence": "high",
+                "needs_review_reason": None,
+            },
+        ],
+    },
+    {
+        "id": "doc-bescom-bill",
+        "title": "BESCOM electricity bill",
+        "subtitle": "Home energy bill",
+        "doc_type": "utility",
+        "source": "pdf",
+        "pipeline_steps": [
+            "Extracting PDF text…",
+            "Running OCR on scanned pages…",
+            "Extracting charges with AI…",
+        ],
+        "ocr_text": """BESCOM
+Account: ********4521
+Billing period: Aug 2026
+Energy charges           1850.00
+Fixed charges             120.00
+Fuel adjustment surcharge  95.??
+TOTAL DUE               ~2065""",
+        "extracted_items": [
+            {
+                "id": "bescom-1",
+                "merchant": "BESCOM",
+                "amount_inr": 1850.0,
+                "date": "2026-09-01",
+                "category": ProductCategory.ENERGY,
+                "confidence": "high",
+                "needs_review_reason": None,
+            },
+            {
+                "id": "bescom-2",
+                "merchant": "BESCOM",
+                "amount_inr": 120.0,
+                "date": "2026-09-01",
+                "category": ProductCategory.ENERGY,
+                "confidence": "high",
+                "needs_review_reason": None,
+            },
+            {
+                "id": "bescom-3",
+                "merchant": "BESCOM",
+                "amount_inr": 95.0,
+                "date": "2026-09-01",
+                "category": ProductCategory.ENERGY,
+                "confidence": "medium",
+                "needs_review_reason": "Fuel surcharge amount was partially illegible on the scan",
+            },
+        ],
+    },
+    {
+        "id": "doc-uber-pdf",
+        "title": "Uber trips summary",
+        "subtitle": "Weekly ride summary",
+        "doc_type": "receipt",
+        "source": "pdf",
+        "pipeline_steps": [
+            "Extracting PDF text…",
+            "Extracting trips with AI…",
+            "Matching merchants to footprint categories…",
+        ],
+        "ocr_text": """UBER TRIP SUMMARY
+Week of 01 Sep 2026
+Indiranagar → Koramangala   180.00
+HSR → Whitefield            340.00
+Airport drop                620.00
+TOTAL                      1140.00""",
+        "extracted_items": [
+            {
+                "id": "uber-1",
+                "merchant": "Uber",
+                "amount_inr": 180.0,
+                "date": "2026-09-02",
+                "category": ProductCategory.TRANSPORT,
+                "confidence": "high",
+                "needs_review_reason": None,
+            },
+            {
+                "id": "uber-2",
+                "merchant": "Uber",
+                "amount_inr": 340.0,
+                "date": "2026-09-04",
+                "category": ProductCategory.TRANSPORT,
+                "confidence": "high",
+                "needs_review_reason": None,
+            },
+            {
+                "id": "uber-3",
+                "merchant": "Uber",
+                "amount_inr": 620.0,
+                "date": "2026-09-07",
+                "category": ProductCategory.TRANSPORT,
+                "confidence": "high",
+                "needs_review_reason": None,
+            },
+        ],
+    },
+    {
+        "id": "doc-flipkart-invoice",
+        "title": "Flipkart shopping invoice",
+        "subtitle": "Mixed shopping cart",
+        "doc_type": "invoice",
+        "source": "pdf",
+        "pipeline_steps": [
+            "Extracting PDF text…",
+            "Extracting line items with AI…",
+            "Resolving ambiguous categories…",
+        ],
+        "ocr_text": """FLIPKART INVOICE
+Order FK-991203
+USB-C hub                 1299.00
+Cotton tee pack            899.00
+MISC SKU#X9-??             450.00
+TOTAL                     2648.00""",
+        "extracted_items": [
+            {
+                "id": "fk-1",
+                "merchant": "Flipkart",
+                "amount_inr": 1299.0,
+                "date": "2026-09-08",
+                "category": ProductCategory.ELECTRONICS,
+                "confidence": "high",
+                "needs_review_reason": None,
+            },
+            {
+                "id": "fk-2",
+                "merchant": "Flipkart",
+                "amount_inr": 899.0,
+                "date": "2026-09-08",
+                "category": ProductCategory.CLOTHING,
+                "confidence": "high",
+                "needs_review_reason": None,
+            },
+            {
+                "id": "fk-3",
+                "merchant": "Flipkart",
+                "amount_inr": 450.0,
+                "date": "2026-09-08",
+                "category": ProductCategory.OTHER,
+                "confidence": "low",
+                "needs_review_reason": "SKU label unreadable — category uncertain",
+            },
+        ],
+    },
+]
+
+
+def get_document_example(example_id: str) -> dict | None:
+    for ex in DOCUMENT_EXAMPLES:
+        if ex["id"] == example_id:
+            return ex
+    return None
+
 
 class DemoState:
     """Mutable in-memory demo state (no database yet)."""

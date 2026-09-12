@@ -283,6 +283,83 @@ class ReceiptParseResult(BaseModel):
     badges_unlocked: list[str] = Field(default_factory=list)
 
 
+class ExtractionConfidence(str, Enum):
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
+class DocumentDocType(str, Enum):
+    RECEIPT = "receipt"
+    UTILITY = "utility"
+    INVOICE = "invoice"
+
+
+class DocumentSource(str, Enum):
+    IMAGE = "image"
+    PDF = "pdf"
+
+
+class ExtractedDocumentItem(BaseModel):
+    id: str
+    merchant: str
+    amount_inr: float
+    date: str
+    category: ProductCategory
+    confidence: ExtractionConfidence
+    needs_review_reason: str | None = None
+
+
+class DocumentExampleSummary(BaseModel):
+    id: str
+    title: str
+    subtitle: str
+    doc_type: DocumentDocType
+    source: DocumentSource
+    forces_review: bool = False
+
+
+class DocumentProcessRequest(BaseModel):
+    example_id: str
+
+
+class DocumentProcessResult(BaseModel):
+    example_id: str
+    title: str
+    pipeline_steps: list[str]
+    ocr_preview: str
+    auto_import: list[ExtractedDocumentItem]
+    needs_review: list[ExtractedDocumentItem]
+    imported: int = 0
+    transactions: list[Transaction] = Field(default_factory=list)
+    message: str
+    badges_unlocked: list[str] = Field(default_factory=list)
+    requires_review: bool = False
+    is_mock: bool = True
+
+
+class DocumentConfirmItem(BaseModel):
+    id: str | None = None
+    merchant: str
+    amount_inr: float
+    date: str
+    category: ProductCategory
+    discarded: bool = False
+
+
+class DocumentConfirmRequest(BaseModel):
+    example_id: str
+    items: list[DocumentConfirmItem]
+
+
+class DocumentConfirmResult(BaseModel):
+    imported: int
+    transactions: list[Transaction]
+    message: str
+    badges_unlocked: list[str] = Field(default_factory=list)
+    is_mock: bool = True
+
+
 class BarcodeLookupRequest(BaseModel):
     barcode: str
 

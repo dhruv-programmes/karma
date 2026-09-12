@@ -36,6 +36,11 @@ from app.schemas import (
     CompletedActionResult,
     DataMeterResponse,
     DemoUserSummary,
+    DocumentConfirmRequest,
+    DocumentConfirmResult,
+    DocumentExampleSummary,
+    DocumentProcessRequest,
+    DocumentProcessResult,
     OffsetProject,
     OffsetPurchaseResult,
     ProductCategory,
@@ -380,6 +385,40 @@ def parse_receipt(
     payload = body or ReceiptParseRequest()
     result = services.parse_receipt_text(payload.text, payload.use_demo, current_user, db)
     return ReceiptParseResult(**result)
+
+
+# ==========================================
+# SEEDED DOCUMENT UPLOAD (OCR→LLM demo)
+# ==========================================
+
+
+@router.get("/documents/examples", response_model=list[DocumentExampleSummary])
+def list_document_examples(
+    current_user: UserModel = Depends(get_current_user),
+):
+    return [DocumentExampleSummary(**ex) for ex in services.list_document_examples()]
+
+
+@router.post("/documents/process", response_model=DocumentProcessResult)
+def process_document(
+    body: DocumentProcessRequest,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    result = services.process_document_example(body.example_id, current_user, db)
+    return DocumentProcessResult(**result)
+
+
+@router.post("/documents/confirm", response_model=DocumentConfirmResult)
+def confirm_document(
+    body: DocumentConfirmRequest,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    result = services.confirm_document_import(
+        body.example_id, body.items, current_user, db
+    )
+    return DocumentConfirmResult(**result)
 
 
 # ==========================================

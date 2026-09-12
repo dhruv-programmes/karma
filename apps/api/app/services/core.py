@@ -40,7 +40,9 @@ from app.engines.scoring import (
 from app.schemas import (
     ActionType,
     CircularityBreakdown,
+    DocumentConfirmItem,
     EffortLevel,
+    ExtractionConfidence,
     Facility,
     OffsetProject,
     Product,
@@ -54,6 +56,7 @@ from app.schemas import (
 from app.seed.data import (
     BADGE_CATALOG,
     DEMO_RECEIPT_TEXT,
+    DOCUMENT_EXAMPLES,
     FACILITIES,
     MERCHANT_CATEGORY_RULES,
     OFFSETS,
@@ -61,6 +64,7 @@ from app.seed.data import (
     PRODUCTS,
     REWARDS,
     demo_state,
+    get_document_example,
     get_product as seed_get_product,
     get_product_by_barcode as seed_get_product_by_barcode,
     unlock_badge,
@@ -787,7 +791,16 @@ def import_transactions(
     for row in rows:
         merchant = str(row.get("merchant", "Unknown"))
         amount = float(row.get("amount_inr", row.get("amount", 0)) or 0)
-        cat = categorize_merchant(merchant)
+        raw_cat = row.get("category")
+        if isinstance(raw_cat, ProductCategory):
+            cat = raw_cat
+        elif isinstance(raw_cat, str) and raw_cat.strip():
+            try:
+                cat = ProductCategory(raw_cat)
+            except ValueError:
+                cat = categorize_merchant(merchant)
+        else:
+            cat = categorize_merchant(merchant)
         est = estimate_from_spend(cat, amount)
         txn_id = uuid4()
         txn_model = TransactionModel(
@@ -811,6 +824,197 @@ def import_transactions(
         )
     db.commit()
     return created
+
+
+def _split_extracted_items(items: list[dict]) -> tuple[list[dict], list[dict]]:
+    auto_import: list[dict] = []
+    needs_review: list[dict] = []
+    for item in items:
+        conf = item.get("confidence", ExtractionConfidence.HIGH)
+        if isinstance(conf, ExtractionConfidence):
+            conf_val = conf.value
+        else:
+            conf_val = str(conf)
+        if conf_val == ExtractionConfidence.HIGH.value:
+            auto_import.append(item)
+        else:
+            needs_review.append(item)
+    return auto_import, needs_review
+
+
+def _item_to_schema(item: dict) -> dict:
+    cat = item["category"]
+    if isinstance(cat, ProductCategory):
+        cat_val = cat
+    else:
+        cat_val = ProductCategory(cat)
+    conf = item.get("confidence", ExtractionConfidence.HIGH)
+    if isinstance(conf, ExtractionConfidence):
+        conf_val = conf
+    else:
+        conf_val = ExtractionConfidence(str(conf))
+    return {
+        "id": str(item["id"]),
+        "merchant": str(item["merchant"]),
+        "amount_inr": float(item["amount_inr"]),
+        "date": str(item["date"]),
+        "category": cat_val,
+        "confidence": conf_val,
+        "needs_review_reason": item.get("needs_review_reason"),
+    }
+
+
+def list_document_examples() -> list[dict]:
+    out: list[dict] = []
+    for ex in DOCUMENT_EXAMPLES:
+        _, review = _split_extracted_items(ex["extracted_items"])
+        out.append(
+            {
+                "id": ex["id"],
+                "title": ex["title"],
+                "subtitle": ex["subtitle"],
+                "doc_type": ex["doc_type"],
+                "source": ex["source"],
+                "forces_review": len(review) > 0,
+            }
+        )
+    return out
+
+
+def _unlock_receipt_ranger(user: UserModel, db: Session) -> list[str]:
+    badges: list[str] = []
+    has_badge = db.query(UserBadgeModel).filter(
+        UserBadgeModel.user_id == user.id,
+        UserBadgeModel.badge_id == "receipt_ranger",
+    ).first()
+    if not has_badge:
+        db.add(UserBadgeModel(user_id=user.id, badge_id="receipt_ranger"))
+        badges.append("receipt_ranger")
+    unlock_badge("receipt_ranger")
+    return badges
+
+
+def process_document_example(
+    example_id: str,
+    user: UserModel | None = None,
+    db: Session | None = None,
+) -> dict:
+    """Simulate OCR→LLM on a seeded document. Auto-imports when all items are high confidence."""
+    user, db = _resolve_user_and_db(user, db)
+    example = get_document_example(example_id)
+    if not example:
+        raise HTTPException(status_code=404, detail=f"Unknown document example: {example_id}")
+
+    auto_raw, review_raw = _split_extracted_items(example["extracted_items"])
+    auto_import = [_item_to_schema(i) for i in auto_raw]
+    needs_review = [_item_to_schema(i) for i in review_raw]
+    requires_review = len(needs_review) > 0
+
+    imported = 0
+    transactions: list[Transaction] = []
+    badges: list[str] = []
+    message: str
+
+    if requires_review:
+        message = (
+            f"Found {len(auto_import) + len(needs_review)} items — "
+            f"{len(needs_review)} need a quick check before import."
+        )
+    else:
+        rows = [
+            {
+                "merchant": i["merchant"],
+                "amount_inr": i["amount_inr"],
+                "date": i["date"],
+                "category": i["category"],
+            }
+            for i in auto_import
+        ]
+        transactions = import_transactions(rows, user, db)
+        imported = len(transactions)
+        badges = _unlock_receipt_ranger(user, db)
+        log_activity_event(
+            user,
+            db,
+            "receipt",
+            f"Imported document · {imported} items",
+            f"{example['title']}",
+            meta={"example_id": example_id, "imported": imported},
+        )
+        db.commit()
+        message = f"Added {imported} items from {example['title']} to your footprint."
+
+    return {
+        "example_id": example_id,
+        "title": example["title"],
+        "pipeline_steps": list(example["pipeline_steps"]),
+        "ocr_preview": str(example["ocr_text"]).strip()[:280],
+        "auto_import": auto_import,
+        "needs_review": needs_review,
+        "imported": imported,
+        "transactions": transactions,
+        "message": message,
+        "badges_unlocked": badges,
+        "requires_review": requires_review,
+        "is_mock": True,
+    }
+
+
+def confirm_document_import(
+    example_id: str,
+    items: list[DocumentConfirmItem] | list[dict],
+    user: UserModel | None = None,
+    db: Session | None = None,
+) -> dict:
+    user, db = _resolve_user_and_db(user, db)
+    example = get_document_example(example_id)
+    if not example:
+        raise HTTPException(status_code=404, detail=f"Unknown document example: {example_id}")
+
+    rows: list[dict] = []
+    for raw in items:
+        if isinstance(raw, DocumentConfirmItem):
+            if raw.discarded:
+                continue
+            rows.append(
+                {
+                    "merchant": raw.merchant,
+                    "amount_inr": raw.amount_inr,
+                    "date": raw.date,
+                    "category": raw.category,
+                }
+            )
+        else:
+            if raw.get("discarded"):
+                continue
+            rows.append(
+                {
+                    "merchant": str(raw.get("merchant", "Unknown")),
+                    "amount_inr": float(raw.get("amount_inr", 0) or 0),
+                    "date": str(raw.get("date") or date.today().isoformat()),
+                    "category": raw.get("category"),
+                }
+            )
+
+    created = import_transactions(rows, user, db)
+    badges = _unlock_receipt_ranger(user, db)
+    log_activity_event(
+        user,
+        db,
+        "receipt",
+        f"Confirmed document · {len(created)} items",
+        f"{example['title']}",
+        meta={"example_id": example_id, "imported": len(created)},
+    )
+    db.commit()
+
+    return {
+        "imported": len(created),
+        "transactions": created,
+        "message": f"Imported {len(created)} items from {example['title']}.",
+        "badges_unlocked": badges,
+        "is_mock": True,
+    }
 
 
 def parse_receipt_text(

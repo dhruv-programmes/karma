@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { DocumentProcessResult } from "@/src/types/api";
 
 type AppState = {
   onboardingDone: boolean;
@@ -7,6 +8,8 @@ type AppState = {
   setLastPointsAwarded: (n: number | null) => void;
   scannerLocked: boolean;
   setScannerLocked: (v: boolean) => void;
+  documentDraft: DocumentProcessResult | null;
+  setDocumentDraft: (draft: DocumentProcessResult | null) => void;
 };
 
 export const useAppStore = create<AppState>((set) => ({
@@ -16,4 +19,6 @@ export const useAppStore = create<AppState>((set) => ({
   setLastPointsAwarded: (n) => set({ lastPointsAwarded: n }),
   scannerLocked: false,
   setScannerLocked: (v) => set({ scannerLocked: v }),
+  documentDraft: null,
+  setDocumentDraft: (draft) => set({ documentDraft: draft }),
 }));

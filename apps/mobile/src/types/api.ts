@@ -223,6 +223,70 @@ export interface ReceiptParseResult {
   badges_unlocked?: string[];
 }
 
+export type ExtractionConfidence = "high" | "medium" | "low";
+export type DocumentDocType = "receipt" | "utility" | "invoice" | "other";
+export type DocumentSource = "image" | "pdf";
+
+export interface ExtractedDocumentItem {
+  id: string;
+  merchant: string;
+  amount_inr: number;
+  date: string;
+  category: ProductCategory;
+  confidence: ExtractionConfidence;
+  needs_review_reason?: string | null;
+}
+
+export interface DocumentExtraction {
+  title: string;
+  doc_type: DocumentDocType;
+  items: ExtractedDocumentItem[];
+}
+
+export interface DocumentExampleSummary {
+  id: string;
+  title: string;
+  subtitle: string;
+  doc_type: DocumentDocType;
+  source: DocumentSource;
+  forces_review: boolean;
+}
+
+/** Draft after AI extract, before confirm — drives review + chat. */
+export interface DocumentProcessResult {
+  example_id?: string;
+  title: string;
+  pipeline_steps?: string[];
+  ocr_preview?: string;
+  auto_import: ExtractedDocumentItem[];
+  needs_review: ExtractedDocumentItem[];
+  imported: number;
+  transactions: Transaction[];
+  message: string;
+  badges_unlocked?: string[];
+  requires_review: boolean;
+  is_mock?: boolean;
+  /** Full extraction JSON for bill chat context */
+  extractionJson?: string;
+}
+
+export interface DocumentConfirmItem {
+  id?: string;
+  merchant: string;
+  amount_inr: number;
+  date: string;
+  category: ProductCategory;
+  discarded?: boolean;
+}
+
+export interface DocumentConfirmResult {
+  imported: number;
+  transactions: Transaction[];
+  message: string;
+  badges_unlocked?: string[];
+  is_mock?: boolean;
+}
+
 export interface Transaction {
   id: string;
   date: string;

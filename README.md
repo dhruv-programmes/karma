@@ -6,6 +6,7 @@ Personal circularity decision engine — scan → compare → act → reward.
 
 - `apps/mobile` — Expo SDK 57 / React Native / Expo Router
 - `apps/api` — FastAPI circularity engines + hardcoded Indian demo seed (Postgres later)
+- `apps/ai` — Next.js Vercel AI SDK service (Gemini document extract + bill chat)
 
 ## Quick start
 
@@ -24,6 +25,18 @@ Or from the repo root: `pnpm api`
 
 Demo barcode (hero phone): `8901030865822`
 
+### AI (document upload)
+
+```bash
+cd apps/ai
+pnpm install
+cp .env.example .env.local
+# Set GOOGLE_GENERATIVE_AI_API_KEY from Google AI Studio
+pnpm dev
+```
+
+Or from the repo root: `pnpm ai` (port **8001**).
+
 ### Mobile
 
 ```bash
@@ -34,7 +47,10 @@ pnpm start
 
 UI is **gluestack-ui v5 style** on **UniWind** (Tailwind v4) with a liquid-glass + brutalist circular-eco theme. Skills live in `.agents/skills/gluestack-ui-v5/`.
 
-The app auto-resolves the API host from Expo Metro (LAN IP on devices, `10.0.2.2` on Android emulator). Optional override: set `EXPO_PUBLIC_API_URL` in `apps/mobile/.env`.
+The app auto-resolves the API host from Expo Metro (LAN IP on devices, `10.0.2.2` on Android emulator). Optional overrides in `apps/mobile/.env`:
+
+- `EXPO_PUBLIC_API_URL` — FastAPI (default port 8000)
+- `EXPO_PUBLIC_AI_URL` — AI service (default port 8001)
 
 ## Hero demo (90s)
 

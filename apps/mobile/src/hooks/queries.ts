@@ -332,6 +332,34 @@ export function useParseReceipt() {
   });
 }
 
+function invalidateDocumentQueries(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: ["transactions"] });
+  qc.invalidateQueries({ queryKey: ["impact"] });
+  qc.invalidateQueries({ queryKey: ["badges"] });
+  qc.invalidateQueries({ queryKey: ["me"] });
+  qc.invalidateQueries({ queryKey: ["activity"] });
+  qc.invalidateQueries({ queryKey: ["impact-timeseries"] });
+  qc.invalidateQueries({ queryKey: ["score"] });
+}
+
+export function useConfirmDocument() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      items,
+    }: {
+      exampleId?: string;
+      items: import("@/src/types/api").DocumentConfirmItem[];
+    }) =>
+      import("@/src/lib/ai").then(({ confirmDocumentImport }) =>
+        confirmDocumentImport(items)
+      ),
+    onSuccess: () => {
+      invalidateDocumentQueries(qc);
+    },
+  });
+}
+
 export function useTransactions() {
   return useQuery({
     queryKey: ["transactions"],

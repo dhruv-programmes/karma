@@ -264,7 +264,7 @@ export const api = {  // Authentication
       method: "POST",
     }),
 
-  // Transactions & Receipts
+  // Transactions (FastAPI). Document extract/confirm live on AI service — see src/lib/ai.ts
   getTransactions: () => request<Transaction[]>("/api/v1/transactions"),
   parseReceipt: (text?: string, use_demo = true) =>
     request<ReceiptParseResult>("/api/v1/receipts/parse", {

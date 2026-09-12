@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import * as Location from "expo-location";
+import { BackButton } from "@/components/custom/back-button";
 import { FacilityCard } from "@/components/custom/facility-card";
 import { PointsCounter } from "@/components/custom/points-counter";
 import { Badge } from "@/components/ui/badge";

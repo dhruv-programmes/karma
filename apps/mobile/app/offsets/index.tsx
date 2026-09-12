@@ -1,3 +1,4 @@
+import { BackButton } from "@/components/custom/back-button";
 import React, { useState } from "react";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -51,9 +52,7 @@ export default function OffsetsScreen() {
         gap: 16,
       }}
     >
-      <Pressable onPress={() => router.back()}>
-        <Text className="text-primary">Back</Text>
-      </Pressable>
+      <BackButton label="Back" fallbackRoute="/(tabs)" />
       <Heading size="2xl">Verified offsets</Heading>
       <Text className="text-muted-foreground -mt-2">
         Optional after circular actions. Prefer repair/reuse first. Demo data.

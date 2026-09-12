@@ -3,6 +3,7 @@ import { TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeInRight } from "react-native-reanimated";
+import { BackButton } from "@/components/custom/back-button";
 import { CircularityScore } from "@/components/custom/circularity-score";
 import { Badge } from "@/components/ui/badge";
 import { Box } from "@/components/ui/box";
@@ -84,7 +85,8 @@ export default function ProfileScreen() {
       }}
       showsVerticalScrollIndicator={false}
     >
-      <Heading size="2xl" className="font-heading">Profile</Heading>
+      <BackButton label="Home" fallbackRoute="/(tabs)" />
+      <Heading size="2xl" className="font-heading -mt-2">Profile</Heading>
       <CircularityScore
         score={displayScore}
         minScore={480}

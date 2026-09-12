@@ -1,368 +1,1255 @@
 import React, { useMemo, useState } from "react";
-import { View } from "react-native";
-import { BatteryCharging, Check, CircleDollarSign, Gauge, Leaf, Lightbulb, Sun, Zap } from "lucide-react-native";
-import { Box } from "@/components/ui/box";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import {
+  Sun,
+  Zap,
+  Leaf,
+  BatteryCharging,
+  Clock,
+  Check,
+  Sparkles,
+  Award,
+  CircleDollarSign,
+  Coins,
+  Gauge,
+  ArrowRight,
+  TrendingUp,
+  Gift,
+} from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { SolarPanelHero } from "@/components/custom/solar-panel-hero";
-import type { SolarImpactResponse, SolarRecommendationStatus } from "@/src/types/api";
+import type {
+  SolarImpactResponse,
+  SolarRecommendationStatus,
+} from "@/src/types/api";
 import { useSolarRecommendationActions } from "@/src/hooks/queries";
 
-const GREEN = "#2EA86E";
-const GOLD = "#F4B942";
-const BLUE = "#3D8BC9";
-const DEEP_GREEN = "#0D1811";
-const SCORE_MINT = "#8DE6B5";
+export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
+  const [statuses, setStatuses] = useState<
+    Record<string, SolarRecommendationStatus>
+  >({});
+  const actions = useSolarRecommendationActions();
 
-function readableScoreLabel(label: string) {
-  const normalized = label.trim().toLowerCase().replace(/[-_]+/g, " ");
-  const labels: Record<string, string> = {
-    self_consumption: "Self-consumption",
-    "self consumption": "Self-consumption",
-    smart_load_shifting: "Smart load shifting",
-    "smart load shifting": "Smart load shifting",
-    solar_ev_charging: "Solar EV charging",
-    "solar ev charging": "Solar EV charging",
-    peak_grid_avoidance: "Peak-grid avoidance",
-    "peak grid avoidance": "Peak-grid avoidance",
-    consistency: "Consistency",
-  };
-  return labels[normalized] ?? label.replace(/[-_]+/g, " ");
-}
-
-function scoreContext(score: number) {
-  if (score >= 80) {
-    return {
-      label: "Excellent momentum",
-      message: "Your home is making the most of its solar generation.",
-    };
-  }
-  if (score >= 60) {
-    return {
-      label: "Strong foundation",
-      message: "A few smart shifts can help you keep more solar at home.",
-    };
-  }
-  if (score >= 40) {
-    return {
-      label: "Good foundation",
-      message: "You are building useful solar habits. Keep shifting flexible loads.",
-    };
-  }
-  return {
-    label: "Getting started",
-    message: "Small timing changes can quickly improve how you use your solar energy.",
-  };
-}
-
-function Metric({ label, value, detail, tone = "primary" }: { label: string; value: string; detail?: string; tone?: "primary" | "info" | "warning" }) {
-  return (
-    <View className="flex-1 min-w-[46%] rounded-2xl bg-muted p-3">
-      <Text size="xs" className="text-muted-foreground">{label}</Text>
-      <Text size="xl" bold className={tone === "warning" ? "text-warning" : tone === "info" ? "text-info" : "text-primary"}>{value}</Text>
-      {detail ? <Text size="2xs" className="text-muted-foreground">{detail}</Text> : null}
-    </View>
+  const recommendations = useMemo(
+    () =>
+      data.recommendations.map((item) => ({
+        ...item,
+        status: statuses[item.id] ?? item.status,
+      })),
+    [data.recommendations, statuses]
   );
-}
 
-function SectionTitle({ icon: Icon, title, subtitle }: { icon: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>; title: string; subtitle?: string }) {
-  return (
-    <Box className="flex-row items-center gap-2">
-      <View className="h-9 w-9 items-center justify-center rounded-full bg-secondary"><Icon size={18} color={GREEN} strokeWidth={2} /></View>
-      <Box className="flex-1">
-        <Text bold>{title}</Text>
-        {subtitle ? <Text size="xs" className="text-muted-foreground">{subtitle}</Text> : null}
-      </Box>
-    </Box>
-  );
-}
+  const handleStatusChange = (
+    id: string,
+    nextStatus: SolarRecommendationStatus
+  ) => {
+    setStatuses((current) => ({ ...current, [id]: nextStatus }));
+    if (nextStatus === "accepted") actions.accept.mutate(id);
+    if (nextStatus === "completed") actions.complete.mutate(id);
+  };
 
-function SolarScore({ data }: { data: SolarImpactResponse }) {
   const score = Math.max(0, Math.min(100, Math.round(data.solarScore)));
-  const context = scoreContext(score);
+  const totalPoints = data.rewards.reduce((sum, r) => sum + r.points, 0);
+  const pendingPoints = recommendations
+    .filter((r) => r.status !== "completed")
+    .reduce((sum, r) => sum + r.points, 0);
 
-  return (
-    <View className="overflow-hidden rounded-3xl p-5" style={{ backgroundColor: DEEP_GREEN, borderColor: "#234F36", borderWidth: 1 }}>
-      <Box className="flex-row items-center justify-between">
-        <Box className="flex-row items-center gap-2">
-          <View className="h-10 w-10 items-center justify-center rounded-2xl" style={{ backgroundColor: "#1D5B3A" }}>
-            <Gauge size={20} color={SCORE_MINT} strokeWidth={2.3} />
-          </View>
-          <Box>
-            <Text bold style={{ color: "#FFFFFF" }}>Solar Score</Text>
-            <Text size="2xs" style={{ color: "#A7C6B2" }}>How effectively your home uses solar</Text>
-          </Box>
-        </Box>
-        <Text size="2xs" bold style={{ color: SCORE_MINT }}>TODAY</Text>
-      </Box>
-
-      <Box className="mt-5 flex-row items-center gap-4">
-        <View className="h-[116px] w-[116px] items-center justify-center rounded-full" style={{ borderColor: "#2EA86E", borderWidth: 7, backgroundColor: "#12271A" }}>
-          <Text size="5xl" bold style={{ color: "#FFFFFF", lineHeight: 58 }}>{score}</Text>
-          <Text size="2xs" style={{ color: "#A7C6B2" }}>out of 100</Text>
-        </View>
-        <Box className="flex-1 gap-1">
-          <Text size="lg" bold style={{ color: SCORE_MINT }}>{context.label}</Text>
-          <Text size="xs" style={{ color: "#D4E7DA", lineHeight: 18 }}>{context.message}</Text>
-        </Box>
-      </Box>
-
-      <Box className="mt-5 gap-2">
-        <Box className="flex-row items-center justify-between">
-          <Text size="xs" style={{ color: "#A7C6B2" }}>Overall performance</Text>
-          <Text size="xs" bold style={{ color: "#FFFFFF" }}>{score}%</Text>
-        </Box>
-        <View className="h-3 overflow-hidden rounded-full" style={{ backgroundColor: "#234632" }}>
-          <View className="h-full rounded-full" style={{ width: `${score}%`, backgroundColor: SCORE_MINT }} />
-        </View>
-        <Box className="flex-row justify-between">
-          <Text size="2xs" style={{ color: "#789C83" }}>Needs attention</Text>
-          <Text size="2xs" style={{ color: "#789C83" }}>Excellent</Text>
-        </Box>
-      </Box>
-
-      <Box className="mt-5 flex-row flex-wrap gap-2">
-        {data.scoreBreakdown.map((item) => (
-          <View key={item.label} className="min-w-[46%] flex-1 rounded-2xl p-3" style={{ backgroundColor: "#173523", borderColor: "#28583C", borderWidth: 1 }}>
-            <Text size="2xs" style={{ color: "#A7C6B2" }}>{readableScoreLabel(item.label)}</Text>
-            <Box className="mt-1 flex-row items-baseline justify-between gap-2">
-              <Text size="lg" bold style={{ color: "#FFFFFF" }}>{Math.round(item.value)}</Text>
-              <Text size="2xs" style={{ color: "#8BC9A3" }}>/ 100</Text>
-            </Box>
-            <View className="mt-2 h-1 overflow-hidden rounded-full" style={{ backgroundColor: "#28583C" }}>
-              <View className="h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, item.value))}%`, backgroundColor: GREEN }} />
-            </View>
-          </View>
-        ))}
-      </Box>
-
-      <Text size="2xs" className="mt-4" style={{ color: "#789C83" }}>Your score combines solar usage, load timing, grid independence, and consistency.</Text>
-    </View>
-  );
-}
-
-function EnergyFlow({ data }: { data: SolarImpactResponse }) {
-  const live = data.live;
-  return (
-    <Card variant="soft" className="gap-4">
-      <SectionTitle icon={Zap} title="Live energy flow" subtitle="Where your energy is going right now" />
-      <Box className="flex-row items-center justify-between">
-        <Box className="items-center"><View className="h-12 w-12 items-center justify-center rounded-full bg-warning/20"><Sun size={24} color={GOLD} /></View><Text size="xs" bold className="mt-1">Solar</Text><Text size="xs" className="text-muted-foreground">{live.solarKw.toFixed(1)} kW</Text></Box>
-        <Text size="lg" className="text-primary">→</Text>
-        <Box className="items-center"><View className="h-12 w-12 items-center justify-center rounded-full bg-secondary"><Leaf size={24} color={GREEN} /></View><Text size="xs" bold className="mt-1">Home</Text><Text size="xs" className="text-muted-foreground">{live.homeKw.toFixed(1)} kW</Text></Box>
-        <Text size="lg" className="text-muted-foreground">→</Text>
-        <Box className="items-center"><View className="h-12 w-12 items-center justify-center rounded-full bg-info/15"><Zap size={23} color={BLUE} /></View><Text size="xs" bold className="mt-1">Grid</Text><Text size="xs" className="text-muted-foreground">{live.gridExportKw.toFixed(1)} kW out</Text></Box>
-      </Box>
-      <Box className="flex-row flex-wrap gap-2">
-        <Text size="xs" className="rounded-full bg-secondary px-3 py-1 text-primary">Solar → Home {live.homeKw.toFixed(1)} kW</Text>
-        <Text size="xs" className="rounded-full bg-info/10 px-3 py-1 text-info">Solar → Grid {live.gridExportKw.toFixed(1)} kW</Text>
-        {live.evKw ? <Text size="xs" className="rounded-full bg-warning/15 px-3 py-1 text-warning">Solar → EV {live.evKw.toFixed(1)} kW</Text> : null}
-      </Box>
-    </Card>
-  );
-}
-
-function RecommendationCard({ recommendation, onChange }: { recommendation: SolarImpactResponse["recommendations"][number]; onChange: (status: SolarRecommendationStatus) => void }) {
-  const done = recommendation.status === "completed";
-  const accepted = recommendation.status === "accepted" || recommendation.status === "in_progress";
-  return (
-    <Card variant={done ? "softPop" : "soft"} className="gap-4" style={{ borderColor: done ? "#9AD9B5" : "#D6E8DD" }}>
-      <Box className="flex-row items-start gap-3">
-        <View className="h-11 w-11 items-center justify-center rounded-2xl" style={{ backgroundColor: done ? "#D8F4E3" : "#E8F6EE" }}>
-          {done ? <Check size={20} color={GREEN} strokeWidth={2.5} /> : <Lightbulb size={20} color={GREEN} strokeWidth={2.2} />}
-        </View>
-        <Box className="flex-1 gap-1">
-          <Box className="flex-row items-center justify-between gap-2">
-            <Text bold className="flex-1">{recommendation.title}</Text>
-            <Text size="2xs" bold className={done ? "text-primary" : accepted ? "text-warning" : "text-muted-foreground"}>
-              {done ? "COMPLETED" : accepted ? "ACCEPTED" : "RECOMMENDED"}
-            </Text>
-          </Box>
-          <Text size="xs" className="text-muted-foreground" style={{ lineHeight: 18 }}>{recommendation.body}</Text>
-        </Box>
-      </Box>
-
-      <Box className="rounded-2xl p-3" style={{ backgroundColor: "#F1F8F4" }}>
-        <Text size="2xs" bold className="text-muted-foreground">BEST TIME TO ACT</Text>
-        <Text size="sm" bold className="mt-1 text-primary">{recommendation.window}</Text>
-      </Box>
-
-      <Box className="flex-row flex-wrap gap-2">
-        <Text size="2xs" className="rounded-full bg-secondary px-3 py-1 text-primary">₹{Math.round(recommendation.expectedSavingsInr)} saved</Text>
-        <Text size="2xs" className="rounded-full bg-secondary px-3 py-1 text-primary">{recommendation.co2AvoidedKg.toFixed(1)} kg CO₂e avoided</Text>
-        <Text size="2xs" className="rounded-full bg-warning/15 px-3 py-1 text-warning">+{recommendation.points} Green Points</Text>
-      </Box>
-
-      {done ? (
-        <Box className="flex-row items-center gap-2 rounded-2xl px-3 py-2" style={{ backgroundColor: "#E8F6EE" }}>
-          <Check size={17} color={GREEN} strokeWidth={2.5} />
-          <Text size="sm" bold className="text-primary">Impact verified and rewards added</Text>
-        </Box>
-      ) : (
-        <Button size="sm" variant={accepted ? "secondary" : "default"} className="w-full" onPress={() => onChange(accepted ? "completed" : "accepted")}>
-          <Text bold className={accepted ? "text-secondary-foreground" : "text-primary-foreground"}>{accepted ? "Mark action complete" : "Accept recommendation"}</Text>
-        </Button>
-      )}
-    </Card>
-  );
-}
-
-function SolarRewardsHighlight({ data }: { data: SolarImpactResponse }) {
-  const totalPoints = data.rewards.reduce((sum, reward) => sum + reward.points, 0);
-
-  return (
-    <View className="overflow-hidden rounded-3xl p-5" style={{ backgroundColor: DEEP_GREEN, borderColor: "#25543A", borderWidth: 1 }}>
-      <Box className="flex-row items-start justify-between gap-3">
-        <Box className="flex-row items-center gap-3">
-          <View className="h-11 w-11 items-center justify-center rounded-2xl" style={{ backgroundColor: "#1D5B3A" }}>
-            <CircleDollarSign size={21} color={SCORE_MINT} strokeWidth={2.2} />
-          </View>
-          <Box>
-            <Text bold style={{ color: "#FFFFFF" }}>Total solar rewards</Text>
-            <Text size="xs" style={{ color: "#A7C6B2" }}>Green Points from your solar actions</Text>
-          </Box>
-        </Box>
-        <Text size="2xs" bold style={{ color: SCORE_MINT }}>TODAY</Text>
-      </Box>
-
-      <Box className="mt-5 flex-row items-end justify-between gap-3">
-        <Box>
-          <Text size="5xl" bold style={{ color: "#FFFFFF", lineHeight: 58 }}>+{totalPoints}</Text>
-          <Text size="xs" bold style={{ color: SCORE_MINT, letterSpacing: 1.1 }}>GREEN POINTS</Text>
-        </Box>
-        <Box className="items-end pb-1">
-          <Text size="xs" style={{ color: "#A7C6B2" }}>{data.rewards.length} reward milestones</Text>
-          <Text size="xs" bold style={{ color: "#D4E7DA" }}>Keep the momentum going</Text>
-        </Box>
-      </Box>
-
-      <Box className="mt-5 rounded-2xl p-3" style={{ backgroundColor: "#173523", borderColor: "#28583C", borderWidth: 1 }}>
-        <Text size="2xs" bold style={{ color: "#A7C6B2", letterSpacing: 0.8 }}>REWARD BREAKDOWN</Text>
-        <Box className="mt-2 gap-2">
-          {data.rewards.map((reward) => (
-            <Box key={reward.label} className="flex-row items-center justify-between gap-3">
-              <Box className="flex-row flex-1 items-center gap-2">
-                <View className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: SCORE_MINT }} />
-                <Text size="xs" style={{ color: "#D4E7DA" }}>{reward.label}</Text>
-              </Box>
-              <Text size="sm" bold style={{ color: "#FFFFFF" }}>+{reward.points}</Text>
-            </Box>
-          ))}
-        </Box>
-      </Box>
-
-      <Text size="2xs" className="mt-3" style={{ color: "#789C83" }}>Rewards are separate from your Carbon Credit Score.</Text>
-    </View>
-  );
-}
-
-function SolarComparison({ data }: { data: SolarImpactResponse }) {
+  // Comparison values
   const { current, optimized } = data.comparison;
   const usedGain = Math.max(0, optimized.usedKwh - current.usedKwh);
-  const selfUseGain = Math.max(0, optimized.selfConsumptionPct - current.selfConsumptionPct);
-  const maxUsed = Math.max(current.generatedKwh, optimized.generatedKwh, 1);
+  const selfUseGain = Math.max(
+    0,
+    optimized.selfConsumptionPct - current.selfConsumptionPct
+  );
   const additionalSavings = Math.max(0, data.comparison.additionalSavingsInr);
-  const additionalCo2 = Math.max(0, data.comparison.additionalCo2Kg);
+  const maxUsed = Math.max(current.generatedKwh, optimized.generatedKwh, 1);
 
-  const formatKwh = (value: number) => `${value.toFixed(1)} kWh`;
-  const formatPercent = (value: number) => `${value.toFixed(1)}%`;
-
-  const column = (label: string, description: string, values: typeof current, optimizedColumn: boolean) => {
-    const usedWidth = `${Math.min(100, Math.max(0, (values.usedKwh / maxUsed) * 100))}%` as `${number}%`;
-    return (
-      <View
-        className="flex-1 rounded-2xl p-3"
-        style={{
-          backgroundColor: optimizedColumn ? "#E8F6EE" : "#F3F6F4",
-          borderColor: optimizedColumn ? "#A9DFC0" : "#E1EAE4",
-          borderWidth: 1,
-        }}
+  return (
+    <View style={styles.container}>
+      {/* ========================================================= */}
+      {/* 1. HERO SOLAR TELEMETRY BANNER (With Prominent Points)    */}
+      {/* ========================================================= */}
+      <LinearGradient
+        colors={["#0C2518", "#143C28", "#0B1D14"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.heroCard}
       >
-        <Box className="gap-1">
-          <Text size="xs" bold style={{ color: optimizedColumn ? GREEN : DEEP_GREEN }}>{label}</Text>
-          {optimizedColumn ? <Text size="2xs" bold className="text-primary">RECOMMENDED</Text> : null}
-        </Box>
-        <Text size="2xs" className="mt-1 text-muted-foreground">{description}</Text>
+        <View style={styles.heroGlowOrb} />
 
-        <Text size="2xl" bold className="mt-4 text-primary">{formatPercent(values.selfConsumptionPct)}</Text>
-        <Text size="2xs" className="text-muted-foreground">of solar used at home</Text>
-        <View className="mt-2 h-2 overflow-hidden rounded-full" style={{ backgroundColor: optimizedColumn ? "#C7E8D3" : "#DFE8E2" }}>
-          <View className="h-full rounded-full" style={{ width: usedWidth, backgroundColor: optimizedColumn ? GREEN : "#7C9A87" }} />
+        {/* Top Header Row with Points Spotlight */}
+        <View style={styles.heroHeaderRow}>
+          <View style={styles.heroPill}>
+            <Sun size={13} color="#5EEAD4" strokeWidth={2.4} />
+            <Text style={styles.heroPillText}>SOLAR TELEMETRY</Text>
+          </View>
+          <View style={styles.heroPointsBadge}>
+            <Coins size={13} color="#FBBF24" strokeWidth={2.4} />
+            <Text style={styles.heroPointsBadgeText}>+{totalPoints} Pts Earned</Text>
+          </View>
         </View>
 
-        <Box className="mt-4 gap-2">
-          <Box className="flex-row items-center justify-between gap-2">
-            <Text size="2xs" className="text-muted-foreground">Solar used locally</Text>
-            <Text size="xs" bold className="text-foreground">{formatKwh(values.usedKwh)}</Text>
-          </Box>
-          <Box className="flex-row items-center justify-between gap-2">
-            <Text size="2xs" className="text-muted-foreground">Sent to grid</Text>
-            <Text size="xs" bold className="text-foreground">{formatKwh(values.exportedKwh)}</Text>
-          </Box>
-        </Box>
-      </View>
-    );
-  };
-
-  return (
-    <Card variant="soft" className="gap-4">
-      <SectionTitle icon={BatteryCharging} title="Make more of your solar" subtitle="See how shifting flexible loads changes your home energy mix" />
-      <Box className="flex-row gap-3">
-        {column("Current use", "Your typical pattern", current, false)}
-        {column("Smart timing", "With flexible loads shifted", optimized, true)}
-      </Box>
-
-      <View className="rounded-2xl p-4" style={{ backgroundColor: DEEP_GREEN, borderColor: "#28583C", borderWidth: 1 }}>
-        <Box className="flex-row items-start gap-2">
-          <View className="h-8 w-8 items-center justify-center rounded-xl" style={{ backgroundColor: "#1D5B3A" }}>
-            <Leaf size={16} color={SCORE_MINT} strokeWidth={2.2} />
-          </View>
-          <Box className="flex-1">
-            <Text bold style={{ color: "#FFFFFF" }}>Your optimization opportunity</Text>
-            <Text size="xs" className="mt-1" style={{ color: "#A7C6B2", lineHeight: 17 }}>
-              Move EV charging, laundry or battery charging into the renewable window to keep more clean energy at home.
+        {/* Big Generation Metric */}
+        <View style={styles.balanceRow}>
+          <Text style={styles.balanceNumber}>
+            {data.generatedKwh.toFixed(1)}
+          </Text>
+          <View style={styles.balanceMeta}>
+            <Text style={styles.balanceUnit}>kWh Generated Today</Text>
+            <Text style={styles.balanceSubtext}>
+              {data.location} · {data.systemSizeKw} kW Rooftop
             </Text>
-          </Box>
-        </Box>
-        <Box className="mt-3 flex-row flex-wrap gap-2">
-          <Text size="2xs" bold className="rounded-full px-3 py-1" style={{ backgroundColor: "#1D5B3A", color: SCORE_MINT }}>+{formatKwh(usedGain)} used locally</Text>
-          <Text size="2xs" bold className="rounded-full px-3 py-1" style={{ backgroundColor: "#1D5B3A", color: SCORE_MINT }}>+{formatPercent(selfUseGain)} self-use</Text>
-          <Text size="2xs" bold className="rounded-full px-3 py-1" style={{ backgroundColor: "#1D5B3A", color: SCORE_MINT }}>₹{additionalSavings.toFixed(1)} more saved</Text>
-        </Box>
-        <Text size="2xs" className="mt-3" style={{ color: "#789C83" }}>{additionalCo2.toFixed(1)} kg CO₂e avoided with smart timing</Text>
+          </View>
+        </View>
+
+        {/* 3-Column Stats Row */}
+        <View style={styles.heroStatsRow}>
+          <View style={styles.heroStatItem}>
+            <Text style={styles.heroStatValue}>
+              {data.selfConsumptionPct.toFixed(0)}%
+            </Text>
+            <Text style={styles.heroStatLabel}>Used at Home</Text>
+            <Text style={styles.heroStatSub}>
+              {data.consumedKwh.toFixed(1)} kWh direct
+            </Text>
+          </View>
+          <View style={styles.heroStatDivider} />
+          <View style={styles.heroStatItem}>
+            <Text style={styles.heroStatValue}>
+              {data.exportedKwh.toFixed(1)} kWh
+            </Text>
+            <Text style={styles.heroStatLabel}>Sent to Grid</Text>
+            <Text style={styles.heroStatSub}>
+              ₹{Math.round(data.exportedKwh * (data.financial.tariffInrPerKwh || 4.5))} credit
+            </Text>
+          </View>
+          <View style={styles.heroStatDivider} />
+          <View style={styles.heroStatItem}>
+            <Text style={styles.heroStatValue}>
+              {data.co2AvoidedKg.toFixed(1)} kg
+            </Text>
+            <Text style={styles.heroStatLabel}>CO₂ Avoided</Text>
+            <Text style={styles.heroStatSub}>
+              {data.solarContributionPct.toFixed(0)}% clean mix
+            </Text>
+          </View>
+        </View>
+      </LinearGradient>
+
+      {/* ========================================================= */}
+      {/* 2. REWARDS & POINTS SPOTLIGHT (Placed ABOVE for Persuasion)*/}
+      {/* ========================================================= */}
+      <View style={styles.rewardsSpotlightCard}>
+        {/* Top Header Row: Category Badge on Left, Waiting Points on Right */}
+        <View style={styles.spotlightTopRow}>
+          <View style={styles.spotlightCategoryTag}>
+            <Award size={13} color="#059669" strokeWidth={2.4} />
+            <Text style={styles.spotlightCategoryText}>DAILY GREEN REWARDS</Text>
+          </View>
+
+          {pendingPoints > 0 ? (
+            <View style={styles.pendingPointsPill}>
+              <Sparkles size={11} color="#B45309" strokeWidth={2.4} />
+              <Text style={styles.pendingPointsText}>
+                +{pendingPoints} Pts Waiting
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.allClaimedPill}>
+              <Check size={11} color="#059669" strokeWidth={2.4} />
+              <Text style={styles.allClaimedText}>All Claimed</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Main Metric Row: Icon + Large Points + Subtitle */}
+        <View style={styles.spotlightMainRow}>
+          <View style={styles.rewardsIconWrap}>
+            <Coins size={22} color="#059669" strokeWidth={2.4} />
+          </View>
+          <View style={styles.spotlightMainInfo}>
+            <View style={styles.spotlightPointsRow}>
+              <Text style={styles.rewardsBigPoints}>+{totalPoints}</Text>
+              <Text style={styles.rewardsPointsUnit}>Green Points Today</Text>
+            </View>
+            <Text style={styles.rewardsSpotlightSub}>
+              Liquid utility points · Redeemable on Offers tab
+            </Text>
+          </View>
+        </View>
+
+        {/* Milestone checklist row (wrapping cleanly to prevent ellipsis truncation) */}
+        <View style={styles.milestonesRow}>
+          {data.rewards.slice(0, 3).map((r) => (
+            <View key={r.label} style={styles.milestoneItem}>
+              <View style={styles.milestoneDot} />
+              <Text style={styles.milestoneLabel}>
+                {r.label}
+              </Text>
+              <Text style={styles.milestonePts}>+{r.points}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Motivational nudge */}
+        <View style={styles.rewardsNudgeBox}>
+          <Gift size={14} color="#166534" strokeWidth={2.2} />
+          <Text style={styles.rewardsNudgeText}>
+            Complete the smart actions below to unlock +{pendingPoints || 40} more Karma Coins immediately!
+          </Text>
+        </View>
       </View>
-    </Card>
-  );
-}
 
-function SolarOverview({ data }: { data: SolarImpactResponse }) {
-  const [statuses, setStatuses] = useState<Record<string, SolarRecommendationStatus>>({});
-  const actions = useSolarRecommendationActions();
-  const recommendations = useMemo(() => data.recommendations.map((item) => ({ ...item, status: statuses[item.id] ?? item.status })), [data.recommendations, statuses]);
-  const setStatus = (id: string, status: SolarRecommendationStatus) => {
-    setStatuses((current) => ({ ...current, [id]: status }));
-    if (status === "accepted") actions.accept.mutate(id);
-    if (status === "completed") actions.complete.mutate(id);
-  };
-  return (
-    <Box className="gap-4">
-      <SolarScore data={data} />
-      <Card variant="softPop" className="gap-3"><Box className="flex-row items-center gap-2"><Sun size={20} color={GOLD} /><Text bold size="lg">Your solar impact</Text></Box><Text size="sm" className="text-muted-foreground">See how your solar system powers your home, reduces emissions, and supports a cleaner grid.</Text><Text size="xs" className="text-muted-foreground">{data.location} · {data.systemSizeKw} kW rooftop system · Estimated from your system profile</Text><Box className="flex-row flex-wrap gap-2"><Metric label="Solar generated" value={`${data.generatedKwh.toFixed(1)} kWh`} /><Metric label="Used at home" value={`${data.consumedKwh.toFixed(1)} kWh`} /><Metric label="Sent to grid" value={`${data.exportedKwh.toFixed(1)} kWh`} tone="info" /><Metric label="From the grid" value={`${data.gridImportedKwh.toFixed(1)} kWh`} tone="warning" /></Box></Card>
+      {/* ========================================================= */}
+      {/* 3. SOLAR POWER IN MOTION (Animated Isometric Flow)        */}
+      {/* ========================================================= */}
       <SolarPanelHero data={data} />
-      <SolarRewardsHighlight data={data} />
-      <Card variant="soft" className="gap-3"><Box className="gap-1"><Text bold>How your solar is performing</Text><Text size="xs" className="text-muted-foreground">Understand what your panels power directly and how much of your home demand they cover.</Text></Box><Box className="flex-row gap-3"><Box className="flex-1"><Text size="xs" className="text-muted-foreground">Used at home</Text><Text size="2xl" bold className="text-primary">{data.selfConsumptionPct.toFixed(0)}%</Text><Text size="2xs" className="text-muted-foreground">of generated solar used directly</Text></Box><Box className="flex-1"><Text size="xs" className="text-muted-foreground">Solar contribution</Text><Text size="2xl" bold className="text-primary">{data.solarContributionPct.toFixed(0)}%</Text><Text size="2xs" className="text-muted-foreground">of household demand met by solar</Text></Box></Box></Card>
-      <Box className="flex-row flex-wrap gap-2"><Metric label="CO₂ avoided (estimate)" value={`${data.co2AvoidedKg.toFixed(1)} kg`} /><Metric label="Money saved" value={`₹${Math.round(data.moneySavedInr)}`} tone="warning" /></Box>
-      <EnergyFlow data={data} />
-      <Card variant="soft" className="gap-4"><SectionTitle icon={Lightbulb} title="Smart solar recommendations" subtitle="Clear next steps to save money, avoid emissions, and earn Green Points" />{recommendations.map((item) => <RecommendationCard key={item.id} recommendation={item} onChange={(status) => setStatus(item.id, status)} />)}</Card>
-      <Card variant="soft" className="gap-3"><SectionTitle icon={Leaf} title="Environmental impact" subtitle="Estimated using configurable emissions factors" /><Box className="flex-row flex-wrap gap-2"><Metric label="Renewable energy used" value={`${data.consumedKwh.toFixed(1)} kWh`} /><Metric label="Grid emissions avoided" value={`${data.co2AvoidedKg.toFixed(1)} kg`} /><Metric label="Solar sent to grid" value={`${data.exportedKwh.toFixed(1)} kWh`} /></Box></Card>
-      <Card variant="soft" className="gap-3"><SectionTitle icon={CircleDollarSign} title="Financial impact" /><Box className="flex-row flex-wrap gap-2"><Metric label="Actual savings" value={`₹${Math.round(data.financial.actualSavingsInr)}`} tone="warning" /><Metric label="Additional possible" value={`₹${Math.round(data.financial.additionalSavingsInr)}`} tone="info" /><Metric label="Optimized savings" value={`₹${Math.round(data.financial.optimizedSavingsInr)}`} /></Box><Text size="2xs" className="text-muted-foreground">Tariff used for this estimate: ₹{data.financial.tariffInrPerKwh}/kWh</Text></Card>
-      <SolarComparison data={data} />
-      <Card variant="soft" className="gap-3"><SectionTitle icon={Check} title="Impact timeline" />{data.timeline.map((event, index) => <Box key={`${event.time}-${event.title}`} className="flex-row gap-3"><Box className="items-center"><View className="h-3 w-3 rounded-full bg-primary" />{index < data.timeline.length - 1 ? <View className="w-px flex-1 bg-primary/25" /> : null}</Box><Box className="flex-1 pb-3"><Text size="2xs" className="text-primary">{event.time}</Text><Text size="sm" bold>{event.title}{event.points ? ` · +${event.points} pts` : ""}</Text><Text size="xs" className="text-muted-foreground">{event.detail}</Text></Box></Box>)}</Card>
-    </Box>
+
+      {/* ========================================================= */}
+      {/* 4. SMART SOLAR ACTIONS (Points Highlighted Above Title)   */}
+      {/* ========================================================= */}
+      <View style={styles.sectionHeader}>
+        <View>
+          <Text style={styles.sectionTitle}>Smart Solar Actions</Text>
+          <Text style={styles.sectionSubtitle}>
+            Act now during peak sunlight to earn immediate Green Points
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.recommendationsList}>
+        {recommendations.map((item) => {
+          const isDone = item.status === "completed";
+          const isAccepted =
+            item.status === "accepted" || item.status === "in_progress";
+
+          return (
+            <View key={item.id} style={styles.actionCard}>
+              {/* Card Header: Category Badge + High-Impact Points Rewarded Above */}
+              <View style={styles.actionCardHeader}>
+                <View style={styles.actionCategoryBadge}>
+                  <Sun size={11} color="#047857" strokeWidth={2.4} />
+                  <Text style={styles.actionCategoryBadgeText}>
+                    SMART TIMING
+                  </Text>
+                </View>
+
+                {/* Points Rewarded Placed Above for Persuasion */}
+                <View style={styles.actionPointsPillTop}>
+                  <Coins size={12} color="#B45309" strokeWidth={2.4} />
+                  <Text style={styles.actionPointsTextTop}>
+                    +{item.points} GREEN POINTS
+                  </Text>
+                </View>
+              </View>
+
+              {/* Card Body */}
+              <View style={styles.actionBody}>
+                <View style={styles.actionRewardHeadlineRow}>
+                  <Text style={styles.actionPerk}>
+                    Earn +{item.points} Pts · Save ₹{Math.round(item.expectedSavingsInr)}
+                  </Text>
+                  {isDone ? (
+                    <View style={styles.statusBadgeDone}>
+                      <Check size={10} color="#059669" strokeWidth={2.4} />
+                      <Text style={styles.statusBadgeDoneText}>COMPLETED</Text>
+                    </View>
+                  ) : isAccepted ? (
+                    <View style={styles.statusBadgeAccepted}>
+                      <Clock size={10} color="#B45309" strokeWidth={2.2} />
+                      <Text style={styles.statusBadgeAcceptedText}>IN PROGRESS</Text>
+                    </View>
+                  ) : null}
+                </View>
+
+                <Text style={styles.actionTitle}>{item.title}</Text>
+                <Text style={styles.actionDescription}>{item.body}</Text>
+
+                {/* Timing Highlight Pill (Offers Style) */}
+                <View style={styles.actionTimePill}>
+                  <Clock size={12} color="#166534" strokeWidth={2.2} />
+                  <Text style={styles.actionTimePillText}>
+                    Peak Window: {item.window} · Avoids {item.co2AvoidedKg.toFixed(1)} kg CO₂
+                  </Text>
+                </View>
+              </View>
+
+              {/* Card Footer: Action Button */}
+              <View style={styles.actionFooter}>
+                <View style={styles.actionSavingsPill}>
+                  <Leaf size={13} color="#059669" strokeWidth={2.2} />
+                  <Text style={styles.actionSavingsText}>
+                    Saves ₹{Math.round(item.expectedSavingsInr)} today
+                  </Text>
+                </View>
+
+                {isDone ? (
+                  <View style={styles.actionBtnDone}>
+                    <Check size={13} color="#FFFFFF" strokeWidth={2.4} />
+                    <Text style={styles.actionBtnTextDone}>Points Claimed ✓</Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={[
+                      styles.actionBtn,
+                      isAccepted ? styles.actionBtnAccepted : null,
+                    ]}
+                    onPress={() =>
+                      handleStatusChange(
+                        item.id,
+                        isAccepted ? "completed" : "accepted"
+                      )
+                    }
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.actionBtnText}>
+                      {isAccepted
+                        ? `Complete for +${item.points} Pts`
+                        : `Claim +${item.points} Pts`}
+                    </Text>
+                    <ArrowRight size={13} color="#FFFFFF" strokeWidth={2.2} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          );
+        })}
+      </View>
+
+      {/* ========================================================= */}
+      {/* 5. PERFORMANCE & SMART TIMING                             */}
+      {/* ========================================================= */}
+      <View style={styles.sectionHeader}>
+        <View>
+          <Text style={styles.sectionTitle}>Performance & Dividends</Text>
+          <Text style={styles.sectionSubtitle}>
+            Self-consumption metrics, load shifting, and rupee savings
+          </Text>
+        </View>
+      </View>
+
+      {/* Card A: Load Shifting & Optimization */}
+      <View style={styles.cleanCard}>
+        <View style={styles.cardHeaderRow}>
+          <View style={styles.iconCircle}>
+            <BatteryCharging size={18} color="#2EA86E" strokeWidth={2.2} />
+          </View>
+          <View style={styles.cardHeaderInfo}>
+            <Text style={styles.cardHeaderTitle}>Smart Load Shifting</Text>
+            <Text style={styles.cardHeaderSubtitle}>
+              Compare your typical pattern vs shifting flexible loads
+            </Text>
+          </View>
+        </View>
+
+        {/* Dual Comparison Columns */}
+        <View style={styles.compareColsRow}>
+          {/* Current Column */}
+          <View style={styles.compareColCurrent}>
+            <Text style={styles.compareColLabel}>Current Use</Text>
+            <Text style={styles.compareColSub}>Typical pattern</Text>
+            <Text style={styles.compareColPercentCurrent}>
+              {current.selfConsumptionPct.toFixed(0)}%
+            </Text>
+            <View style={styles.progressBarBgCurrent}>
+              <View
+                style={[
+                  styles.progressBarFillCurrent,
+                  {
+                    width: `${Math.min(100, Math.max(10, (current.usedKwh / maxUsed) * 100))}%`,
+                  },
+                ]}
+              />
+            </View>
+            <View style={styles.compareColDetails}>
+              <Text style={styles.compareDetailText}>
+                {current.usedKwh.toFixed(1)} kWh local
+              </Text>
+              <Text style={styles.compareDetailTextMuted}>
+                {current.exportedKwh.toFixed(1)} kWh grid
+              </Text>
+            </View>
+          </View>
+
+          {/* Optimized Column */}
+          <View style={styles.compareColOptimized}>
+            <Text style={styles.compareColLabelOpt}>Smart Timing</Text>
+            <Text style={styles.compareColSubOpt}>Flexible loads shifted</Text>
+            <Text style={styles.compareColPercentOpt}>
+              {optimized.selfConsumptionPct.toFixed(0)}%
+            </Text>
+            <View style={styles.progressBarBgOpt}>
+              <View
+                style={[
+                  styles.progressBarFillOpt,
+                  {
+                    width: `${Math.min(100, Math.max(10, (optimized.usedKwh / maxUsed) * 100))}%`,
+                  },
+                ]}
+              />
+            </View>
+            <View style={styles.compareColDetails}>
+              <Text style={styles.compareDetailTextOpt}>
+                {optimized.usedKwh.toFixed(1)} kWh local
+              </Text>
+              <Text style={styles.compareDetailTextMuted}>
+                {optimized.exportedKwh.toFixed(1)} kWh grid
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Highlight Callout Box (Offers Style) */}
+        <View style={styles.impactHighlightBox}>
+          <Leaf size={14} color="#166534" strokeWidth={2.2} />
+          <Text style={styles.impactHighlightText}>
+            +{usedGain.toFixed(1)} kWh home use · Save ₹{additionalSavings.toFixed(0)} more by shifting EV & laundry into midday.
+          </Text>
+        </View>
+      </View>
+
+      {/* Card B: Financial & Environmental Dividends (2x2 Grid) */}
+      <View style={styles.cleanCard}>
+        <View style={styles.cardHeaderRow}>
+          <View style={styles.iconCircle}>
+            <CircleDollarSign size={18} color="#2EA86E" strokeWidth={2.2} />
+          </View>
+          <View style={styles.cardHeaderInfo}>
+            <Text style={styles.cardHeaderTitle}>Financial & Environmental Dividends</Text>
+            <Text style={styles.cardHeaderSubtitle}>
+              Clean power economic value & avoided emissions
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.dividendGrid}>
+          {/* Tile 1 */}
+          <View style={styles.dividendTile}>
+            <Text style={styles.dividendTileLabel}>ACTUAL SAVINGS</Text>
+            <Text style={styles.dividendTileValue}>
+              ₹{Math.round(data.financial.actualSavingsInr)}
+            </Text>
+            <Text style={styles.dividendTileSub}>Current cycle savings</Text>
+          </View>
+
+          {/* Tile 2 */}
+          <View style={styles.dividendTile}>
+            <Text style={styles.dividendTileLabel}>POSSIBLE WITH TIMING</Text>
+            <Text style={[styles.dividendTileValue, { color: "#059669" }]}>
+              ₹{Math.round(data.financial.optimizedSavingsInr)}
+            </Text>
+            <Text style={styles.dividendTileSub}>
+              +₹{Math.round(data.financial.additionalSavingsInr)} additional
+            </Text>
+          </View>
+
+          {/* Tile 3 */}
+          <View style={styles.dividendTile}>
+            <Text style={styles.dividendTileLabel}>CLEAN POWER USED</Text>
+            <Text style={styles.dividendTileValue}>
+              {data.consumedKwh.toFixed(1)} kWh
+            </Text>
+            <Text style={styles.dividendTileSub}>Direct from rooftop</Text>
+          </View>
+
+          {/* Tile 4 */}
+          <View style={styles.dividendTile}>
+            <Text style={styles.dividendTileLabel}>GRID CO₂ AVOIDED</Text>
+            <Text style={[styles.dividendTileValue, { color: "#2EA86E" }]}>
+              {data.co2AvoidedKg.toFixed(1)} kg
+            </Text>
+            <Text style={styles.dividendTileSub}>Avoided thermal grid</Text>
+          </View>
+        </View>
+
+        <Text style={styles.tariffFootnote}>
+          Calculated using empanelled DISCOM tariff rate ₹{data.financial.tariffInrPerKwh}/kWh
+        </Text>
+      </View>
+
+      {/* ========================================================= */}
+      {/* 6. TIMELINE OF SOLAR EVENTS                               */}
+      {/* ========================================================= */}
+      <View style={styles.cleanCard}>
+        <Text style={styles.timelineHeading}>TODAY’S SOLAR ACTIVITY</Text>
+        <View style={styles.timelineList}>
+          {data.timeline.map((event, index) => (
+            <View
+              key={`${event.time}-${event.title}`}
+              style={styles.timelineRow}
+            >
+              <View style={styles.timelineDotWrap}>
+                <View style={styles.timelineDot} />
+                {index < data.timeline.length - 1 ? (
+                  <View style={styles.timelineLine} />
+                ) : null}
+              </View>
+              <View style={styles.timelineContent}>
+                <View style={styles.timelineHeader}>
+                  <Text style={styles.timelineTime}>{event.time}</Text>
+                  {event.points ? (
+                    <Text style={styles.timelinePoints}>
+                      +{event.points} pts
+                    </Text>
+                  ) : null}
+                </View>
+                <Text style={styles.timelineTitle}>{event.title}</Text>
+                <Text style={styles.timelineDetail}>{event.detail}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+    </View>
   );
 }
 
-export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
-  return <SolarOverview data={data} />;
-}
+const styles = StyleSheet.create({
+  container: {
+    gap: 16,
+  },
+
+  // Hero Banner (Exact Offers Style)
+  heroCard: {
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "rgba(46,168,110,0.25)",
+    overflow: "hidden",
+    position: "relative",
+    shadowColor: "#059669",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 6,
+  },
+  heroGlowOrb: {
+    position: "absolute",
+    right: -30,
+    top: -30,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: "rgba(46,168,110,0.18)",
+  },
+  heroHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  heroPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(46,168,110,0.2)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  heroPillText: {
+    fontSize: 10,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#5EEAD4",
+    letterSpacing: 0.8,
+  },
+  heroPointsBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "rgba(251,191,36,0.18)",
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(251,191,36,0.35)",
+  },
+  heroPointsBadgeText: {
+    fontSize: 11,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#FBBF24",
+    letterSpacing: 0.3,
+  },
+  balanceRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 12,
+    marginBottom: 18,
+  },
+  balanceNumber: {
+    fontSize: 42,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#FFFFFF",
+    letterSpacing: -1,
+  },
+  balanceMeta: {
+    gap: 2,
+    flex: 1,
+  },
+  balanceUnit: {
+    fontSize: 14,
+    fontFamily: "Nunito_700Bold",
+    color: "#5EEAD4",
+  },
+  balanceSubtext: {
+    fontSize: 11,
+    fontFamily: "Nunito_400Regular",
+    color: "rgba(255,255,255,0.5)",
+  },
+  heroStatsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.08)",
+    paddingTop: 14,
+  },
+  heroStatItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  heroStatDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  heroStatValue: {
+    fontSize: 15,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#FFFFFF",
+  },
+  heroStatLabel: {
+    fontSize: 10,
+    fontFamily: "Nunito_600SemiBold",
+    color: "rgba(255,255,255,0.5)",
+    marginTop: 2,
+  },
+  heroStatSub: {
+    fontSize: 9,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#5EEAD4",
+    marginTop: 1,
+  },
+
+  // Rewards Spotlight Card (High-Persuasion Placed Above)
+  rewardsSpotlightCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "rgba(46,168,110,0.22)",
+    shadowColor: "#059669",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    gap: 12,
+  },
+  spotlightTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  spotlightCategoryTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#F0FDF4",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(46,168,110,0.2)",
+  },
+  spotlightCategoryText: {
+    fontSize: 9.5,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#059669",
+    letterSpacing: 0.5,
+  },
+  pendingPointsPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4.5,
+    backgroundColor: "#FEF3C7",
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: "rgba(245,158,11,0.3)",
+  },
+  pendingPointsText: {
+    fontSize: 10.5,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#B45309",
+    letterSpacing: 0.2,
+  },
+  allClaimedPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#ECFDF5",
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: "rgba(46,168,110,0.25)",
+  },
+  allClaimedText: {
+    fontSize: 10.5,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#059669",
+  },
+  spotlightMainRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  rewardsIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#ECFDF5",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(46,168,110,0.25)",
+  },
+  spotlightMainInfo: {
+    flex: 1,
+  },
+  spotlightPointsRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 7,
+  },
+  rewardsBigPoints: {
+    fontSize: 26,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#0D1811",
+  },
+  rewardsPointsUnit: {
+    fontSize: 13,
+    fontFamily: "Nunito_700Bold",
+    color: "#059669",
+  },
+  rewardsSpotlightSub: {
+    fontSize: 11,
+    fontFamily: "Nunito_400Regular",
+    color: "#526658",
+    marginTop: 1,
+  },
+  milestonesRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.05)",
+    paddingTop: 10,
+  },
+  milestoneItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#F8FAF9",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E5ECE8",
+  },
+  milestoneDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: "#2EA86E",
+  },
+  milestoneLabel: {
+    fontSize: 11,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#183222",
+  },
+  milestonePts: {
+    fontSize: 10.5,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#059669",
+  },
+  rewardsNudgeBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#F0FDF4",
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(46,168,110,0.2)",
+  },
+  rewardsNudgeText: {
+    fontSize: 11,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#166534",
+    flex: 1,
+    lineHeight: 15,
+  },
+
+  // Section Headers
+  sectionHeader: {
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#0D1811",
+  },
+  sectionSubtitle: {
+    fontSize: 12,
+    fontFamily: "Nunito_400Regular",
+    color: "#526658",
+    marginTop: 1,
+  },
+
+  // Clean White Cards
+  cleanCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "rgba(46,168,110,0.16)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+    gap: 14,
+  },
+  cardHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  iconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#F0FDF4",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(46,168,110,0.2)",
+  },
+  cardHeaderInfo: {
+    flex: 1,
+  },
+  cardHeaderTitle: {
+    fontSize: 15,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#0D1811",
+  },
+  cardHeaderSubtitle: {
+    fontSize: 11,
+    fontFamily: "Nunito_400Regular",
+    color: "#526658",
+    marginTop: 1,
+  },
+
+  // Dual Comparison Columns
+  compareColsRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  compareColCurrent: {
+    flex: 1,
+    backgroundColor: "#F8FAF9",
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#E5ECE8",
+  },
+  compareColLabel: {
+    fontSize: 12,
+    fontFamily: "Nunito_700Bold",
+    color: "#0D1811",
+  },
+  compareColSub: {
+    fontSize: 10,
+    fontFamily: "Nunito_400Regular",
+    color: "#7A9082",
+    marginTop: 1,
+  },
+  compareColPercentCurrent: {
+    fontSize: 22,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#2D4236",
+    marginTop: 8,
+  },
+  progressBarBgCurrent: {
+    height: 6,
+    backgroundColor: "#E2EAE5",
+    borderRadius: 3,
+    overflow: "hidden",
+    marginVertical: 8,
+  },
+  progressBarFillCurrent: {
+    height: "100%",
+    backgroundColor: "#7A9082",
+    borderRadius: 3,
+  },
+  compareColDetails: {
+    gap: 2,
+  },
+  compareDetailText: {
+    fontSize: 11,
+    fontFamily: "Nunito_700Bold",
+    color: "#183222",
+  },
+  compareDetailTextMuted: {
+    fontSize: 10,
+    fontFamily: "Nunito_400Regular",
+    color: "#7A9082",
+  },
+
+  compareColOptimized: {
+    flex: 1,
+    backgroundColor: "#F0FDF4",
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "rgba(46,168,110,0.3)",
+  },
+  compareColLabelOpt: {
+    fontSize: 12,
+    fontFamily: "Nunito_700Bold",
+    color: "#047857",
+  },
+  compareColSubOpt: {
+    fontSize: 10,
+    fontFamily: "Nunito_400Regular",
+    color: "#059669",
+    marginTop: 1,
+  },
+  compareColPercentOpt: {
+    fontSize: 22,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#2EA86E",
+    marginTop: 8,
+  },
+  progressBarBgOpt: {
+    height: 6,
+    backgroundColor: "#DCFCE7",
+    borderRadius: 3,
+    overflow: "hidden",
+    marginVertical: 8,
+  },
+  progressBarFillOpt: {
+    height: "100%",
+    backgroundColor: "#2EA86E",
+    borderRadius: 3,
+  },
+  compareDetailTextOpt: {
+    fontSize: 11,
+    fontFamily: "Nunito_700Bold",
+    color: "#047857",
+  },
+
+  // Impact Highlight Box (Offers Style)
+  impactHighlightBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#F0FDF4",
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(46,168,110,0.2)",
+  },
+  impactHighlightText: {
+    fontSize: 11,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#166534",
+    flex: 1,
+    lineHeight: 15,
+  },
+
+  // Dividends 2x2 Grid
+  dividendGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  dividendTile: {
+    flex: 1,
+    minWidth: "47%",
+    backgroundColor: "#F8FAF9",
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#E5ECE8",
+  },
+  dividendTileLabel: {
+    fontSize: 9,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#7A9082",
+    letterSpacing: 0.6,
+  },
+  dividendTileValue: {
+    fontSize: 18,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#0D1811",
+    marginTop: 4,
+  },
+  dividendTileSub: {
+    fontSize: 10,
+    fontFamily: "Nunito_400Regular",
+    color: "#526658",
+    marginTop: 2,
+  },
+  tariffFootnote: {
+    fontSize: 10,
+    fontFamily: "Nunito_400Regular",
+    color: "#7A9082",
+    textAlign: "center",
+  },
+
+  // Smart Solar Action Cards (Offers Coupon Style)
+  recommendationsList: {
+    gap: 12,
+  },
+  actionCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "rgba(46,168,110,0.16)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  actionCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  actionCategoryBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(4,120,87,0.1)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  actionCategoryBadgeText: {
+    fontSize: 9,
+    fontFamily: "Nunito_700Bold",
+    color: "#047857",
+    letterSpacing: 0.5,
+  },
+  actionPointsPillTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#FEF3C7",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(245,158,11,0.3)",
+  },
+  actionPointsTextTop: {
+    fontSize: 9.5,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#B45309",
+    letterSpacing: 0.4,
+  },
+  actionBody: {
+    marginBottom: 12,
+  },
+  actionRewardHeadlineRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 2,
+  },
+  actionPerk: {
+    fontSize: 16,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#0D1811",
+    lineHeight: 20,
+    flex: 1,
+  },
+  statusBadgeDone: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "#ECFDF5",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  statusBadgeDoneText: {
+    fontSize: 8.5,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#059669",
+  },
+  statusBadgeAccepted: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "#FEF3C7",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  statusBadgeAcceptedText: {
+    fontSize: 8.5,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#B45309",
+  },
+  actionTitle: {
+    fontSize: 13,
+    fontFamily: "Nunito_700Bold",
+    color: "#183222",
+    marginTop: 2,
+  },
+  actionDescription: {
+    fontSize: 12,
+    fontFamily: "Nunito_400Regular",
+    color: "#526658",
+    lineHeight: 16,
+    marginTop: 4,
+  },
+  actionTimePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#F0FDF4",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginTop: 8,
+    alignSelf: "flex-start",
+  },
+  actionTimePillText: {
+    fontSize: 11,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#166534",
+  },
+
+  actionFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.05)",
+    paddingTop: 10,
+  },
+  actionSavingsPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  actionSavingsText: {
+    fontSize: 12,
+    fontFamily: "Nunito_700Bold",
+    color: "#059669",
+  },
+  actionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#0D1811",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 14,
+  },
+  actionBtnAccepted: {
+    backgroundColor: "#047857",
+  },
+  actionBtnText: {
+    fontSize: 12,
+    fontFamily: "Nunito_700Bold",
+    color: "#FFFFFF",
+  },
+  actionBtnDone: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#059669",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 14,
+  },
+  actionBtnTextDone: {
+    fontSize: 12,
+    fontFamily: "Nunito_700Bold",
+    color: "#FFFFFF",
+  },
+
+  // Timeline
+  timelineHeading: {
+    fontSize: 10,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#7A9082",
+    letterSpacing: 0.8,
+  },
+  timelineList: {
+    gap: 12,
+  },
+  timelineRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  timelineDotWrap: {
+    alignItems: "center",
+    width: 14,
+  },
+  timelineDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#2EA86E",
+    marginTop: 3,
+  },
+  timelineLine: {
+    width: 1,
+    flex: 1,
+    backgroundColor: "rgba(46,168,110,0.25)",
+    marginVertical: 3,
+  },
+  timelineContent: {
+    flex: 1,
+  },
+  timelineHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  timelineTime: {
+    fontSize: 10,
+    fontFamily: "Nunito_700Bold",
+    color: "#059669",
+  },
+  timelinePoints: {
+    fontSize: 10,
+    fontFamily: "Nunito_700Bold",
+    color: "#B45309",
+  },
+  timelineTitle: {
+    fontSize: 13,
+    fontFamily: "Nunito_700Bold",
+    color: "#0D1811",
+    marginTop: 1,
+  },
+  timelineDetail: {
+    fontSize: 11,
+    fontFamily: "Nunito_400Regular",
+    color: "#526658",
+    marginTop: 1,
+  },
+});

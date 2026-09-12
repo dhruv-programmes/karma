@@ -16,6 +16,7 @@ import {
   Sparkles,
   UserCheck,
 } from "lucide-react-native";
+import { Image } from "expo-image";
 import Svg, { Path } from "react-native-svg";
 import { useQueryClient } from "@tanstack/react-query";
 import { Avatar } from "@/components/ui/avatar";
@@ -218,6 +219,12 @@ export default function SignInScreen() {
         >
           <ArrowLeft size={18} color="rgb(28,42,36)" />
         </Pressable>
+
+        <Image
+          source={require("@/assets/karma-logo.png")}
+          style={{ width: 44, height: 46 }}
+          contentFit="contain"
+        />
 
         <Box className="w-10 h-10" />
       </HStack>

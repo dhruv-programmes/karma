@@ -15,6 +15,7 @@ import {
   Mail,
   User,
 } from "lucide-react-native";
+import { Image } from "expo-image";
 import Svg, { Path } from "react-native-svg";
 import { Box } from "@/components/ui/box";
 import { Button } from "@/components/ui/button";
@@ -150,6 +151,11 @@ export default function AccountScreen() {
         >
           <ArrowLeft size={18} color="rgb(28,42,36)" />
         </Pressable>
+        <Image
+          source={require("@/assets/karma-logo.png")}
+          style={{ width: 44, height: 46 }}
+          contentFit="contain"
+        />
         <Box className="w-10 h-10" />
       </HStack>
 

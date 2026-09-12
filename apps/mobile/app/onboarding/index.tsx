@@ -8,6 +8,7 @@ import {
   Leaf,
   RotateCcw,
 } from "lucide-react-native";
+import { Image } from "expo-image";
 import { Box } from "@/components/ui/box";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -48,14 +49,11 @@ export default function WelcomeScreen() {
       {/* Top Header Section */}
       <VStack space="lg">
         <HStack className="items-center justify-between">
-          <HStack className="items-center gap-2">
-            <Box className="w-8 h-8 rounded-xl bg-primary/15 items-center justify-center">
-              <Leaf size={16} color="rgb(46,168,110)" />
-            </Box>
-            <Text size="xs" bold className="text-primary tracking-widest uppercase">
-              Carbon Loop
-            </Text>
-          </HStack>
+          <Image
+            source={require("@/assets/karma-logo.png")}
+            style={{ width: 130, height: 138 }}
+            contentFit="contain"
+          />
         </HStack>
 
         <VStack space="xs" className="mt-4">

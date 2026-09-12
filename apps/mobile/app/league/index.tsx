@@ -1,32 +1,16 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { Image, Pressable, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ArrowLeft, ChevronRight, Crown, Flame, Shield, TrendingUp, Users } from "lucide-react-native";
+import { ChevronRight, Flame, TrendingUp, Users } from "lucide-react-native";
+import { BackButton } from "@/components/custom/back-button";
 import { Text } from "@/components/ui/text";
-import { api } from "@/src/lib/api";
-import type { LeagueSummary, LeagueTier } from "@/src/types/api";
+import { useLeague } from "@/src/hooks/queries";
+import type { LeagueTier } from "@/src/types/api";
+import { formatLeagueNumber, leagueBadgeSource } from "@/src/lib/league";
 
 const green = "#0E2A1E";
 const mint = "#2EA86E";
-const DEMO: LeagueSummary = {
-  tier: "silver",
-  league_name: "Silver League",
-  league_points: 640,
-  promotion_threshold: 800,
-  weekly_actions_completed: 3,
-  weekly_actions_target: 5,
-  promotion_status: "holding",
-  season_label: "September season",
-  demotion_note: "On the first day of each month, every league drops one tier. Bronze is protected.",
-  standings: [
-    { id: "rohan", display_name: "Rohan Mehta", username: "rohan.loop", league_points: 910, rank: 1 },
-    { id: "maya", display_name: "Maya Green", username: "maya.green", league_points: 760, rank: 2 },
-    { id: "aisha", display_name: "Aisha Sharma", username: "aisha.loop", league_points: 640, rank: 3, is_current_user: true },
-    { id: "dev", display_name: "Dev Kapoor", username: "dev.reuse", league_points: 520, rank: 4 },
-  ],
-};
-
 const tierColors: Record<LeagueTier, { accent: string; soft: string }> = {
   bronze: { accent: "#C9824A", soft: "#F8E5D6" },
   silver: { accent: "#93A8B6", soft: "#E7EEF2" },
@@ -36,29 +20,35 @@ const tierColors: Record<LeagueTier, { accent: string; soft: string }> = {
 
 const leagueTiers: LeagueTier[] = ["bronze", "silver", "gold", "platinum"];
 
-function badgeSource(tier: LeagueTier) {
-  if (tier === "bronze") return require("@/assets/league-badges/bronze.png");
-  if (tier === "silver") return require("@/assets/league-badges/silver.png");
-  if (tier === "gold") return require("@/assets/league-badges/gold.png");
-  return require("@/assets/league-badges/platinum.png");
-}
-
 export default function LeagueScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [league, setLeague] = useState<LeagueSummary>(DEMO);
-  const [refreshing, setRefreshing] = useState(false);
+  const leagueQuery = useLeague();
+  const league = leagueQuery.data;
+  const refreshing = leagueQuery.isFetching;
 
-  async function load() {
-    setLeague(await api.getLeague());
-  }
-
-  useEffect(() => { void load(); }, []);
-
-  async function refresh() {
-    setRefreshing(true);
-    await load();
-    setRefreshing(false);
+  if (!league) {
+    return (
+      <ScrollView
+        style={styles.root}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 36 }]}
+      >
+        <BackButton label="Community" fallbackRoute="/community" variant="circle" />
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>{leagueQuery.isLoading ? "Loading your league…" : "League unavailable"}</Text>
+          <Text style={styles.emptyText}>
+            {leagueQuery.isLoading
+              ? "Checking your current Carbon Loop league and badge."
+              : "We could not verify your current league right now. Your tier will appear when the server responds."}
+          </Text>
+          {!leagueQuery.isLoading ? (
+            <Pressable style={styles.retryButton} onPress={() => void leagueQuery.refetch()}>
+              <Text style={styles.retryText}>Try again</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      </ScrollView>
+    );
   }
 
   const palette = tierColors[league.tier];
@@ -78,16 +68,13 @@ export default function LeagueScreen() {
     <ScrollView
       style={styles.root}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 36 }]}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={mint} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void leagueQuery.refetch()} tintColor={mint} />}
     >
-      <Pressable style={styles.back} onPress={() => router.canGoBack() ? router.back() : router.replace("/community")}>
-        <ArrowLeft size={18} color={green} />
-        <Text style={styles.backText}>Community</Text>
-      </Pressable>
+      <BackButton label="Community" fallbackRoute="/community" variant="circle" />
 
       <View style={styles.hero}>
         <View style={styles.heroTop}>
-          <View style={styles.heroIcon}><Crown size={21} color="#F6CC67" /></View>
+          <View style={styles.heroIcon}><Image source={leagueBadgeSource(league.tier)} style={styles.heroBadge} resizeMode="contain" /></View>
           <View style={styles.heroCopy}>
             <Text style={styles.eyebrow}>KARMA LEAGUES</Text>
             <Text style={styles.title}>Climb together</Text>
@@ -101,7 +88,7 @@ export default function LeagueScreen() {
         {leagueTiers.map((tier, index) => (
           <React.Fragment key={tier}>
             <View style={[styles.ladderTier, league.tier === tier && styles.ladderTierActive]}>
-              <Image source={badgeSource(tier)} style={styles.ladderBadge} resizeMode="contain" />
+              <Image source={leagueBadgeSource(tier)} style={styles.ladderBadge} resizeMode="contain" />
               <Text style={[styles.ladderLabel, league.tier === tier && { color: tierColors[tier].accent }]}>{tier[0].toUpperCase() + tier.slice(1)}</Text>
             </View>
             {index < leagueTiers.length - 1 ? <View style={styles.ladderLine} /> : null}
@@ -112,38 +99,39 @@ export default function LeagueScreen() {
       <View style={[styles.leagueCard, { borderColor: palette.accent }]}>
         <View style={styles.leagueCardTop}>
           <View style={[styles.badgeWrap, { backgroundColor: palette.soft }]}>
-            <Image source={badgeSource(league.tier)} style={styles.badge} resizeMode="contain" />
+            <Image source={leagueBadgeSource(league.tier)} style={styles.badge} resizeMode="contain" />
           </View>
           <View style={styles.leagueIdentity}>
             <Text style={styles.cardLabel}>CURRENT LEAGUE</Text>
             <Text style={styles.leagueName}>{league.league_name}</Text>
             <Text style={styles.leagueDescription}>{statusCopy}</Text>
           </View>
-          <Shield size={19} color={palette.accent} />
         </View>
 
         <View style={styles.pointsRow}>
-          <View><Text style={styles.pointsValue}>{league.league_points.toLocaleString()}</Text><Text style={styles.pointsLabel}>league points</Text></View>
-          <View style={styles.nextTier}><TrendingUp size={15} color={mint} /><Text style={styles.nextTierText}>{league.promotion_threshold ? `${Math.max(0, league.promotion_threshold - league.league_points)} to promote` : "Top league"}</Text></View>
+          <View><Text style={styles.pointsValue}>{formatLeagueNumber(league.league_points)}</Text><Text style={styles.pointsLabel}>league points</Text></View>
+          <View style={styles.nextTier}><TrendingUp size={15} color={mint} /><Text style={styles.nextTierText}>{league.promotion_threshold ? `${formatLeagueNumber(Math.max(0, Number(league.promotion_threshold) - Number(league.league_points)))} to promote` : "Top league"}</Text></View>
         </View>
         <View style={styles.track}><View style={[styles.fill, { width: `${promotionRatio * 100}%`, backgroundColor: palette.accent }]} /></View>
-        <Text style={styles.trackCaption}>{league.promotion_threshold ? `${league.league_points.toLocaleString()} / ${league.promotion_threshold.toLocaleString()} points to the next league` : "You are at the highest league"}</Text>
+        <Text style={styles.trackCaption}>{league.promotion_threshold ? `${formatLeagueNumber(league.league_points)} / ${formatLeagueNumber(league.promotion_threshold)} points to the next league` : "You are at the highest league"}</Text>
       </View>
 
       <View style={styles.weeklyCard}>
-        <View style={styles.sectionHeader}><View><Text style={styles.cardLabel}>THIS WEEK</Text><Text style={styles.sectionTitle}>Verified action progress</Text></View><Text style={styles.weeklyCount}>{league.weekly_actions_completed}/{league.weekly_actions_target}</Text></View>
+        <View style={styles.sectionHeader}><View><Text style={styles.cardLabel}>THIS WEEK</Text><Text style={styles.sectionTitle}>Verified action progress</Text></View><Text style={styles.weeklyCount}>{formatLeagueNumber(league.weekly_actions_completed)}/{formatLeagueNumber(league.weekly_actions_target)}</Text></View>
         <View style={styles.track}><View style={[styles.fill, { width: `${weeklyRatio * 100}%` }]} /></View>
         <Text style={styles.weeklyHint}>Complete verified circular actions to earn league points. KCS and Karma Coins remain separate.</Text>
       </View>
 
       <View style={styles.standingsCard}>
         <View style={styles.sectionHeader}><View><Text style={styles.cardLabel}>SEASON STANDINGS</Text><Text style={styles.sectionTitle}>Your league</Text></View><Users size={18} color={mint} /></View>
-        {standings.map((person) => (
+        {standings.length === 0 ? (
+          <Text style={styles.emptyText}>Standings are temporarily unavailable.</Text>
+        ) : standings.map((person) => (
           <View key={person.id} style={[styles.personRow, person.is_current_user && styles.currentPerson]}>
             <Text style={styles.rank}>{person.rank}</Text>
             <View style={styles.avatar}><Text style={styles.avatarText}>{person.display_name.slice(0, 1)}</Text></View>
             <View style={styles.personCopy}><Text style={styles.personName}>{person.display_name}{person.is_current_user ? " · You" : ""}</Text><Text style={styles.username}>@{person.username}</Text></View>
-            <Text style={styles.personPoints}>{person.league_points.toLocaleString()}</Text>
+            <Text style={styles.personPoints}>{formatLeagueNumber(person.league_points)}</Text>
           </View>
         ))}
       </View>
@@ -162,6 +150,7 @@ const styles = StyleSheet.create({
   hero: { backgroundColor: green, borderRadius: 24, padding: 20, gap: 16 },
   heroTop: { flexDirection: "row", gap: 13, alignItems: "center" },
   heroIcon: { width: 46, height: 46, borderRadius: 15, backgroundColor: "#234635", alignItems: "center", justifyContent: "center" },
+  heroBadge: { width: 36, height: 36 },
   heroCopy: { flex: 1, gap: 3 },
   eyebrow: { color: "#8BD7A7", letterSpacing: 1.3, fontWeight: "800", fontSize: 11 },
   title: { color: "#fff", fontSize: 26, fontWeight: "800" },
@@ -186,7 +175,7 @@ const styles = StyleSheet.create({
   pointsValue: { color: green, fontSize: 31, fontWeight: "900" },
   pointsLabel: { color: "#789185", fontSize: 11 },
   nextTier: { flexDirection: "row", alignItems: "center", gap: 5, paddingBottom: 4 },
-  nextTierText: { color: mint, fontWeight: "800", fontSize: 12 },
+  nextTierText: { color: mint, fontWeight: "800", fontSize: 12, flexShrink: 1, textAlign: "right" },
   track: { height: 8, backgroundColor: "#E7F0EA", borderRadius: 5, overflow: "hidden" },
   fill: { height: "100%", backgroundColor: mint, borderRadius: 5 },
   trackCaption: { color: "#789185", fontSize: 11 },
@@ -204,10 +193,15 @@ const styles = StyleSheet.create({
   personCopy: { flex: 1 },
   personName: { color: green, fontWeight: "800", fontSize: 14 },
   username: { color: "#789185", fontSize: 11, marginTop: 2 },
-  personPoints: { color: green, fontWeight: "900", fontSize: 14 },
+  personPoints: { color: green, fontWeight: "900", fontSize: 14, minWidth: 52, textAlign: "right", flexShrink: 0 },
   noteCard: { backgroundColor: "#fff", borderRadius: 17, borderWidth: 1, borderColor: "#D8E9DF", padding: 15, gap: 7 },
   noteTitle: { color: green, fontWeight: "800", fontSize: 14 },
   noteText: { color: "#789185", fontSize: 11, lineHeight: 16 },
   backToCommunity: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 3, paddingVertical: 4 },
   backToCommunityText: { color: mint, fontWeight: "800", fontSize: 13 },
+  emptyCard: { backgroundColor: "#fff", borderRadius: 20, borderWidth: 1, borderColor: "#D8E9DF", padding: 20, gap: 8 },
+  emptyTitle: { color: green, fontSize: 18, fontWeight: "800" },
+  emptyText: { color: "#789185", fontSize: 13, lineHeight: 18 },
+  retryButton: { alignSelf: "flex-start", backgroundColor: green, borderRadius: 11, paddingHorizontal: 14, paddingVertical: 9, marginTop: 4 },
+  retryText: { color: "#fff", fontSize: 12, fontWeight: "800" },
 });

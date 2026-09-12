@@ -10,9 +10,11 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ArrowLeft, Check, Crown, Gift, Search, UserPlus, Users, X } from "lucide-react-native";
+import { Check, Crown, Gift, Search, UserPlus, Users, X } from "lucide-react-native";
+import { BackButton } from "@/components/custom/back-button";
 import { Text } from "@/components/ui/text";
 import { api } from "@/src/lib/api";
+import { formatLeagueNumber } from "@/src/lib/league";
 import type { Challenge, ChallengePeriod, FriendResult, LeaderboardEntry, LeaderboardMetric, LeaderboardScope } from "@/src/types/api";
 
 const green = "#0E2A1E";
@@ -128,7 +130,7 @@ export default function LeaderboardScreen() {
     <View style={styles.root}>
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: insets.bottom + 36 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={mint} />}>
         <View style={styles.container}>
-          <Pressable style={styles.back} onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)")}><ArrowLeft size={18} color={green} /><Text style={styles.backText}>Back</Text></Pressable>
+          <BackButton label="Back" fallbackRoute="/(tabs)" />
           <View style={styles.hero}>
             <View style={styles.heroIcon}><Crown size={22} color="#FBBF24" /></View>
             <View style={{ flex: 1 }}><Text style={styles.eyebrow}>KARMA COMMUNITY</Text><Text style={styles.title}>Leaderboard & Challenges</Text><Text style={styles.subtitle}>Compete on everyday green actions, together.</Text></View>
@@ -137,7 +139,7 @@ export default function LeaderboardScreen() {
           <View style={styles.segment}><Pressable onPress={() => { setScope("global"); void loadLeaderboard("global", metric); }} style={[styles.segmentItem, scope === "global" && styles.segmentActive]}><Text style={[styles.segmentText, scope === "global" && styles.segmentActiveText]}>Global</Text></Pressable><Pressable onPress={() => { setScope("friends"); void loadLeaderboard("friends", metric); }} style={[styles.segmentItem, scope === "friends" && styles.segmentActive]}><Users size={14} color={scope === "friends" ? "#fff" : "#668074"} /><Text style={[styles.segmentText, scope === "friends" && styles.segmentActiveText]}>Friends</Text></Pressable></View>
           <View style={styles.metricRow}><Text style={styles.sectionTitle}>Rank by</Text><View style={styles.metricPills}><Pressable onPress={() => { setMetric("impact_points"); void loadLeaderboard(scope, "impact_points"); }} style={[styles.metricPill, metric === "impact_points" && styles.metricPillActive]}><Text style={[styles.metricText, metric === "impact_points" && styles.metricTextActive]}>Karma Coins</Text></Pressable><Pressable onPress={() => { setMetric("kcs"); void loadLeaderboard(scope, "kcs"); }} style={[styles.metricPill, metric === "kcs" && styles.metricPillActive]}><Text style={[styles.metricText, metric === "kcs" && styles.metricTextActive]}>Carbon Score</Text></Pressable></View></View>
 
-          <View style={styles.card}><View style={styles.cardHeader}><Text style={styles.cardTitle}>{scope === "global" ? "Global rankings" : "Your circle"}</Text><Text style={styles.cardHint}>{metric === "impact_points" ? "Karma Coins" : "Provisional / verified score"}</Text></View>{rows.map((row, index) => <View key={row.id} style={[styles.rankRow, row.is_current_user && styles.currentRow]}><Text style={[styles.rank, index === 0 && styles.topRank]}>{index + 1}</Text><View style={styles.avatar}><Text style={styles.avatarText}>{row.display_name.slice(0, 1)}</Text></View><View style={{ flex: 1 }}><Text style={styles.person}>{row.display_name}{row.is_current_user ? " · You" : ""}</Text><Text style={styles.username}>@{row.username}</Text></View><View style={{ alignItems: "flex-end" }}><Text style={styles.rankValue}>{metric === "impact_points" ? row.impact_points.toLocaleString() : row.carbon_score}</Text><Text style={styles.rankUnit}>{metric === "impact_points" ? "coins" : "score"}</Text></View></View>)}</View>
+          <View style={styles.card}><View style={styles.cardHeader}><Text style={styles.cardTitle}>{scope === "global" ? "Global rankings" : "Your circle"}</Text><Text style={styles.cardHint}>{metric === "impact_points" ? "Karma Coins" : "Provisional / verified score"}</Text></View>{rows.map((row, index) => <View key={row.id} style={[styles.rankRow, row.is_current_user && styles.currentRow]}><Text style={[styles.rank, index === 0 && styles.topRank]}>{index + 1}</Text><View style={styles.avatar}><Text style={styles.avatarText}>{row.display_name.slice(0, 1)}</Text></View><View style={{ flex: 1 }}><Text style={styles.person}>{row.display_name}{row.is_current_user ? " · You" : ""}</Text><Text style={styles.username}>@{row.username}</Text></View><View style={{ alignItems: "flex-end" }}><Text style={styles.rankValue}>{metric === "impact_points" ? formatLeagueNumber(row.impact_points) : formatLeagueNumber(row.carbon_score)}</Text><Text style={styles.rankUnit}>{metric === "impact_points" ? "coins" : "score"}</Text></View></View>)}</View>
 
           <View style={styles.card}><View style={styles.cardHeader}><Text style={styles.cardTitle}>Add friends</Text><Text style={styles.cardHint}>Username only</Text></View><View style={styles.searchRow}><Search size={17} color="#789185" /><TextInput value={username} onChangeText={setUsername} onSubmitEditing={() => void search()} placeholder="Search @username" placeholderTextColor="#91A59A" style={styles.input} autoCapitalize="none" /><Pressable onPress={() => void search()} style={styles.searchButton}>{busy ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.searchButtonText}>Find</Text>}</Pressable></View>{notice ? <Text style={styles.notice}>{notice}</Text> : null}{searchResults.map((person) => <View key={person.id} style={styles.friendRow}><View style={{ flex: 1 }}><Text style={styles.person}>{person.display_name}</Text><Text style={styles.username}>@{person.username}</Text></View><Pressable onPress={() => void addFriend(person)} style={styles.addButton}><UserPlus size={15} color="#fff" /><Text style={styles.addText}>Add</Text></Pressable></View>)}{friends.length > 0 ? <View style={styles.friendsList}><Text style={styles.miniLabel}>YOUR FRIENDS</Text>{friends.map((person) => <View key={person.id} style={styles.friendRow}><View style={{ flex: 1 }}><Text style={styles.person}>{person.display_name}</Text><Text style={styles.username}>@{person.username}</Text></View><Pressable onPress={() => void removeFriend(person)}><X size={17} color="#8BA097" /></Pressable></View>)}</View> : null}</View>
 
@@ -152,8 +154,6 @@ export default function LeaderboardScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#F4FAF6" },
   container: { width: "100%", maxWidth: 720, alignSelf: "center", paddingHorizontal: 20, gap: 14 },
-  back: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 5 },
-  backText: { color: green, fontSize: 14, fontWeight: "700" },
   hero: { backgroundColor: green, borderRadius: 24, padding: 20, flexDirection: "row", gap: 14, alignItems: "center" },
   heroIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: "#234635", alignItems: "center", justifyContent: "center" },
   eyebrow: { color: mint, letterSpacing: 1.3, fontWeight: "800", fontSize: 11 },

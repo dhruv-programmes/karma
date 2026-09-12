@@ -18,7 +18,6 @@ import {
   CheckCircle2,
   ChevronRight,
   Coins,
-  Crown,
   Footprints,
   Leaf,
   Navigation,
@@ -48,11 +47,13 @@ import {
   useScore,
   useSteps,
   useCommuteSummary,
+  useLeague,
 } from "@/src/hooks/queries";
 import { useStepTracking } from "@/src/hooks/use-step-tracking";
 import { useCommuteTracking } from "@/src/hooks/use-commute-tracking";
 import { useAuthStore } from "@/src/store/auth";
 import { DEMO_REPAIR_ACTION_ID } from "@/src/types/api";
+import { formatLeagueNumber, leagueBadgeSource } from "@/src/lib/league";
 import { useTabBarClearance } from "@/src/theme/layout";
 import { FootprintTrend } from "@/components/custom/footprint-trend";
 import { ProductImage } from "@/components/custom/product-image";
@@ -415,6 +416,7 @@ export default function HomeScreen() {
   const steps = useSteps();
   const stepTracking = useStepTracking(steps.data?.todaySteps ?? 0);
   const commuteSummary = useCommuteSummary();
+  const league = useLeague();
   const commuteTracking = useCommuteTracking();
   const best = recs.data?.[0];
 
@@ -614,11 +616,28 @@ export default function HomeScreen() {
         <View style={styles.sheet}>
           {/* ── LEAGUE SNAPSHOT ── */}
           <TouchableOpacity style={styles.leagueMiniCard} onPress={() => router.push("/league")} activeOpacity={0.86}>
-            <View style={styles.leagueMiniBadge}><Crown size={18} color="#D58B19" /></View>
+            <View style={styles.leagueMiniBadge}>
+              {league.data ? (
+                <Image source={leagueBadgeSource(league.data.tier)} style={styles.leagueMiniBadgeImage} resizeMode="contain" />
+              ) : (
+                <Text style={styles.leagueMiniBadgePlaceholder}>
+                  {league.isLoading ? "…" : "—"}
+                </Text>
+              )}
+            </View>
             <View style={styles.leagueMiniCopy}>
               <Text style={styles.leagueMiniEyebrow}>KARMA LEAGUE</Text>
-              <Text style={styles.leagueMiniTitle}>Silver League · 640 pts</Text>
-              <Text style={styles.leagueMiniHint}>160 points to Gold · 3/5 weekly actions</Text>
+              {league.data ? (
+                <>
+                  <Text style={styles.leagueMiniTitle} numberOfLines={1}>{league.data.league_name} · {formatLeagueNumber(league.data.league_points)} pts</Text>
+                  <Text style={styles.leagueMiniHint} numberOfLines={1}>{league.data.promotion_threshold == null ? "Top league" : `${formatLeagueNumber(Math.max(0, Number(league.data.promotion_threshold) - Number(league.data.league_points)))} points to next tier`} · {formatLeagueNumber(league.data.weekly_actions_completed)} verified actions this week</Text>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.leagueMiniTitle}>{league.isLoading ? "Checking your league…" : "League unavailable"}</Text>
+                  <Text style={styles.leagueMiniHint}>{league.isLoading ? "Your current badge will appear shortly" : "Tap to try again"}</Text>
+                </>
+              )}
             </View>
             <ChevronRight size={18} color="#2EA86E" />
           </TouchableOpacity>
@@ -1194,10 +1213,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   leagueMiniBadge: { width: 40, height: 40, borderRadius: 13, backgroundColor: "#FFF0C9", alignItems: "center", justifyContent: "center" },
+  leagueMiniBadgeImage: { width: 34, height: 34 },
+  leagueMiniBadgePlaceholder: { color: "#9AA89F", fontSize: 18, fontWeight: "800" },
   leagueMiniCopy: { flex: 1, gap: 2 },
   leagueMiniEyebrow: { color: "#A46C13", fontSize: 9, fontFamily: "Nunito_800ExtraBold", letterSpacing: 1.1 },
-  leagueMiniTitle: { color: "#183222", fontSize: 14, fontFamily: "Nunito_800ExtraBold" },
-  leagueMiniHint: { color: "#8F774C", fontSize: 10, fontFamily: "Nunito_600SemiBold" },
+  leagueMiniTitle: { color: "#183222", fontSize: 14, fontFamily: "Nunito_800ExtraBold", flexShrink: 1 },
+  leagueMiniHint: { color: "#8F774C", fontSize: 10, fontFamily: "Nunito_600SemiBold", flexShrink: 1 },
 
   // Walking rewards
   walkCard: {

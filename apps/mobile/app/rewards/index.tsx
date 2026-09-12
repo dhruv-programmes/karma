@@ -29,6 +29,7 @@ import {
   Clock,
   Wrench,
   ExternalLink,
+  History,
 } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { BackButton } from "@/components/custom/back-button";
@@ -72,7 +73,7 @@ export default function RewardsScreen() {
             id: "rw-repair-350",
             title: "₹350 Master Repair Subsidy",
             brand: "Local Repair Café Network",
-            points_required: 110,
+            points_required: 300,
             description:
               "Certified credit towards phone battery replacement, shoe resoling, or jacket seam repair.",
             cover_image_url: null,
@@ -82,7 +83,7 @@ export default function RewardsScreen() {
             id: "rw-solar-500",
             title: "Rooftop Solar Inspection Voucher",
             brand: "Clean Energy Alliance",
-            points_required: 200,
+            points_required: 400,
             description:
               "Complimentary thermal roof audit and DISCOM empanelled installation guidance.",
             cover_image_url: null,
@@ -92,7 +93,7 @@ export default function RewardsScreen() {
             id: "rw-zerowaste-400",
             title: "₹400 Off Package-Free Pantry",
             brand: "Bare Necessities Zero Waste",
-            points_required: 120,
+            points_required: 250,
             description:
               "Redeemable on bulk food grains, solid shampoo bars, and refillable botanical cleaners.",
             cover_image_url: null,
@@ -102,7 +103,7 @@ export default function RewardsScreen() {
             id: "rw-patagonia-worn",
             title: "30% Off Garment Care & Gear",
             brand: "Patagonia Worn Wear",
-            points_required: 220,
+            points_required: 350,
             description:
               "Special circular discount on certified repair services and recycled outerwear lines.",
             cover_image_url: null,
@@ -260,6 +261,19 @@ export default function RewardsScreen() {
           </View>
         </LinearGradient>
 
+        <TouchableOpacity
+          style={styles.historyLink}
+          onPress={() => router.push("/rewards/history")}
+          activeOpacity={0.8}
+        >
+          <History size={16} color="#047857" strokeWidth={2.2} />
+          <View style={styles.historyCopy}>
+            <Text style={styles.historyTitle}>View points history</Text>
+            <Text style={styles.historySubtitle}>See every earned and spent Karma Coin</Text>
+          </View>
+          <ArrowRight size={15} color="#047857" strokeWidth={2.2} />
+        </TouchableOpacity>
+
         {/* ========================================================= */}
         {/* Active Claimed Voucher Banner                             */}
         {/* ========================================================= */}
@@ -321,7 +335,7 @@ export default function RewardsScreen() {
 
         <View style={styles.rewardsList}>
           {displayRewards.map((reward) => {
-            const cost = reward.points_required ?? 150;
+            const cost = reward.points_required ?? 250;
             const canAfford = pointsBalance !== null && pointsBalance >= cost;
 
             return (
@@ -524,6 +538,21 @@ const styles = StyleSheet.create({
     boxShadow: "0px 8px 16px rgba(5,150,105,0.15)",
     elevation: 6,
   },
+  historyLink: {
+    marginTop: -6,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    borderRadius: 16,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#CFE6D8",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  historyCopy: { flex: 1 },
+  historyTitle: { color: "#183222", fontSize: 13, fontFamily: "Nunito_800ExtraBold" },
+  historySubtitle: { color: "#789185", fontSize: 11, fontFamily: "Nunito_600SemiBold", marginTop: 2 },
   heroGlowOrb: {
     position: "absolute",
     right: -30,

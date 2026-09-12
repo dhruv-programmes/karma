@@ -459,6 +459,49 @@ def calculate_sustainable_purchase_reward(
     return min(SUSTAINABLE_MAX_REWARD, max(SUSTAINABLE_MIN_REWARD, reward))
 
 
+REWARD_PRICING_VERSION = "partner-reward-pricing-v1"
+REWARD_MIN_LISTED_COST_FOR_NORMALIZATION = 100
+REWARD_MIN_COST = 250
+REWARD_MAX_COST = 1_000
+REWARD_CATEGORY_BASE_COSTS: tuple[tuple[tuple[str, ...], int], ...] = (
+    (("solar", "clean energy"), 400),
+    (("samsung", "appliance", "service"), 350),
+    (("fashion", "denim", "garment", "clothing"), 350),
+    (("repair", "refurbished", "refurb", "accessory", "gear"), 300),
+    (("e-waste", "ewaste", "recycling", "recycle", "packaging", "metro", "pass"), 250),
+)
+
+
+def effective_reward_cost(
+    listed_points: int,
+    title: str = "",
+    description: str = "",
+) -> int:
+    """Return the shared partner-offer price used by display and redemption.
+
+    Seeded offers remain data fixtures, but their prices follow bounded local
+    tiers. The lower bound is applied to normal catalog prices (100+), which
+    prevents accidental 100/150-coin offers while preserving custom test or
+    future admin offers below that threshold until explicitly classified.
+    """
+    try:
+        listed = max(0, int(listed_points))
+    except (TypeError, ValueError):
+        listed = REWARD_MIN_COST
+    if listed < REWARD_MIN_LISTED_COST_FOR_NORMALIZATION:
+        return listed
+    haystack = f"{title} {description}".lower()
+    tier_cost = 0
+    for keywords, base_cost in REWARD_CATEGORY_BASE_COSTS:
+        if any(keyword in haystack for keyword in keywords):
+            tier_cost = max(tier_cost, base_cost)
+    if tier_cost == 0:
+        # Unknown catalog entries retain their listed value but are still
+        # prevented from becoming a free/nominal offer once categorized.
+        return min(REWARD_MAX_COST, listed)
+    return min(REWARD_MAX_COST, max(REWARD_MIN_COST, listed, tier_cost))
+
+
 def verify_sustainable_purchase(
     filename: str,
     mime_type: str | None,
@@ -1238,6 +1281,78 @@ def list_activity(
     ]
 
 
+_POINTS_LEDGER_SOURCES = {
+    "receipt_reward": "receipt",
+    "sustainable_purchase_verification": "sustainable_purchase",
+    "steps": "steps",
+    "commute": "commute",
+    "solar": "solar",
+    "challenge": "challenge",
+    "complete": "impact_action",
+    "redeem": "redemption",
+}
+
+
+def list_points_ledger(
+    user: UserModel | None = None,
+    db: Session | None = None,
+    limit: int = 100,
+) -> dict:
+    """Return the server-backed chronological Karma Coins ledger.
+
+    Activity events are the existing append-only points ledger. Balances are
+    reconstructed from the current account balance backwards so they remain
+    meaningful even for seeded accounts whose initial balance predates events.
+    Entries with zero points are intentionally omitted: this endpoint is for
+    earned/spent coins, while ``/users/me/activity`` remains the full feed.
+    """
+    user, db = _resolve_user_and_db(user, db)
+    safe_limit = max(1, min(int(limit), 250))
+    rows = (
+        db.query(ActivityEventModel)
+        .filter(
+            ActivityEventModel.user_id == user.id,
+            ActivityEventModel.points_delta != 0,
+        )
+        .order_by(ActivityEventModel.created_at.asc(), ActivityEventModel.id.asc())
+        .all()
+    )
+
+    balances_after: dict[str, int] = {}
+    balance = int(user.impact_points or 0)
+    for row in reversed(rows):
+        balances_after[row.id] = balance
+        balance -= int(row.points_delta or 0)
+
+    entries: list[dict] = []
+    for row in rows[-safe_limit:]:
+        meta = row.meta
+        delta = int(row.points_delta or 0)
+        source = _POINTS_LEDGER_SOURCES.get(row.kind, row.kind)
+        redemption_status = None
+        if row.kind == "redeem":
+            redemption_status = str(meta.get("redemption_status") or "redeemed")
+        entries.append(
+            {
+                "id": row.id,
+                "type": "earned" if delta > 0 else "spent",
+                "source": source,
+                "title": row.title,
+                "subtitle": row.subtitle,
+                "points_delta": delta,
+                "balance_after": balances_after[row.id],
+                "timestamp": row.created_at,
+                "redemption_status": redemption_status,
+                "meta": meta,
+            }
+        )
+    return {
+        "balance": int(user.impact_points or 0),
+        "entries": list(reversed(entries)),
+        "is_demo": True,
+    }
+
+
 def get_recommendations(
     user: UserModel | None = None, db: Session | None = None
 ) -> list[Recommendation]:
@@ -1766,23 +1881,6 @@ def redeem_reward(
     if not reward:
         raise ValueError("Reward not found")
 
-    # ANTI-GAMING: rewards over 300pts require a verified score.
-    # A1 owns the score_state/verified_score columns; use getattr so this
-    # module does not crash when A1 columns are not yet merged.
-    try:
-        score_state = getattr(user, "score_state", None)
-    except Exception:
-        score_state = None
-    try:
-        cost = int(reward.points_required)
-    except Exception:
-        cost = 0
-    if cost > 300 and score_state != "verified":
-        raise HTTPException(
-            status_code=403,
-            detail="Verified score required for rewards over 300pts (upload bills to unlock)",
-        )
-
     existing = (
         db.query(UserRewardRedemptionModel)
         .filter(
@@ -1792,19 +1890,65 @@ def redeem_reward(
         .first()
     )
     if existing:
-        raise ValueError("Reward already redeemed")
+        claim_code = None
+        event_rows = (
+            db.query(ActivityEventModel)
+            .filter(
+                ActivityEventModel.user_id == user.id,
+                ActivityEventModel.kind == "redeem",
+            )
+            .order_by(ActivityEventModel.created_at.desc())
+            .all()
+        )
+        for event in event_rows:
+            if str(event.meta.get("reward_id", "")) == str(reward_id):
+                claim_code = event.meta.get("claim_code")
+                break
+        claim_code = str(claim_code or f"LOOP-{str(reward_id)[-4:].upper()}-{user.impact_points}")
+        return {
+            "reward_id": reward_id,
+            "claim_code": claim_code,
+            "points_spent": int(existing.points_spent),
+            "points_remaining": int(user.impact_points),
+            "message": f"Reward already redeemed: {reward.brand or reward.title}",
+            "already_redeemed": True,
+            "is_mock": True,
+        }
 
-    if user.impact_points < reward.points_required:
+    cost = effective_reward_cost(
+        reward.points_required,
+        reward.title,
+        reward.description,
+    )
+
+    # ANTI-GAMING: rewards over 300pts require a verified score.
+    # A1 owns the score_state/verified_score columns; use getattr so this
+    # module does not crash when A1 columns are not yet merged.
+    try:
+        score_state = getattr(user, "score_state", None)
+    except Exception:
+        score_state = None
+    try:
+        cost = int(cost)
+    except Exception:
+        cost = 0
+    if cost > 300 and score_state != "verified":
+        raise HTTPException(
+            status_code=403,
+            detail="Verified score required for rewards over 300pts (upload bills to unlock)",
+        )
+
+    if user.impact_points < cost:
         raise ValueError("Not enough impact points")
 
-    user.impact_points -= reward.points_required
+    user.impact_points -= cost
     user.loop_level = max(1, user.impact_points // 250 + 1)
 
     db.add(
         UserRewardRedemptionModel(
             user_id=user.id,
             reward_id=str(reward_id),
-            points_spent=reward.points_required,
+            points_spent=cost,
         )
     )
 
@@ -1820,17 +1964,27 @@ def redeem_reward(
         db,
         "redeem",
         f"Redeemed {reward.title}",
-        f"Code ready · −{reward.points_required} pts",
-        points_delta=-reward.points_required,
+        f"Code ready · −{cost} pts",
+        points_delta=-cost,
+        meta={
+            "reward_id": str(reward_id),
+            "redemption_status": "redeemed",
+            "merchant": reward.brand,
+            "listed_points_required": int(reward.points_required),
+            "points_spent": cost,
+            "pricing_version": REWARD_PRICING_VERSION,
+            "claim_code": code,
+        },
     )
     db.commit()
 
     return {
         "reward_id": reward_id,
         "claim_code": code,
-        "points_spent": reward.points_required,
+        "points_spent": cost,
         "points_remaining": user.impact_points,
         "message": f"Demo claim code ready for {reward.brand or reward.title}",
+        "already_redeemed": False,
         "is_mock": True,
         "badges_unlocked": badges,
     }

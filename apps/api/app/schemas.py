@@ -221,6 +221,25 @@ class ActivityEvent(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
+class PointsLedgerEntry(BaseModel):
+    id: str
+    type: str
+    source: str
+    title: str
+    subtitle: str
+    points_delta: int
+    balance_after: int
+    timestamp: str
+    redemption_status: str | None = None
+    meta: dict[str, Any] = Field(default_factory=dict)
+
+
+class PointsLedgerResponse(BaseModel):
+    balance: int
+    entries: list[PointsLedgerEntry] = Field(default_factory=list)
+    is_demo: bool = True
+
+
 class TimeseriesPoint(BaseModel):
     label: str
     week_start: str
@@ -252,6 +271,7 @@ class RedeemResult(BaseModel):
     points_spent: int
     points_remaining: int
     message: str
+    already_redeemed: bool = False
     is_mock: bool = True
 
 

@@ -184,6 +184,25 @@ export interface ActivityEvent {
   meta?: Record<string, unknown>;
 }
 
+export interface PointsLedgerEntry {
+  id: string;
+  type: "earned" | "spent" | string;
+  source: string;
+  title: string;
+  subtitle: string;
+  points_delta: number;
+  balance_after: number;
+  timestamp: string;
+  redemption_status?: string | null;
+  meta?: Record<string, unknown>;
+}
+
+export interface PointsLedgerResponse {
+  balance: number;
+  entries: PointsLedgerEntry[];
+  is_demo?: boolean;
+}
+
 export interface ImpactTimeseries {
   points: { label: string; week_start: string; kg: number }[];
   purchases_kg: number;
@@ -351,6 +370,7 @@ export interface RedeemResult {
   points_spent: number;
   points_remaining: number;
   message: string;
+  already_redeemed?: boolean;
   is_mock: boolean;
 }
 
@@ -456,6 +476,7 @@ export interface Transaction {
 export const DEMO_PHONE_BARCODE = "8901030865822";
 export const DEMO_PHONE_ID = "22222222-2222-2222-2222-222222222201";
 export const DEMO_REPAIR_ACTION_ID = "66666666-6666-6666-6666-666666666601";
+export const DEMO_RECYCLE_ACTION_ID = "66666666-6666-6666-6666-666666666603";
 
 export function mapActionToFacilityType(
   action: ActionType
@@ -583,6 +604,9 @@ export interface LeagueStanding {
 
 export interface LeagueSummary {
   tier: LeagueTier;
+  badge_id: string;
+  badge_asset_url?: string | null;
+  color_hex?: string | null;
   league_name: string;
   league_points: number;
   promotion_threshold: number | null;

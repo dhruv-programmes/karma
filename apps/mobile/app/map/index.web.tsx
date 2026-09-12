@@ -16,7 +16,7 @@ import { Text } from "@/components/ui/text";
 import { useCompleteAction, useFacilitiesNearby } from "@/src/hooks/queries";
 import { api } from "@/src/lib/api";
 import { useAppStore } from "@/src/store/app";
-import { DEMO_REPAIR_ACTION_ID } from "@/src/types/api";
+import { DEMO_RECYCLE_ACTION_ID, DEMO_REPAIR_ACTION_ID } from "@/src/types/api";
 import { MapPin } from "lucide-react-native";
 
 const TITLE: Record<string, string> = {
@@ -41,7 +41,8 @@ export default function MapScreen() {
   const facilitiesQuery = useFacilitiesNearby(
     facilityType,
     coords.lat,
-    coords.lng
+    coords.lng,
+    { allowFallback: false },
   );
   const complete = useCompleteAction();
   const [selected, setSelected] = useState<string | null>(null);
@@ -74,11 +75,19 @@ export default function MapScreen() {
   }, []);
 
   const facilities = useMemo(() => {
-    return [...(facilitiesQuery.data ?? [])];
+    return [...(facilitiesQuery.data ?? [])].sort(
+      (a, b) =>
+        (a.distance_km ?? Number.POSITIVE_INFINITY) -
+        (b.distance_km ?? Number.POSITIVE_INFINITY),
+    );
   }, [facilitiesQuery.data]);
 
   async function markComplete() {
-    const actionId = params.actionId ?? DEMO_REPAIR_ACTION_ID;
+    const actionId =
+      params.actionId ??
+      (facilityType === "recycling"
+        ? DEMO_RECYCLE_ACTION_ID
+        : DEMO_REPAIR_ACTION_ID);
     const actionType = (
       params.actionType ||
       (facilityType === "recycling"
@@ -129,12 +138,35 @@ export default function MapScreen() {
   return (
     <Box className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       <Box className="flex-row justify-between items-center px-6 py-3">
-        <Pressable onPress={() => router.back()}>
-          <Text className="text-primary font-medium">Back</Text>
-        </Pressable>
+        <BackButton label="Back" fallbackRoute="/(tabs)" variant="circle" />
         <Text bold>{TITLE[facilityType] ?? "Nearby places"}</Text>
         <Box className="w-10" />
       </Box>
+
+      {facilitiesQuery.isLoading ? (
+        <Box className="mx-6 mb-2 rounded-2xl border border-border bg-card px-4 py-3">
+          <Text className="text-muted-foreground">
+            Finding verified {facilityType === "recycling" ? "recycling hubs" : "nearby places"}…
+          </Text>
+        </Box>
+      ) : facilitiesQuery.isError ? (
+        <Box className="mx-6 mb-2 rounded-2xl border border-destructive/30 bg-card px-4 py-3 gap-2">
+          <Text className="text-foreground font-medium">Nearby places are unavailable.</Text>
+          <Text className="text-muted-foreground text-xs">
+            Check your connection and try again. We will not show made-up locations.
+          </Text>
+          <Button size="sm" variant="outline" onPress={() => void facilitiesQuery.refetch()}>
+            Try again
+          </Button>
+        </Box>
+      ) : facilities.length === 0 ? (
+        <Box className="mx-6 mb-2 rounded-2xl border border-border bg-card px-4 py-3">
+          <Text className="text-foreground font-medium">
+            No verified {facilityType === "recycling" ? "recycling hubs" : "places"} found nearby.
+          </Text>
+          <Text className="text-muted-foreground text-xs mt-1">Try again from a different location.</Text>
+        </Box>
+      ) : null}
 
       <Box className="px-6 mb-2">
         <Chip

@@ -54,6 +54,7 @@ from app.schemas import (
     DocumentProcessResult,
     OffsetProject,
     OffsetPurchaseResult,
+    PointsLedgerResponse,
     ProductCategory,
     ReceiptParseRequest,
     ReceiptParseResult,
@@ -242,6 +243,16 @@ def users_activity(
     db: Session = Depends(get_db),
 ):
     return services.list_activity(current_user, db, limit)
+
+
+@router.get("/users/me/points-ledger", response_model=PointsLedgerResponse)
+def users_points_ledger(
+    limit: int = Query(100, ge=1, le=250),
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return earned/spent Karma Coins with a server-derived balance trail."""
+    return services.list_points_ledger(current_user, db, limit)
 
 
 @router.get("/users/me/recommendations")
@@ -680,6 +691,19 @@ def import_transactions(
     return {
         "imported": len(created),
         "transactions": created,
+        # Preserve the accounting result through the AI confirmation proxy so
+        # the document result can report the same formula-based reward and
+        # carbon totals that were applied to the account.
+        "co2e_kg_added": round(
+            sum(float(getattr(transaction, "co2e_kg", 0) or 0) for transaction in created),
+            3,
+        ),
+        "reward_points_awarded": sum(
+            int(getattr(transaction, "reward_points_awarded", 0) or 0)
+            for transaction in created
+        ),
+        "duplicate_count": max(0, len(body.rows) - len(created)),
+        "reward_formula_version": services.RECEIPT_REWARD_FORMULA_VERSION,
     }
 
 
@@ -810,7 +834,9 @@ def get_rewards(db: Session = Depends(get_db)):
                 id=UUID(r.id),
                 title=r.title,
                 description=r.description,
-                points_required=r.points_required,
+                points_required=services.effective_reward_cost(
+                    r.points_required, r.title, r.description
+                ),
                 brand=r.brand,
                 is_mock=r.is_mock,
                 expires_on=r.expires_on,
@@ -818,7 +844,14 @@ def get_rewards(db: Session = Depends(get_db)):
             for r in rows
         ]
     from app.seed.data import REWARDS
-    return REWARDS
+    return [
+        reward.model_copy(update={
+            "points_required": services.effective_reward_cost(
+                reward.points_required, reward.title, reward.description
+            )
+        })
+        for reward in REWARDS
+    ]
 
 
 @router.post("/rewards/{reward_id}/redeem", response_model=RedeemResult)
@@ -913,15 +946,24 @@ def ask_assistant(
         tools.append("list_rewards")
         aff = (
             db.query(RewardModel)
-            .filter(RewardModel.points_required <= current_user.impact_points)
             .first()
         )
-        if not aff:
-            aff = db.query(RewardModel).first()
-        data = {"reward": {"title": aff.title, "points": aff.points_required} if aff else {}, "points": current_user.impact_points}
+        affordable = None
+        for candidate in db.query(RewardModel).all():
+            if services.effective_reward_cost(
+                candidate.points_required, candidate.title, candidate.description
+            ) <= current_user.impact_points:
+                affordable = candidate
+                break
+        aff = affordable or aff
+        aff_cost = (
+            services.effective_reward_cost(aff.points_required, aff.title, aff.description)
+            if aff else None
+        )
+        data = {"reward": {"title": aff.title, "points": aff_cost} if aff else {}, "points": current_user.impact_points}
         answer = (
             f"You have {current_user.impact_points} pts (Loop Level {current_user.loop_level}). "
-            f"Suggested demo reward: {aff.title} ({aff.points_required} pts)."
+            f"Suggested demo reward: {aff.title} ({aff_cost} pts)."
             if aff
             else f"You have {current_user.impact_points} pts."
         )

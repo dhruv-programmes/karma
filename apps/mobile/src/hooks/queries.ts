@@ -231,6 +231,14 @@ export function useActivity() {
   });
 }
 
+/** Server-authoritative earned/spent Karma Coins history. */
+export function usePointsLedger() {
+  return useQuery({
+    queryKey: ["points-ledger"],
+    queryFn: api.getPointsLedger,
+  });
+}
+
 export function useRecommendations() {
   return useQuery({
     queryKey: ["recommendations"],
@@ -250,6 +258,15 @@ export function useBadges() {
   return useQuery({
     queryKey: ["badges"],
     queryFn: () => withFallback(api.getBadges, fallbackBadges),
+  });
+}
+
+/** Current league state is server-backed; do not substitute a fake tier offline. */
+export function useLeague() {
+  return useQuery({
+    queryKey: ["league"],
+    queryFn: api.getLeague,
+    staleTime: 30_000,
   });
 }
 
@@ -343,14 +360,22 @@ export function useCircularOptions(id: string) {
   });
 }
 
-export function useFacilitiesNearby(type?: string, lat?: number, lng?: number) {
+export function useFacilitiesNearby(
+  type?: string,
+  lat?: number,
+  lng?: number,
+  options?: { allowFallback?: boolean },
+) {
+  const allowFallback = options?.allowFallback ?? true;
   return useQuery({
     queryKey: ["facilities-nearby", type ?? "all", lat ?? 12.9716, lng ?? 77.5946],
     queryFn: () =>
-      withFallback(
-        () => api.getFacilitiesNearby(type, lat, lng),
-        fallbackFacilities.filter((f) => !type || f.facility_type === type)
-      ),
+      allowFallback
+        ? withFallback(
+            () => api.getFacilitiesNearby(type, lat, lng),
+            fallbackFacilities.filter((f) => !type || f.facility_type === type)
+          )
+        : api.getFacilitiesNearby(type, lat, lng),
   });
 }
 

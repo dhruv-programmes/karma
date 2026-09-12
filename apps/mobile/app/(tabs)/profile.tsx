@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { TextInput } from "react-native";
+import { Image, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeInRight } from "react-native-reanimated";
@@ -14,11 +14,11 @@ import { HStack } from "@/components/ui/hstack";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
-import { useBadges, useMe, useScore } from "@/src/hooks/queries";
+import { useBadges, useLeague, useMe, useScore } from "@/src/hooks/queries";
 import { api } from "@/src/lib/api";
 import { useAuthStore } from "@/src/store/auth";
 import { useTabBarClearance } from "@/src/theme/layout";
-import { Crown } from "lucide-react-native";
+import { formatLeagueNumber, leagueBadgeSource } from "@/src/lib/league";
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -27,6 +27,7 @@ export default function ProfileScreen() {
   const me = useMe();
   const score = useScore();
   const badges = useBadges();
+  const league = useLeague();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const resetOnboarding = useAuthStore((s) => s.resetOnboarding);
@@ -158,12 +159,24 @@ export default function ProfileScreen() {
         <HStack className="items-center justify-between gap-3">
           <HStack className="items-center gap-3 flex-1">
             <Box className="h-10 w-10 rounded-xl bg-amber-100 items-center justify-center">
-              <Crown size={18} color="#B7791F" />
+              {league.data ? (
+                <Image source={leagueBadgeSource(league.data.tier)} style={{ width: 32, height: 32 }} resizeMode="contain" />
+              ) : (
+                <Text className="text-amber-700 font-bold">{league.isLoading ? "…" : "—"}</Text>
+              )}
             </Box>
             <VStack space="xs" className="flex-1">
               <Text size="xs" bold className="text-muted-foreground uppercase tracking-wider font-mono">Karma League</Text>
-              <Text bold className="font-heading">Silver League · 640 pts</Text>
-              <Text size="xs" className="text-muted-foreground font-body">160 points to Gold · 3/5 actions</Text>
+              <Text bold className="font-heading">
+                {league.data ? `${league.data.league_name} · ${formatLeagueNumber(league.data.league_points)} pts` : league.isLoading ? "Checking your league…" : "League unavailable"}
+              </Text>
+              <Text size="xs" className="text-muted-foreground font-body">
+                {league.data
+                  ? league.data.promotion_threshold == null
+                    ? `${formatLeagueNumber(league.data.weekly_actions_completed)} verified actions this week`
+                    : `${formatLeagueNumber(Math.max(0, Number(league.data.promotion_threshold) - Number(league.data.league_points)))} points to next · ${formatLeagueNumber(league.data.weekly_actions_completed)}/${formatLeagueNumber(league.data.weekly_actions_target)} actions`
+                  : "Your current league will appear when the server responds."}
+              </Text>
             </VStack>
           </HStack>
           <Button size="sm" variant="outline" onPress={() => router.push("/league")}>View</Button>

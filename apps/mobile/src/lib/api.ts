@@ -19,6 +19,7 @@ import type {
   ImpactBreakdown,
   OffsetProject,
   OffsetPurchaseResult,
+  PointsLedgerResponse,
   Product,
   ReceiptParseResult,
   Recommendation,
@@ -26,6 +27,7 @@ import type {
   LeaderboardMetric,
   LeaderboardScope,
   LeagueSummary,
+  LeaguePromotionStatus,
   LeagueTier,
   RedeemResult,
   Reward,
@@ -43,24 +45,6 @@ const DEFAULT_REQUEST_TIMEOUT_MS = 8_000;
 // Password verification deliberately uses a slow KDF. Give authentication a
 // realistic window without making every read request feel unresponsive.
 const AUTH_REQUEST_TIMEOUT_MS = 15_000;
-
-const DEMO_LEAGUE: LeagueSummary = {
-  tier: "silver",
-  league_name: "Silver League",
-  league_points: 640,
-  promotion_threshold: 800,
-  weekly_actions_completed: 3,
-  weekly_actions_target: 5,
-  promotion_status: "holding",
-  season_label: "September season",
-  demotion_note: "On the first day of each month, every league drops one tier. Bronze is protected.",
-  standings: [
-    { id: "rohan", display_name: "Rohan Mehta", username: "rohan.loop", league_points: 910, rank: 1 },
-    { id: "maya", display_name: "Maya Green", username: "maya.green", league_points: 760, rank: 2 },
-    { id: "aisha", display_name: "Aisha Sharma", username: "aisha.loop", league_points: 640, rank: 3, is_current_user: true },
-    { id: "dev", display_name: "Dev Kapoor", username: "dev.reuse", league_points: 520, rank: 4 },
-  ],
-};
 
 function resolveDevHost(): string | null {
   const hostUri =
@@ -418,6 +402,8 @@ export const api = {  // Authentication
     request<import("@/src/types/api").ActivityEvent[]>(
       "/api/v1/users/me/activity"
     ),
+  getPointsLedger: () =>
+    request<PointsLedgerResponse>("/api/v1/users/me/points-ledger"),
   getRecommendations: () =>
     request<Recommendation[]>("/api/v1/users/me/recommendations"),
   getCloset: () => request<Product[]>("/api/v1/users/me/closet"),
@@ -508,27 +494,45 @@ export const api = {  // Authentication
     }
   },
 
-  /** League APIs are optional while the season service rolls out; demo data keeps the UI useful offline. */
+  /** League state is intentionally not replaced with a fabricated tier offline. */
   getLeague: async (): Promise<LeagueSummary> => {
-    try {
-      const remote = await request<any>("/api/v1/league/status");
-      const current = remote.current_league ?? {};
-      const standings = await api.getLeagueStandings();
-      const status = remote.promotion_status === "ready" ? "promoted" : "holding";
-      return {
-        ...DEMO_LEAGUE,
-        tier: (current.slug ?? DEMO_LEAGUE.tier) as LeagueTier,
-        league_name: `${current.display_name ?? "Bronze"} League`,
-        league_points: Number(remote.season_league_points ?? 0),
-        promotion_threshold: remote.promotion_threshold == null ? null : Number(remote.promotion_threshold),
-        weekly_actions_completed: Number(remote.weekly_action_count ?? 0),
-        promotion_status: status,
-        season_label: `${remote.season_key ?? "Current"} season`,
-        standings,
-      };
-    } catch {
-      return DEMO_LEAGUE;
+    const remote = await request<any>("/api/v1/league/status");
+    const current = remote.current_league ?? {};
+    const tier = current.slug as LeagueTier;
+    if (!["bronze", "silver", "gold", "platinum"].includes(tier)) {
+      throw new Error("League service returned an unknown tier");
     }
+    let standings: LeagueSummary["standings"] = [];
+    try {
+      standings = await api.getLeagueStandings();
+    } catch {
+      // Current tier remains trustworthy; standings are shown as unavailable.
+    }
+    const status: LeaguePromotionStatus =
+      remote.promotion_status === "ready" || remote.promotion_status === "promoted"
+        ? "promoted"
+        : remote.promotion_status === "at_risk"
+          ? "at_risk"
+          : "holding";
+    return {
+      tier,
+      badge_id: String(current.badge_id ?? `league_${tier}`),
+      badge_asset_url:
+        typeof current.badge_asset_url === "string"
+          ? current.badge_asset_url
+          : null,
+      color_hex: typeof current.color_hex === "string" ? current.color_hex : null,
+      league_name: `${current.display_name ?? tier[0].toUpperCase() + tier.slice(1)} League`,
+      league_points: Number(remote.season_league_points ?? 0),
+      promotion_threshold:
+        remote.promotion_threshold == null ? null : Number(remote.promotion_threshold),
+      weekly_actions_completed: Number(remote.weekly_action_count ?? 0),
+      weekly_actions_target: 5,
+      promotion_status: status,
+      season_label: `${remote.season_key ?? "Current"} season`,
+      demotion_note: "On the first day of each month, every league drops one tier. Bronze is protected.",
+      standings,
+    };
   },
   getLeagueStandings: async (): Promise<LeagueSummary["standings"]> => {
     try {
@@ -543,7 +547,7 @@ export const api = {  // Authentication
         is_current_user: Boolean(entry.is_current_user),
       }));
     } catch {
-      return DEMO_LEAGUE.standings;
+      throw new Error("League standings are unavailable");
     }
   },
 

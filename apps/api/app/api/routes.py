@@ -334,7 +334,7 @@ def sync_users_me_steps(
 # IMPACT / SOLAR INTELLIGENCE + GREEN REWARDS
 #
 
-==================================
+# ==========================================
 
 
 @router.get("/users/me/solar-impact", response_model=SolarImpactResponse)
@@ -369,7 +369,7 @@ def complete_solar_recommendation(
     db: Session = Depends(get_db),
 ):
     return solar_service.complete_recommendation(current_user, db, recommendation_id)
-=======
+# ==========================================
 # GPS COMMUTE REWARDS
 # ==========================================
 

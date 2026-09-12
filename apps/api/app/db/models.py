@@ -76,9 +76,9 @@ class UserModel(Base):
     )
     solar_recommendations = relationship(
         "SolarRecommendationStateModel", back_populates="user", cascade="all, delete-orphan"
-daily_commutes = relationship(
+    )
+    daily_commutes = relationship(
         "UserCommuteTripModel", back_populates="user", cascade="all, delete-orphan"
-
     )
 
     @property

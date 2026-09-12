@@ -19,6 +19,7 @@ import {
   ScanLine,
   TicketPercent,
   Wrench,
+  User,
   type LucideIcon,
 } from "lucide-react-native";
 import {
@@ -28,14 +29,7 @@ import {
 
 type TabBarProps = {
   state: { routes: { key: string; name: string }[]; index: number };
-  navigation: {
-    emit: (e: {
-      type: string;
-      target: string;
-      canPreventDefault: boolean;
-    }) => { defaultPrevented: boolean };
-    navigate: (name: string) => void;
-  };
+  navigation: any;
 };
 
 type DockTab = {
@@ -57,7 +51,7 @@ const MORE_DESTINATIONS = [
   {
     name: "impact",
     title: "Impact",
-    detail: "Footprint, trends & score story",
+    detail: "Live carbon footprint, solar & rewards",
     icon: Leaf,
     tint: "#5EEAD4",
     soft: "rgba(94,234,212,0.14)",
@@ -65,10 +59,18 @@ const MORE_DESTINATIONS = [
   {
     name: "offers",
     title: "Offers",
-    detail: "Subsidies, rewards & offsets",
+    detail: "Govt subsidies, brand perks & offsets",
     icon: TicketPercent,
     tint: "#F5D08A",
     soft: "rgba(245,208,138,0.16)",
+  },
+  {
+    name: "profile",
+    title: "Profile",
+    detail: "Account, personas & preferences",
+    icon: User,
+    tint: "#93C5FD",
+    soft: "rgba(147,197,253,0.16)",
   },
 ] as const;
 
@@ -140,7 +142,7 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
     setMoreOpen(true);
   };
 
-  const chooseDestination = (name: "impact" | "offers") => {
+  const chooseDestination = (name: (typeof MORE_DESTINATIONS)[number]["name"]) => {
     void Haptics.selectionAsync();
     setMoreOpen(false);
     router.push(`/(tabs)/${name}`);

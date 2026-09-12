@@ -434,8 +434,8 @@ export default function HomeScreen() {
   const rating = ratingInfo(displayScore ?? KCS_MIN);
   const impactPoints = me.data?.impact_points ?? user?.impact_points ?? 0;
   const stepData = steps.data;
-  const isWeb = Platform.OS === "web";
-  const hasNativeStepData = !isWeb && !!stepData;
+  const isWeb = false;
+  const hasNativeStepData = !!stepData;
   const stepProgress = stepData
     ? Math.min(100, Math.round((stepData.todaySteps / stepData.targetSteps) * 100))
     : 0;

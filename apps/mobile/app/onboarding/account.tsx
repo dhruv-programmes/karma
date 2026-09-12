@@ -16,6 +16,7 @@ import {
   User,
 } from "lucide-react-native";
 import { Image } from "expo-image";
+import { DecorativeBackground } from "@/components/custom/decorative-background";
 import Svg, { Path } from "react-native-svg";
 import { Box } from "@/components/ui/box";
 import { Button } from "@/components/ui/button";
@@ -142,6 +143,8 @@ export default function AccountScreen() {
         paddingHorizontal: 24,
       }}
     >
+      <DecorativeBackground />
+
       {/* Top Navigation */}
       <HStack className="items-center justify-between mb-4">
         <Pressable

@@ -7,6 +7,8 @@ import {
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Check, Eye, EyeOff, Leaf, Lock, Mail, Target, User } from "lucide-react-native";
+import { Image } from "expo-image";
+import { DecorativeBackground } from "@/components/custom/decorative-background";
 import { useQueryClient } from "@tanstack/react-query";
 import { Box } from "@/components/ui/box";
 import { Button } from "@/components/ui/button";
@@ -88,28 +90,32 @@ export default function SignUpScreen() {
   }
 
   return (
-    <ScrollView
-      className="flex-1 bg-background"
-      contentContainerStyle={{
-        paddingTop: insets.top + 20,
-        paddingBottom: insets.bottom + 32,
-        paddingHorizontal: 20,
-        gap: 20,
-      }}
-      keyboardShouldPersistTaps="handled"
-    >
-      {/* Header */}
-      <Box className="items-center mb-2">
-        <Box className="w-14 h-14 rounded-2xl bg-primary/15 items-center justify-center mb-3">
-          <Leaf size={28} color="rgb(46,168,110)" />
+    <Box className="flex-1 bg-background">
+      <DecorativeBackground />
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{
+          paddingTop: insets.top + 20,
+          paddingBottom: insets.bottom + 32,
+          paddingHorizontal: 20,
+          gap: 20,
+        }}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Header */}
+        <Box className="items-center mb-2">
+          <Image
+            source={require("@/assets/karma-text.png")}
+            style={{ width: 110, height: 32, marginBottom: 12 }}
+            contentFit="contain"
+          />
+          <Heading size="2xl" className="text-center">
+            Create Account
+          </Heading>
+          <Text size="sm" className="text-muted-foreground text-center mt-1">
+            Close the consumer loop with real data metrics and verified hubs.
+          </Text>
         </Box>
-        <Heading size="2xl" className="text-center">
-          Create Account
-        </Heading>
-        <Text size="sm" className="text-muted-foreground text-center mt-1">
-          Close the consumer loop with real data metrics and verified hubs.
-        </Text>
-      </Box>
 
       {error ? (
         <Box className="p-3.5 rounded-xl bg-destructive/10 border border-destructive/30">
@@ -266,5 +272,6 @@ export default function SignUpScreen() {
         </Pressable>
       </HStack>
     </ScrollView>
+  </Box>
   );
 }

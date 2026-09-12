@@ -17,6 +17,7 @@ import {
   UserCheck,
 } from "lucide-react-native";
 import { Image } from "expo-image";
+import { DecorativeBackground } from "@/components/custom/decorative-background";
 import Svg, { Path } from "react-native-svg";
 import { useQueryClient } from "@tanstack/react-query";
 import { Avatar } from "@/components/ui/avatar";
@@ -210,6 +211,8 @@ export default function SignInScreen() {
         paddingHorizontal: 24,
       }}
     >
+      <DecorativeBackground />
+
       {/* Top Header */}
       <HStack className="items-center justify-between mb-4">
         <Pressable

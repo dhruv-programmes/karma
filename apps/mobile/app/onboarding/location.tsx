@@ -10,6 +10,7 @@ import {
   Recycle,
   Wrench,
 } from "lucide-react-native";
+import { DecorativeBackground } from "@/components/custom/decorative-background";
 import { Box } from "@/components/ui/box";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -57,6 +58,8 @@ export default function LocationPermissionScreen() {
         paddingHorizontal: 24,
       }}
     >
+      <DecorativeBackground />
+
       {/* Top Navigation */}
       <HStack className="items-center justify-between mb-2">
         <Pressable

@@ -10,6 +10,7 @@ import {
   Sparkles,
   TrendingDown,
 } from "lucide-react-native";
+import { DecorativeBackground } from "@/components/custom/decorative-background";
 import { Box } from "@/components/ui/box";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -87,6 +88,8 @@ export default function GoalScreen() {
         paddingHorizontal: 24,
       }}
     >
+      <DecorativeBackground />
+
       {/* Top Navigation & Progress */}
       <HStack className="items-center justify-between mb-4">
         <Pressable

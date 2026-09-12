@@ -9,6 +9,7 @@ import {
   RotateCcw,
 } from "lucide-react-native";
 import { Image } from "expo-image";
+import { DecorativeBackground } from "@/components/custom/decorative-background";
 import { Box } from "@/components/ui/box";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -42,9 +43,8 @@ export default function WelcomeScreen() {
         paddingHorizontal: 24,
       }}
     >
-      {/* Subtle brand background elements */}
-      <Box className="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-emerald-500/5" />
-      <Box className="absolute top-80 -left-20 w-44 h-44 rounded-full bg-emerald-600/5" />
+      {/* Background organic circles */}
+      <DecorativeBackground />
 
       {/* Top Header Section */}
       <VStack space="lg">

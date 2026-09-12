@@ -11,7 +11,6 @@ import {
   fallbackPhone,
   fallbackRecommendations,
   fallbackScore,
-  fallbackUser,
 } from "@/src/lib/fallbacks";
 
 const fallbackSolarImpact: SolarImpactResponse = {
@@ -107,7 +106,9 @@ export function useDataMeter() {
 export function useMe() {
   return useQuery({
     queryKey: ["me"],
-    queryFn: () => withFallback(api.getMe, fallbackUser),
+    // Profile data is the source of truth for balances and progress. An API
+    // failure must not look like a successful demo profile.
+    queryFn: api.getMe,
   });
 }
 
@@ -461,6 +462,8 @@ function invalidateDocumentQueries(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ["activity"] });
   qc.invalidateQueries({ queryKey: ["impact-timeseries"] });
   qc.invalidateQueries({ queryKey: ["score"] });
+  qc.invalidateQueries({ queryKey: ["rewards"] });
+  qc.invalidateQueries({ queryKey: ["leaderboard"] });
 }
 
 export function useConfirmDocument() {

@@ -73,7 +73,7 @@ export default function ProfileScreen() {
       : score.data.state === "verified" && score.data.verified !== null
       ? "Calculated from your recorded footprint data."
       : "Questionnaire-based estimate until enough real footprint data is available.";
-  const displayPoints = me.data?.impact_points ?? user?.impact_points ?? 420;
+  const displayPoints = me.data?.impact_points ?? user?.impact_points ?? null;
 
   return (
     <ScrollView
@@ -143,12 +143,14 @@ export default function ProfileScreen() {
           Karma Coins
         </Text>
         <Text size="4xl" bold className="font-mono mt-1 text-foreground">
-          {displayPoints}
+          {displayPoints ?? "—"}
         </Text>
         <Text size="xs" className="text-muted-foreground mt-1 font-body">
-          Loop Level {me.data?.loop_level ?? 2} · Streak{" "}
-          {me.data?.streak_days ?? 5} days · Offsets ~
-          {Math.round(me.data?.offset_kg_total ?? 0)} kg
+          Loop Level {me.data?.loop_level ?? user?.loop_level ?? "—"} · Streak{" "}
+          {me.data?.streak_days ?? user?.streak_days ?? "—"} days · Offsets ~
+          {me.data?.offset_kg_total == null && user?.offset_kg_total == null
+            ? "—"
+            : `${Math.round(me.data?.offset_kg_total ?? user?.offset_kg_total ?? 0)} kg`}
         </Text>
       </Card>
 

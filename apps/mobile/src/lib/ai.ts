@@ -69,6 +69,69 @@ async function readErrorMessage(res: Response, fallback: string) {
   return `${fallback} (${res.status})`;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+const DOCUMENT_CATEGORIES = new Set([
+  "Electronics",
+  "Clothing",
+  "Food",
+  "Transport",
+  "Home",
+  "Energy",
+  "Furniture",
+  "Personal care",
+  "Other",
+]);
+
+const DOCUMENT_TYPES = new Set(["receipt", "utility", "invoice", "other"]);
+const CONFIDENCE_LEVELS = new Set(["high", "medium", "low"]);
+
+function isValidExtraction(value: unknown): value is DocumentExtraction {
+  if (!isRecord(value) || typeof value.title !== "string") return false;
+  if (typeof value.doc_type !== "string" || !DOCUMENT_TYPES.has(value.doc_type)) {
+    return false;
+  }
+  if (!Array.isArray(value.items)) return false;
+  return value.items.every((item) => {
+    if (!isRecord(item)) return false;
+    return (
+      typeof item.merchant === "string" &&
+      item.merchant.trim().length > 0 &&
+      typeof item.amount_inr === "number" &&
+      Number.isFinite(item.amount_inr) &&
+      item.amount_inr >= 0 &&
+      typeof item.date === "string" &&
+      item.date.trim().length > 0 &&
+      typeof item.category === "string" &&
+      DOCUMENT_CATEGORIES.has(item.category) &&
+      typeof item.confidence === "string" &&
+      CONFIDENCE_LEVELS.has(item.confidence) &&
+      (item.needs_review_reason === undefined ||
+        item.needs_review_reason === null ||
+        typeof item.needs_review_reason === "string")
+    );
+  });
+}
+
+async function fetchAi(
+  url: string,
+  init: RequestInit,
+  operation: string
+): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch (e) {
+    // Preserve cancellation so the receipt screen can stop cleanly.
+    if (e instanceof Error && e.name === "AbortError") throw e;
+    throw new Error(
+      `Could not reach the AI service for ${operation}. Start it with ` +
+        `pnpm ai and check EXPO_PUBLIC_AI_URL (${getAiBaseUrl()}).`
+    );
+  }
+}
+
 function guessMediaType(name: string, kind: "image" | "pdf"): string {
   if (kind === "pdf") return "application/pdf";
   const lower = name.toLowerCase();
@@ -210,7 +273,7 @@ export async function extractDocumentStream(
   const mediaType = guessMediaType(input.name, input.kind);
   const dataBase64 = await fileUriToBase64(input.uri, input.kind);
 
-  const res = await fetch(`${getAiBaseUrl()}/api/documents/extract`, {
+  const res = await fetchAi(`${getAiBaseUrl()}/api/documents/extract`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -222,15 +285,17 @@ export async function extractDocumentStream(
       hint: input.hint,
     }),
     signal,
-  });
+  }, "document extraction");
 
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, "Extract failed"));
   }
 
-  const parsed = (await res.json()) as DocumentExtraction;
-  if (!parsed?.items) {
-    throw new Error("Could not parse extraction result");
+  const parsed = await res.json().catch(() => null);
+  if (!isValidExtraction(parsed)) {
+    throw new Error(
+      "The AI service returned an invalid extraction result. No document data was imported."
+    );
   }
 
   handlers.onPartial(parsed);
@@ -263,7 +328,26 @@ export async function confirmDocumentImport(
   items: DocumentConfirmItem[],
   extras?: { userName?: string; documentTitle?: string }
 ): Promise<DocumentConfirmResult & { total_inr?: number }> {
-  const res = await fetch(`${getAiBaseUrl()}/api/documents/confirm`, {
+  const invalidIndex = items.findIndex((item) =>
+    !isRecord(item) ||
+    typeof item.merchant !== "string" ||
+    item.merchant.trim().length === 0 ||
+    typeof item.amount_inr !== "number" ||
+    !Number.isFinite(item.amount_inr) ||
+    item.amount_inr < 0 ||
+    typeof item.date !== "string" ||
+    item.date.trim().length === 0 ||
+    (item.confidence !== undefined &&
+      (typeof item.confidence !== "string" ||
+        !CONFIDENCE_LEVELS.has(item.confidence)))
+  );
+  if (invalidIndex >= 0) {
+    throw new Error(
+      `Cannot confirm document: item ${invalidIndex + 1} is missing a valid merchant, amount, or date.`
+    );
+  }
+
+  const res = await fetchAi(`${getAiBaseUrl()}/api/documents/confirm`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -274,11 +358,32 @@ export async function confirmDocumentImport(
       userName: extras?.userName,
       documentTitle: extras?.documentTitle,
     }),
-  });
+  }, "document confirmation");
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, "Confirm failed"));
   }
-  return res.json();
+  const raw = await res.json().catch(() => null);
+  const imported = isRecord(raw) ? raw.imported : undefined;
+  const transactions = isRecord(raw) ? raw.transactions : undefined;
+  const message = isRecord(raw) ? raw.message : undefined;
+  if (
+    typeof imported !== "number" ||
+    !Number.isInteger(imported) ||
+    imported < 0 ||
+    !Array.isArray(transactions) ||
+    typeof message !== "string"
+  ) {
+    throw new Error(
+      "The AI service returned an invalid confirmation response. Nothing was imported."
+    );
+  }
+  const selectableCount = items.filter((item) => !item.discarded).length;
+  if (imported > selectableCount) {
+    throw new Error(
+      "The import response was inconsistent. Nothing was imported; please try again."
+    );
+  }
+  return raw as unknown as DocumentConfirmResult & { total_inr?: number };
 }
 
 export type DocumentChatMessage = {
@@ -310,7 +415,7 @@ export async function streamDocumentChat(
     content: m.text,
   }));
 
-  const res = await fetch(`${getAiBaseUrl()}/api/documents/chat`, {
+  const res = await fetchAi(`${getAiBaseUrl()}/api/documents/chat`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -322,7 +427,7 @@ export async function streamDocumentChat(
       userName: input.userName,
     }),
     signal,
-  });
+  }, "document chat");
 
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, "Chat failed"));

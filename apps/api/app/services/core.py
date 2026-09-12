@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import math
 import re
 from datetime import date, datetime, timedelta, timezone
@@ -94,6 +95,91 @@ STEP_REWARD_TIERS: tuple[tuple[int, int, str, str], ...] = (
     (2_000, 10, "Getting started", "Steady"),
     (0, 0, "Start walking", "Starting"),
 )
+
+
+# Receipt points reward verified footprint data, not arbitrary spending. The
+# square-root spend term prevents expensive purchases from dominating, while
+# the carbon-efficiency term gives slightly more credit to lower-footprint
+# categories. This is intentionally separate from KCS, which uses stored
+# emissions as evidence and never reads reward points.
+RECEIPT_REWARD_FORMULA_VERSION = "receipt-reward-v1"
+RECEIPT_CATEGORY_MULTIPLIERS: dict[ProductCategory, float] = {
+    ProductCategory.ELECTRONICS: 0.80,
+    ProductCategory.CLOTHING: 1.00,
+    ProductCategory.FOOD: 0.70,
+    ProductCategory.TRANSPORT: 0.55,
+    ProductCategory.ENERGY: 0.60,
+    ProductCategory.HOME: 1.00,
+    ProductCategory.FURNITURE: 1.05,
+    ProductCategory.PERSONAL_CARE: 0.85,
+    ProductCategory.OTHER: 0.50,
+}
+RECEIPT_CONFIDENCE_MULTIPLIERS = {"high": 1.0, "medium": 0.8, "low": 0.6}
+RECEIPT_MIN_POINTS = 5
+RECEIPT_MAX_POINTS_PER_LINE = 100
+
+
+def calculate_receipt_reward(
+    category: ProductCategory | str,
+    amount_inr: float,
+    co2e_kg: float,
+    confidence: ExtractionConfidence | str = ExtractionConfidence.HIGH,
+) -> int:
+    """Calculate bounded, deterministic Impact Points for one receipt line.
+
+    Formula (receipt-reward-v1)::
+
+        round(
+            sqrt(max(amount_inr, 0) / 100) * 8
+            * category_multiplier
+            * confidence_multiplier
+            * max(0.5, 1 - max(co2e_kg, 0) / 1000)
+        )
+
+    A non-positive amount earns no points. Positive lines earn at least five
+    points after the calculation and never more than 100 points. ``co2e_kg``
+    is the same estimate persisted on the transaction, so the reward and KCS
+    always use one carbon estimate without changing KCS math.
+    """
+    try:
+        amount = max(0.0, float(amount_inr))
+        carbon = max(0.0, float(co2e_kg))
+    except (TypeError, ValueError):
+        return 0
+    if amount <= 0:
+        return 0
+    category_key = category if isinstance(category, ProductCategory) else ProductCategory.OTHER
+    if isinstance(category, str):
+        try:
+            category_key = ProductCategory(category)
+        except ValueError:
+            category_key = ProductCategory.OTHER
+    conf_key = confidence.value if isinstance(confidence, ExtractionConfidence) else str(confidence).lower()
+    confidence_multiplier = RECEIPT_CONFIDENCE_MULTIPLIERS.get(conf_key, 0.6)
+    raw = (
+        math.sqrt(amount / 100.0)
+        * 8.0
+        * RECEIPT_CATEGORY_MULTIPLIERS.get(category_key, RECEIPT_CATEGORY_MULTIPLIERS[ProductCategory.OTHER])
+        * confidence_multiplier
+        * max(0.5, 1.0 - carbon / 1000.0)
+    )
+    return min(RECEIPT_MAX_POINTS_PER_LINE, max(RECEIPT_MIN_POINTS, round(raw)))
+
+
+def _receipt_source_key(row: dict, category: ProductCategory, amount: float, merchant: str, date_value: str) -> str:
+    """Return a stable idempotency key, preferring document/line IDs."""
+    explicit = row.get("source_key") or row.get("receipt_id")
+    if explicit:
+        return str(explicit)[:255]
+    document_id = row.get("document_id") or row.get("example_id")
+    line_id = row.get("line_id") or row.get("item_id") or row.get("id")
+    if document_id and line_id:
+        return f"document:{document_id}:line:{line_id}"[:255]
+    # Real Gemini confirmation currently sends no document ID. A canonical
+    # line fingerprint makes retries safe; callers can provide source_key when
+    # two genuinely identical purchases occur on the same day.
+    canonical = "|".join((merchant.strip().lower(), f"{amount:.2f}", date_value, category.value))
+    return "line:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def _local_today() -> date:
@@ -334,6 +420,45 @@ def build_commute_summary(user: UserModel, db: Session, today: date | None = Non
     }
 
 
+SUSTAINABLE_REWARD_FORMULA_VERSION = "sustainable-purchase-reward-v1"
+SUSTAINABLE_CATEGORY_MULTIPLIERS: dict[str, float] = {
+    "electric vehicle": 1.25,
+    "electric two-wheeler": 1.10,
+    "public transport": 0.90,
+    "bicycle": 0.85,
+    "other": 0.75,
+}
+SUSTAINABLE_MIN_REWARD = 60
+SUSTAINABLE_MAX_REWARD = 300
+
+
+def calculate_sustainable_purchase_reward(
+    size_bytes: int | None,
+    category: str = "Electric Vehicle",
+) -> int:
+    """Calculate a bounded local reward for the demo verification provider.
+
+    This is intentionally a verification-confidence proxy, not a claim that
+    file size measures carbon impact. A present, larger document gets a small
+    quality factor and the verified purchase category contributes a multiplier:
+
+        reward = clamp(round(120 * (0.75 + 0.25 * size_factor) * category_factor), 60, 300)
+
+    ``size_factor`` is capped at 10 MB so arbitrary upload metadata cannot
+    mint unbounded points. The provider and demo vehicle remain explicitly
+    marked as mock in the API response.
+    """
+    try:
+        bounded_size = min(max(0, int(size_bytes or 0)), 10 * 1024 * 1024)
+    except (TypeError, ValueError):
+        bounded_size = 0
+    size_factor = bounded_size / float(10 * 1024 * 1024)
+    category_key = str(category or "other").strip().lower()
+    multiplier = SUSTAINABLE_CATEGORY_MULTIPLIERS.get(category_key, SUSTAINABLE_CATEGORY_MULTIPLIERS["other"])
+    reward = round(120.0 * (0.75 + 0.25 * size_factor) * multiplier)
+    return min(SUSTAINABLE_MAX_REWARD, max(SUSTAINABLE_MIN_REWARD, reward))
+
+
 def verify_sustainable_purchase(
     filename: str,
     mime_type: str | None,
@@ -355,28 +480,44 @@ def verify_sustainable_purchase(
         .first()
     )
     if existing:
+        metadata = existing.meta
         return {
             "status": "verified",
             "reward_points": 0,
             "total_points": int(user.impact_points),
             "already_claimed": True,
+            "vehicle_make_model": metadata.get("vehicle_make_model", "Tata Nexon EV"),
+            "vehicle_type": metadata.get("vehicle_type", "Electric Vehicle"),
+            "ownership": "Verified",
+            "verification": "Successful",
+            "provider": metadata.get("provider", "MockVerificationProvider"),
+            "reward_formula_version": metadata.get(
+                "reward_formula_version", SUSTAINABLE_REWARD_FORMULA_VERSION
+            ),
+            "reward_basis": metadata.get("reward_basis", "Already claimed"),
+            "is_mock": True,
         }
 
-    reward_points = 1500
+    category = "Electric Vehicle"
+    reward_points = calculate_sustainable_purchase_reward(size_bytes, category)
+    size_mb = round(max(0, int(size_bytes or 0)) / (1024 * 1024), 2)
     user.impact_points = int(user.impact_points) + reward_points
     log_activity_event(
         user,
         db,
         "sustainable_purchase_verification",
         "EV purchase verified",
-        "Verified sustainable purchase · +1,500 Karma Coins",
+        f"Verified demo purchase · +{reward_points} Impact Points",
         points_delta=reward_points,
         meta={
             "filename": filename,
             "mime_type": mime_type,
             "size_bytes": size_bytes,
             "vehicle_type": "Electric Vehicle",
+            "vehicle_make_model": "Tata Nexon EV",
             "provider": "MockVerificationProvider",
+            "reward_formula_version": SUSTAINABLE_REWARD_FORMULA_VERSION,
+            "reward_basis": f"Document quality proxy ({size_mb:g} MB) × Electric Vehicle multiplier",
             "is_mock": True,
         },
     )
@@ -391,6 +532,9 @@ def verify_sustainable_purchase(
         "vehicle_type": "Electric Vehicle",
         "ownership": "Verified",
         "verification": "Successful",
+        "provider": "MockVerificationProvider",
+        "reward_formula_version": SUSTAINABLE_REWARD_FORMULA_VERSION,
+        "reward_basis": f"Document quality proxy ({size_mb:g} MB) × Electric Vehicle multiplier",
         "is_mock": True,
     }
 
@@ -404,9 +548,10 @@ def reset_sustainable_purchase(user: UserModel, db: Session) -> dict:
         )
         .all()
     )
+    points_to_reverse = sum(int(e.points_delta or 0) for e in events)
     for e in events:
         db.delete(e)
-    user.impact_points = max(420, int(user.impact_points) - 1500)
+    user.impact_points = max(0, int(user.impact_points) - points_to_reverse)
     db.commit()
     db.refresh(user)
     return {
@@ -418,6 +563,9 @@ def reset_sustainable_purchase(user: UserModel, db: Session) -> dict:
         "vehicle_type": "Electric Vehicle",
         "ownership": "Pending",
         "verification": "Reset",
+        "provider": "MockVerificationProvider",
+        "reward_formula_version": SUSTAINABLE_REWARD_FORMULA_VERSION,
+        "reward_basis": "No reward claimed",
         "is_mock": True,
     }
 
@@ -1141,6 +1289,7 @@ def list_transactions(user: UserModel | None = None, db: Session | None = None) 
             merchant=r.merchant,
             amount_inr=r.amount_inr,
             category=ProductCategory(r.category),
+            co2e_kg=float(r.co2e_kg),
         )
         for r in rows
     ]
@@ -1151,6 +1300,7 @@ def import_transactions(
 ) -> list[Transaction]:
     user, db = _resolve_user_and_db(user, db)
     created: list[Transaction] = []
+    reward_total = 0
     today = date.today().isoformat()
     for row in rows:
         merchant = str(row.get("merchant", "Unknown"))
@@ -1166,6 +1316,16 @@ def import_transactions(
         else:
             cat = categorize_merchant(merchant)
         est = estimate_from_spend(cat, amount)
+        source_key = _receipt_source_key(row, cat, amount, merchant, str(row.get("date") or today))
+        if db.query(TransactionModel.id).filter(
+            TransactionModel.user_id == user.id,
+            TransactionModel.source_key == source_key,
+        ).first():
+            # Receipt confirmation is retriable. Existing lines must not mint
+            # another transaction, reward event, or KCS input.
+            continue
+        confidence = row.get("confidence", ExtractionConfidence.HIGH)
+        reward_points = calculate_receipt_reward(cat, amount, est.estimated_co2e_kg, confidence)
         txn_id = uuid4()
         txn_model = TransactionModel(
             id=str(txn_id),
@@ -1175,8 +1335,12 @@ def import_transactions(
             amount_inr=amount,
             category=cat.value,
             co2e_kg=float(est.estimated_co2e_kg),
+            source_key=source_key,
         )
         db.add(txn_model)
+        db.flush()
+        user.impact_points = int(user.impact_points) + reward_points
+        reward_total += reward_points
         created.append(
             Transaction(
                 id=txn_id,
@@ -1184,7 +1348,23 @@ def import_transactions(
                 merchant=merchant,
                 amount_inr=amount,
                 category=cat,
+                co2e_kg=float(est.estimated_co2e_kg),
+                reward_points_awarded=reward_points,
             )
+        )
+    if reward_total:
+        log_activity_event(
+            user,
+            db,
+            "receipt_reward",
+            f"Earned {reward_total} Impact Points from receipts",
+            f"Formula-based reward · {len(created)} new line items",
+            points_delta=reward_total,
+            meta={
+                "formula_version": RECEIPT_REWARD_FORMULA_VERSION,
+                "line_items": len(created),
+                "reward_points": reward_total,
+            },
         )
     db.commit()
     return created
@@ -1287,10 +1467,12 @@ def process_document_example(
     else:
         rows = [
             {
+                "source_key": f"document:{example_id}:line:{i['id']}",
                 "merchant": i["merchant"],
                 "amount_inr": i["amount_inr"],
                 "date": i["date"],
                 "category": i["category"],
+                "confidence": i.get("confidence", ExtractionConfidence.HIGH),
             }
             for i in auto_import
         ]
@@ -1321,6 +1503,10 @@ def process_document_example(
         "badges_unlocked": badges,
         "requires_review": requires_review,
         "is_mock": True,
+        "co2e_kg_added": round(sum(float(t.co2e_kg or 0) for t in transactions), 3),
+        "reward_points_awarded": sum(int(t.reward_points_awarded) for t in transactions),
+        "duplicate_count": len(auto_import) - len(transactions),
+        "reward_formula_version": RECEIPT_REWARD_FORMULA_VERSION,
     }
 
 
@@ -1336,16 +1522,18 @@ def confirm_document_import(
         raise HTTPException(status_code=404, detail=f"Unknown document example: {example_id}")
 
     rows: list[dict] = []
-    for raw in items:
+    for index, raw in enumerate(items):
         if isinstance(raw, DocumentConfirmItem):
             if raw.discarded:
                 continue
             rows.append(
                 {
+                    "source_key": f"document:{example_id}:line:{raw.id or index}",
                     "merchant": raw.merchant,
                     "amount_inr": raw.amount_inr,
                     "date": raw.date,
                     "category": raw.category,
+                    "confidence": raw.confidence,
                 }
             )
         else:
@@ -1353,10 +1541,12 @@ def confirm_document_import(
                 continue
             rows.append(
                 {
+                    "source_key": f"document:{example_id}:line:{raw.get('id') or index}",
                     "merchant": str(raw.get("merchant", "Unknown")),
                     "amount_inr": float(raw.get("amount_inr", 0) or 0),
                     "date": str(raw.get("date") or date.today().isoformat()),
                     "category": raw.get("category"),
+                    "confidence": raw.get("confidence", ExtractionConfidence.HIGH),
                 }
             )
 
@@ -1378,6 +1568,10 @@ def confirm_document_import(
         "message": f"Imported {len(created)} items from {example['title']}.",
         "badges_unlocked": badges,
         "is_mock": True,
+        "co2e_kg_added": round(sum(float(t.co2e_kg or 0) for t in created), 3),
+        "reward_points_awarded": sum(int(t.reward_points_awarded) for t in created),
+        "duplicate_count": len(rows) - len(created),
+        "reward_formula_version": RECEIPT_REWARD_FORMULA_VERSION,
     }
 
 
@@ -1459,6 +1653,10 @@ def parse_receipt_text(
         "transactions": created,
         "message": f"Parsed {len(created)} line items into your footprint (demo NLP stub).",
         "badges_unlocked": badges,
+        "co2e_kg_added": round(sum(float(t.co2e_kg or 0) for t in created), 3),
+        "reward_points_awarded": sum(int(t.reward_points_awarded) for t in created),
+        "duplicate_count": len(rows) - len(created),
+        "reward_formula_version": RECEIPT_REWARD_FORMULA_VERSION,
     }
 
 

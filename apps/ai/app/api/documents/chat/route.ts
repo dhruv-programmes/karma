@@ -14,6 +14,10 @@ type ChatBodyMessage = {
   text?: string;
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 export async function POST(req: Request) {
   if (!requireApiKey()) {
     return jsonError(
@@ -29,9 +33,42 @@ export async function POST(req: Request) {
     userName?: string;
   };
   try {
-    body = await req.json();
-  } catch {
-    return jsonError(400, "Invalid JSON body", req);
+    const raw = await req.json();
+    if (!isRecord(raw)) throw new Error("Expected a JSON object");
+    if (!Array.isArray(raw.messages)) {
+      throw new Error("messages must be an array");
+    }
+    if (
+      raw.documentContext !== undefined &&
+      typeof raw.documentContext !== "string"
+    ) {
+      throw new Error("documentContext must be a string");
+    }
+    if (raw.userName !== undefined && typeof raw.userName !== "string") {
+      throw new Error("userName must be a string");
+    }
+    if (
+      raw.messages.some(
+        (message) =>
+          !isRecord(message) ||
+          (message.role !== undefined && typeof message.role !== "string") ||
+          (message.content !== undefined && typeof message.content !== "string") ||
+          (message.text !== undefined && typeof message.text !== "string")
+      )
+    ) {
+      throw new Error("Each message must contain text or content");
+    }
+    body = raw as unknown as typeof body;
+  } catch (e) {
+    return jsonError(
+      400,
+      `Invalid chat body: ${
+        e instanceof Error
+          ? e.message
+          : "expected messages as an array of text messages"
+      }`,
+      req
+    );
   }
 
   const documentContext =

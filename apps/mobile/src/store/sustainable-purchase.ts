@@ -3,6 +3,7 @@ import { create } from "zustand";
 export interface SustainablePurchaseState {
   isVerified: boolean;
   rewardClaimed: boolean;
+  /** Reward returned by the verification API; zero means no new reward. */
   rewardPoints: number;
   verifiedAt: string | null;
   documentName: string | null;
@@ -14,6 +15,9 @@ export interface SustainablePurchaseState {
     documentName?: string;
     documentSize?: number;
     vehicleMakeModel?: string;
+    vehicleType?: string;
+    ownership?: string;
+    rewardPoints?: number;
   }) => void;
   claimReward: () => void;
   resetDemo: () => void;
@@ -22,7 +26,7 @@ export interface SustainablePurchaseState {
 export const useSustainablePurchaseStore = create<SustainablePurchaseState>((set) => ({
   isVerified: false,
   rewardClaimed: false,
-  rewardPoints: 1500,
+  rewardPoints: 0,
   verifiedAt: null,
   documentName: null,
   documentSize: null,
@@ -36,6 +40,9 @@ export const useSustainablePurchaseStore = create<SustainablePurchaseState>((set
       documentName: data?.documentName ?? "vehicle_registration_rc.pdf",
       documentSize: data?.documentSize ?? 2450000,
       vehicleMakeModel: data?.vehicleMakeModel ?? "Tata Nexon EV",
+      vehicleType: data?.vehicleType ?? "Electric Vehicle",
+      ownership: data?.ownership ?? "Verified Owner",
+      rewardPoints: Math.max(0, Math.round(data?.rewardPoints ?? 0)),
     }),
   claimReward: () =>
     set({
@@ -45,6 +52,7 @@ export const useSustainablePurchaseStore = create<SustainablePurchaseState>((set
     set({
       isVerified: false,
       rewardClaimed: false,
+      rewardPoints: 0,
       verifiedAt: null,
       documentName: null,
       documentSize: null,

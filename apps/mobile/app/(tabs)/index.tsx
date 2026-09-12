@@ -868,7 +868,7 @@ export default function HomeScreen() {
             <View style={[styles.tile, { flex: 1 }]}>
               <Text style={styles.tileLabel}>Karma Coins</Text>
               <Text style={[styles.tileValue, { color: "#2EA86E" }]}>
-                {me.data?.impact_points ?? user?.impact_points ?? 420}
+                {me.data?.impact_points ?? user?.impact_points ?? "—"}
               </Text>
               <Text style={styles.tileHint}>karma coins</Text>
             </View>

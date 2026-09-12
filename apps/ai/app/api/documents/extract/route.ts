@@ -19,6 +19,39 @@ type FilePayload = {
   hint?: string;
 };
 
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function decodeBase64(value: unknown): Uint8Array {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error("Expected a non-empty dataBase64 string");
+  }
+
+  const encoded = value.replace(/\s/g, "");
+  // Reject malformed input before Buffer's permissive decoder silently drops
+  // invalid characters and turns a bad upload into an empty/partial file.
+  if (
+    encoded.length % 4 !== 0 ||
+    !/^[A-Za-z0-9+/]*={0,2}$/.test(encoded) ||
+    encoded.slice(0, -2).includes("=")
+  ) {
+    throw new Error("dataBase64 is not valid base64");
+  }
+  if (encoded.length > Math.ceil((MAX_UPLOAD_BYTES * 4) / 3) + 4) {
+    throw new Error("File too large (max 10MB)");
+  }
+
+  const binary = Buffer.from(encoded, "base64");
+  if (binary.byteLength === 0) throw new Error("File is empty");
+  if (binary.byteLength > MAX_UPLOAD_BYTES) {
+    throw new Error("File too large (max 10MB)");
+  }
+  return new Uint8Array(binary);
+}
+
 async function readPayload(req: Request): Promise<FilePayload> {
   const contentType = req.headers.get("content-type") || "";
 
@@ -30,26 +63,32 @@ async function readPayload(req: Request): Promise<FilePayload> {
       throw new Error("Missing file field");
     }
     const buf = new Uint8Array(await file.arrayBuffer());
+    if (buf.byteLength === 0) throw new Error("File is empty");
+    if (buf.byteLength > MAX_UPLOAD_BYTES) {
+      throw new Error("File too large (max 10MB)");
+    }
     return {
-      mediaType: file.type || "application/octet-stream",
+      mediaType: (file.type || "application/octet-stream").trim().toLowerCase(),
       bytes: buf,
       hint,
     };
   }
 
-  const body = (await req.json()) as {
-    mediaType?: string;
-    dataBase64?: string;
-    hint?: string;
-  };
-  if (!body.dataBase64 || !body.mediaType) {
+  const raw = await req.json();
+  if (!isRecord(raw)) {
+    throw new Error("Expected a JSON object with mediaType and dataBase64");
+  }
+  const mediaType = raw.mediaType;
+  if (typeof mediaType !== "string" || mediaType.trim().length === 0) {
+    throw new Error("Expected a non-empty mediaType");
+  }
+  if (raw.dataBase64 == null) {
     throw new Error("Expected mediaType and dataBase64");
   }
-  const binary = Buffer.from(body.dataBase64, "base64");
   return {
-    mediaType: body.mediaType,
-    bytes: new Uint8Array(binary),
-    hint: body.hint,
+    mediaType: mediaType.trim().toLowerCase(),
+    bytes: decodeBase64(raw.dataBase64),
+    hint: typeof raw.hint === "string" ? raw.hint : undefined,
   };
 }
 
@@ -80,7 +119,7 @@ export async function POST(req: Request) {
     return jsonError(415, `Unsupported type: ${payload.mediaType}`, req);
   }
 
-  if (payload.bytes.byteLength > 10 * 1024 * 1024) {
+  if (payload.bytes.byteLength > MAX_UPLOAD_BYTES) {
     return jsonError(413, "File too large (max 10MB)", req);
   }
 

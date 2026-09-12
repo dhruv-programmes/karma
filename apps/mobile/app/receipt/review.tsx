@@ -24,6 +24,7 @@ import { useAppStore } from "@/src/store/app";
 import type {
   DocumentConfirmItem,
   ExtractedDocumentItem,
+  ExtractionConfidence,
   ProductCategory,
   Transaction,
 } from "@/src/types/api";
@@ -49,7 +50,7 @@ type ReviewDraft = {
   category: ProductCategory;
   discarded: boolean;
   reason?: string | null;
-  confidence: string;
+  confidence: ExtractionConfidence;
 };
 
 function toDraft(item: ExtractedDocumentItem): ReviewDraft {
@@ -161,6 +162,7 @@ export default function ReceiptReviewScreen() {
       amount_inr: i.amount_inr,
       date: i.date,
       category: i.category,
+      confidence: i.confidence,
       discarded: false,
     }));
     const reviewItems: DocumentConfirmItem[] = drafts.map((d) => ({
@@ -169,6 +171,7 @@ export default function ReceiptReviewScreen() {
       amount_inr: Number(d.amount) || 0,
       date: d.date,
       category: d.category,
+      confidence: d.confidence,
       discarded: d.discarded,
     }));
     const allItems =
@@ -204,6 +207,8 @@ export default function ReceiptReviewScreen() {
         qc.invalidateQueries({ queryKey: ["me"] }),
         qc.invalidateQueries({ queryKey: ["score"] }),
         qc.invalidateQueries({ queryKey: ["activity"] }),
+        qc.invalidateQueries({ queryKey: ["rewards"] }),
+        qc.invalidateQueries({ queryKey: ["leaderboard"] }),
       ]);
 
       leavingRef.current = true;

@@ -50,8 +50,8 @@ const AMBIENT_SPARKLES = Array.from({ length: 8 }).map((_, i) => ({
 
 type LootboxRevealProps = {
   visible: boolean;
-  rewardPoints?: number;
-  baseBalance?: number;
+  rewardPoints: number;
+  baseBalance: number;
   onClaimComplete: () => void;
   onDismiss?: () => void;
 };
@@ -60,8 +60,8 @@ const isNative = Platform.OS !== "web";
 
 export function LootboxReveal({
   visible,
-  rewardPoints = 1500,
-  baseBalance = 2850,
+  rewardPoints,
+  baseBalance,
   onClaimComplete,
   onDismiss,
 }: LootboxRevealProps) {
@@ -207,7 +207,7 @@ export function LootboxReveal({
       ]).start(() => {
         setPhase("revealed");
 
-        // Phase 3: Number Roll-up Animation (0 -> 1500)
+        // Phase 3: Number roll-up animation using the server-calculated reward.
         counterAnim.setValue(0);
         const listener = counterAnim.addListener(({ value }) => {
           setDisplayedPoints(Math.round(rewardPoints * value));

@@ -34,8 +34,9 @@ import { Text } from "@/components/ui/text";
 import { BackButton } from "@/components/custom/back-button";
 import { PointsCounter } from "@/components/custom/points-counter";
 import { ProductImage } from "@/components/custom/product-image";
-import { useMe, useRedeemReward, useRewards } from "@/src/hooks/queries";
+import { useActivity, useMe, useRedeemReward, useRewards } from "@/src/hooks/queries";
 import { useAppStore } from "@/src/store/app";
+import { useAuthStore } from "@/src/store/auth";
 
 export default function RewardsScreen() {
   const insets = useSafeAreaInsets();
@@ -44,6 +45,8 @@ export default function RewardsScreen() {
   const rewards = useRewards();
   const redeem = useRedeemReward();
   const lastPoints = useAppStore((s) => s.lastPointsAwarded);
+  const authUser = useAuthStore((s) => s.user);
+  const activity = useActivity();
 
   const [claimCode, setClaimCode] = useState<string | null>(null);
   const [claimedTitle, setClaimedTitle] = useState<string | null>(null);
@@ -51,10 +54,12 @@ export default function RewardsScreen() {
   const [copied, setCopied] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
 
-  const pointsBalance = me.data?.impact_points ?? 420;
-  const streakDays = me.data?.streak_days ?? 5;
-  const loopLevel = me.data?.loop_level ?? 2;
-  const offsetKg = Math.round(me.data?.offset_kg_total ?? 24);
+  const pointsBalance = me.data?.impact_points ?? authUser?.impact_points ?? null;
+  const streakDays = me.data?.streak_days ?? authUser?.streak_days ?? null;
+  const loopLevel = me.data?.loop_level ?? authUser?.loop_level ?? null;
+  const offsetKg = me.data?.offset_kg_total ?? authUser?.offset_kg_total ?? null;
+  const latestActivityPoints = activity.data?.find((event) => event.points_delta > 0)?.points_delta ?? null;
+  const latestEarnedPoints = lastPoints ?? latestActivityPoints;
 
   const brandRewards = (rewards.data ?? []).filter((r) => r.brand);
 
@@ -106,6 +111,10 @@ export default function RewardsScreen() {
         ];
 
   async function onRedeem(id: string, title: string, cost: number) {
+    if (pointsBalance === null) {
+      alert("Your Karma Coin balance is still loading. Please try again.");
+      return;
+    }
     if (pointsBalance < cost) {
       alert(`You need ${cost - pointsBalance} more Karma Coins to unlock this reward!`);
       return;
@@ -113,7 +122,10 @@ export default function RewardsScreen() {
 
     try {
       const result = await redeem.mutateAsync(id);
-      setClaimCode(result.claim_code || "KARMA-PERK-2026");
+      if (!result.claim_code) {
+        throw new Error("The server did not return a claim code.");
+      }
+      setClaimCode(result.claim_code);
       setClaimedTitle(title);
       setFlash(true);
       try {
@@ -124,12 +136,8 @@ export default function RewardsScreen() {
         /* simulator */
       }
       setTimeout(() => setFlash(false), 1800);
-    } catch {
-      // Fallback code generation for demo
-      setClaimCode(`KARMA-${Math.floor(1000 + Math.random() * 9000)}`);
-      setClaimedTitle(title);
-      setFlash(true);
-      setTimeout(() => setFlash(false), 1800);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Unable to redeem this reward right now.");
     }
   }
 
@@ -211,7 +219,7 @@ export default function RewardsScreen() {
 
           {/* Big Balance Readout */}
           <View style={styles.balanceRow}>
-            <Text style={styles.balanceNumber}>{pointsBalance}</Text>
+            <Text style={styles.balanceNumber}>{pointsBalance ?? "—"}</Text>
             <View style={styles.balanceMeta}>
               <Text style={styles.balanceUnit}>Karma Coins</Text>
               <Text style={styles.balanceSubtext}>Karma Coins Available to Spend</Text>
@@ -223,7 +231,9 @@ export default function RewardsScreen() {
             <View style={styles.heroStatItem}>
               <View style={styles.heroStatIconRow}>
                 <Flame size={12} color="#FB923C" strokeWidth={2.4} />
-                <Text style={styles.heroStatValue}>{streakDays}d Active</Text>
+                <Text style={styles.heroStatValue}>
+                  {streakDays === null ? "—" : `${streakDays}d Active`}
+                </Text>
               </View>
               <Text style={styles.heroStatLabel}>Daily Streak</Text>
             </View>
@@ -231,7 +241,9 @@ export default function RewardsScreen() {
             <View style={styles.heroStatItem}>
               <View style={styles.heroStatIconRow}>
                 <Leaf size={12} color="#5EEAD4" strokeWidth={2.4} />
-                <Text style={styles.heroStatValue}>{offsetKg} kg</Text>
+                <Text style={styles.heroStatValue}>
+                  {offsetKg === null ? "—" : `${Math.round(offsetKg)} kg`}
+                </Text>
               </View>
               <Text style={styles.heroStatLabel}>Carbon Offset</Text>
             </View>
@@ -240,7 +252,7 @@ export default function RewardsScreen() {
               <View style={styles.heroStatIconRow}>
                 <Sparkles size={12} color="#FBBF24" strokeWidth={2.4} />
                 <Text style={styles.heroStatValue}>
-                  +{lastPoints || 75} Karma Coins
+                  {latestEarnedPoints === null ? "—" : `+${latestEarnedPoints} Karma Coins`}
                 </Text>
               </View>
               <Text style={styles.heroStatLabel}>Last Earned</Text>
@@ -310,7 +322,7 @@ export default function RewardsScreen() {
         <View style={styles.rewardsList}>
           {displayRewards.map((reward) => {
             const cost = reward.points_required ?? 150;
-            const canAfford = pointsBalance >= cost;
+            const canAfford = pointsBalance !== null && pointsBalance >= cost;
 
             return (
               <View key={reward.id} style={styles.rewardCard}>
@@ -372,7 +384,11 @@ export default function RewardsScreen() {
                         !canAfford ? styles.redeemBtnTextDisabled : null,
                       ]}
                     >
-                      {canAfford ? "Redeem Perk" : `Need ${cost - pointsBalance} Karma Coins`}
+                      {canAfford
+                        ? "Redeem Perk"
+                        : pointsBalance === null
+                          ? "Balance unavailable"
+                          : `Need ${cost - pointsBalance} Karma Coins`}
                     </Text>
                     {canAfford ? (
                       <ArrowRight size={13} color="#FFFFFF" strokeWidth={2.2} />

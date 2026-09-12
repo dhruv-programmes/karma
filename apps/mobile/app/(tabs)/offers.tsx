@@ -38,6 +38,7 @@ import {
 } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { useMe } from "@/src/hooks/queries";
+import { useAuthStore } from "@/src/store/auth";
 import { useTabBarClearance } from "@/src/theme/layout";
 
 export type CouponCategory = "all" | "govt" | "eco" | "partner" | "offsets";
@@ -324,14 +325,12 @@ export default function OffersScreen() {
   const insets = useSafeAreaInsets();
   const tabClearance = useTabBarClearance();
   const me = useMe();
+  const authUser = useAuthStore((state) => state.user);
 
-  // Local state for points balance (initial fallback 420 or from user profile)
-  const [pointsBalance, setPointsBalance] = useState(
-    me.data?.impact_points ?? 420
-  );
-  const [totalOffsetKg, setTotalOffsetKg] = useState(
-    me.data?.offset_kg_total ?? 24
-  );
+  // Keep these derived from the current profile. Local state here used to
+  // capture the first render's demo value and never update after useMe loaded.
+  const pointsBalance = me.data?.impact_points ?? authUser?.impact_points ?? null;
+  const totalOffsetKg = me.data?.offset_kg_total ?? authUser?.offset_kg_total ?? null;
 
   // Claimed vouchers list
   const [claimedCodes, setClaimedCodes] = useState<Record<string, string>>({});
@@ -388,6 +387,11 @@ export default function OffersScreen() {
       return;
     }
 
+    if (pointsBalance === null) {
+      setErrorToast("Your Karma Coin balance is still loading. Please try again.");
+      setTimeout(() => setErrorToast(null), 3000);
+      return;
+    }
     if (pointsBalance < coupon.costPts) {
       setErrorToast(
         `Need ${coupon.costPts - pointsBalance} more Karma Coins to unlock!`
@@ -396,8 +400,8 @@ export default function OffersScreen() {
       return;
     }
 
-    // Deduct points & claim
-    setPointsBalance((prev) => prev - coupon.costPts);
+    // This static catalog has no server reward ID. Do not pretend a local
+    // preview redemption spent account coins.
     setClaimedCodes((prev) => ({
       ...prev,
       [coupon.id]: coupon.code,
@@ -408,6 +412,11 @@ export default function OffersScreen() {
 
   // Handle offset donation
   const handleDonateOffset = (project: OffsetProject) => {
+    if (pointsBalance === null) {
+      setErrorToast("Your Karma Coin balance is still loading. Please try again.");
+      setTimeout(() => setErrorToast(null), 3000);
+      return;
+    }
     if (pointsBalance < project.costPts) {
       setErrorToast(
         `Need ${project.costPts - pointsBalance} more Karma Coins to donate!`
@@ -416,8 +425,8 @@ export default function OffersScreen() {
       return;
     }
 
-    setPointsBalance((prev) => prev - project.costPts);
-    setTotalOffsetKg((prev) => prev + project.impactKg);
+    // Offset purchases must be persisted by the API before changing the
+    // account balance; these cards are currently a local hackathon preview.
     triggerHaptics();
     setActiveOffsetDonation(project);
   };
@@ -482,13 +491,15 @@ export default function OffersScreen() {
             </View>
             <View style={styles.levelBadge}>
               <Award size={13} color="#FBBF24" strokeWidth={2.2} />
-              <Text style={styles.levelBadgeText}>Level {me.data?.loop_level ?? 2}</Text>
+              <Text style={styles.levelBadgeText}>
+                Level {me.data?.loop_level ?? authUser?.loop_level ?? "—"}
+              </Text>
             </View>
           </View>
 
           {/* Big Points Display */}
           <View style={styles.balanceRow}>
-            <Text style={styles.balanceNumber}>{pointsBalance}</Text>
+            <Text style={styles.balanceNumber}>{pointsBalance ?? "—"}</Text>
             <View style={styles.balanceMeta}>
               <Text style={styles.balanceUnit}>Karma Coins</Text>
               <Text style={styles.balanceSubtext}>Karma Coins Available</Text>
@@ -503,7 +514,9 @@ export default function OffersScreen() {
             </View>
             <View style={styles.heroStatDivider} />
             <View style={styles.heroStatItem}>
-              <Text style={styles.heroStatValue}>{totalOffsetKg} kg</Text>
+              <Text style={styles.heroStatValue}>
+                {totalOffsetKg === null ? "—" : `${Math.round(totalOffsetKg)} kg`}
+              </Text>
               <Text style={styles.heroStatLabel}>CO₂e Offset</Text>
             </View>
             <View style={styles.heroStatDivider} />
@@ -711,7 +724,7 @@ export default function OffersScreen() {
 
             <View style={styles.offsetsGrid}>
               {STATIC_OFFSETS.map((project) => {
-                const canAfford = pointsBalance >= project.costPts;
+                const canAfford = pointsBalance !== null && pointsBalance >= project.costPts;
                 const ProjectIcon = project.icon;
 
                 return (
@@ -786,7 +799,7 @@ export default function OffersScreen() {
             <View style={styles.couponsGrid}>
               {filteredCoupons.map((coupon) => {
                 const isClaimed = !!claimedCodes[coupon.id];
-                const canAfford = pointsBalance >= coupon.costPts;
+                const canAfford = pointsBalance !== null && pointsBalance >= coupon.costPts;
 
                 return (
                   <View key={coupon.id} style={styles.couponCard}>
@@ -980,14 +993,14 @@ export default function OffersScreen() {
                   <TreePine size={32} color="#2EA86E" strokeWidth={2.2} />
                 </View>
 
-                <Text style={styles.donationTitle}>Donation Confirmed!</Text>
+                <Text style={styles.donationTitle}>Donation Preview</Text>
                 <Text style={styles.donationSubtitle}>
-                  You just offset {activeOffsetDonation.impactKg} kg of CO₂e
-                  using {activeOffsetDonation.costPts} Karma Coins.
+                  This preview estimates {activeOffsetDonation.impactKg} kg of
+                  CO₂e impact. No Karma Coins were deducted.
                 </Text>
 
                 <View style={styles.donationCertCard}>
-                  <Text style={styles.certLabel}>OFFICIAL CERTIFICATE</Text>
+                  <Text style={styles.certLabel}>PREVIEW CERTIFICATE</Text>
                   <Text style={styles.certProject}>
                     {activeOffsetDonation.title}
                   </Text>
@@ -1009,7 +1022,7 @@ export default function OffersScreen() {
                   </View>
                   <View style={styles.certRow}>
                     <Text style={styles.certKey}>Certificate Ref</Text>
-                    <Text style={styles.certVal}>#CL-2026-OFFSET</Text>
+                  <Text style={styles.certVal}>#CL-PREVIEW-OFFSET</Text>
                   </View>
                 </View>
 

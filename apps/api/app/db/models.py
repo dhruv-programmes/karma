@@ -164,6 +164,11 @@ class UserProductModel(Base):
 
 class TransactionModel(Base):
     __tablename__ = "transactions"
+    __table_args__ = (
+        # Nullable source keys keep legacy/seed rows valid while making
+        # receipt replay protection database-enforceable for imported rows.
+        UniqueConstraint("user_id", "source_key", name="uq_transaction_user_source_key"),
+    )
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
@@ -172,6 +177,8 @@ class TransactionModel(Base):
     amount_inr = Column(Float, nullable=False)
     category = Column(String(50), nullable=False)
     co2e_kg = Column(Float, nullable=False)
+    # Deterministic document/line fingerprint. Nullable for legacy imports.
+    source_key = Column(String(255), nullable=True, index=True)
 
     user = relationship("UserModel", back_populates="transactions")
 
@@ -605,3 +612,111 @@ def ensure_user_columns(engine_or_conn) -> None:
 # Compatibility alias for callers introduced with the KCS-only migration.
 def ensure_kcs_columns(engine_or_conn) -> None:
     ensure_user_columns(engine_or_conn)
+    ensure_receipt_columns(engine_or_conn)
+
+
+RECEIPT_MIGRATION_COLUMNS: dict[str, str] = {
+    "source_key": "VARCHAR(255)",
+}
+
+
+def ensure_receipt_columns(engine_or_conn) -> None:
+    """Add receipt idempotency metadata to legacy SQLite databases."""
+    from sqlalchemy import text
+
+    conn = None
+    close_after = False
+    try:
+        if hasattr(engine_or_conn, "get_bind"):
+            conn = engine_or_conn.get_bind().connect()
+            close_after = True
+        elif hasattr(engine_or_conn, "connect"):
+            conn = engine_or_conn.connect()
+            close_after = True
+        else:
+            conn = engine_or_conn
+        table_exists = conn.execute(text(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='transactions'"
+        )).fetchone()
+        if not table_exists:
+            return
+        existing = {row[1] for row in conn.execute(text("PRAGMA table_info(transactions)"))}
+        for col, coltype in RECEIPT_MIGRATION_COLUMNS.items():
+            if col not in existing:
+                try:
+                    conn.execute(text(f"ALTER TABLE transactions ADD COLUMN {col} {coltype}"))
+                except Exception:
+                    pass
+        # SQLite permits multiple NULLs in a unique index, preserving old rows.
+        try:
+            conn.execute(text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_transaction_user_source_key "
+                "ON transactions(user_id, source_key)"
+            ))
+        except Exception:
+            pass
+        try:
+            conn.commit()
+        except Exception:
+            pass
+    finally:
+        if close_after and conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+LEAGUE_MIGRATION_COLUMNS: dict[str, str] = {
+    "weekly_league_points": "INTEGER DEFAULT 0",
+    "weekly_key": "VARCHAR(8) DEFAULT ''",
+    "weekly_action_count": "INTEGER DEFAULT 0",
+    "lifetime_best_league_slug": "VARCHAR(30) DEFAULT 'bronze'",
+    "last_demotion_at": "DATETIME",
+    "last_demotion_from": "VARCHAR(30)",
+    "last_demotion_to": "VARCHAR(30)",
+    "last_promotion_at": "DATETIME",
+    "last_promotion_from": "VARCHAR(30)",
+    "last_promotion_to": "VARCHAR(30)",
+    "last_rollover_key": "VARCHAR(7)",
+    "updated_at": "DATETIME",
+}
+
+
+def ensure_league_columns(engine_or_conn) -> None:
+    """Backfill columns added to league state on already-created SQLite DBs."""
+    from sqlalchemy import text
+
+    conn = None
+    close_after = False
+    try:
+        if hasattr(engine_or_conn, "get_bind"):
+            conn = engine_or_conn.get_bind().connect()
+            close_after = True
+        elif hasattr(engine_or_conn, "connect"):
+            conn = engine_or_conn.connect()
+            close_after = True
+        else:
+            conn = engine_or_conn
+        table_exists = conn.execute(text(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='user_league_states'"
+        )).fetchone()
+        if not table_exists:
+            return
+        existing = {row[1] for row in conn.execute(text("PRAGMA table_info(user_league_states)"))}
+        for col, coltype in LEAGUE_MIGRATION_COLUMNS.items():
+            if col not in existing:
+                try:
+                    conn.execute(text(f"ALTER TABLE user_league_states ADD COLUMN {col} {coltype}"))
+                except Exception:
+                    pass
+        try:
+            conn.commit()
+        except Exception:
+            pass
+    finally:
+        if close_after and conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass

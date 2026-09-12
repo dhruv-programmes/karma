@@ -26,7 +26,13 @@ export default function ToolsScreen() {
   const insets = useSafeAreaInsets();
   const tabClearance = useTabBarClearance();
   const router = useRouter();
-  const { isVerified, rewardClaimed } = useSustainablePurchaseStore();
+  const {
+    isVerified,
+    rewardClaimed,
+    rewardPoints,
+    vehicleMakeModel,
+    vehicleType,
+  } = useSustainablePurchaseStore();
   const verified = isVerified || rewardClaimed;
 
   return (
@@ -90,17 +96,19 @@ export default function ToolsScreen() {
 
         {verified ? (
           <>
-            <Text style={styles.verificationTitle}>⚡ EV Purchase</Text>
+            <Text style={styles.verificationTitle}>⚡ {vehicleType}</Text>
             <View style={styles.verifiedBadgeRow}>
               <Text style={styles.verifiedStatusText}>✓ Verified</Text>
-              <Text style={styles.verifiedCarModel}>Tata Nexon EV</Text>
+              <Text style={styles.verifiedCarModel}>{vehicleMakeModel}</Text>
             </View>
             <Text style={styles.verificationDetail}>
               Major sustainable purchase verified and recorded to your Impact timeline.
             </Text>
             <View style={styles.verificationFooter}>
               <Text style={styles.verificationRewardEarned}>
-                Reward earned: +1,500 Karma Coins
+                {rewardPoints > 0
+                  ? `Reward earned: +${rewardPoints.toLocaleString()} Karma Coins`
+                  : "Already verified · no new reward"}
               </Text>
               <Text style={styles.verificationCta}>View Certificate ›</Text>
             </View>
@@ -116,7 +124,9 @@ export default function ToolsScreen() {
               <Text style={styles.verificationType}>⚡ Electric Vehicle</Text>
             </View>
             <View style={styles.verificationFooter}>
-              <Text style={styles.verificationReward}>Up to +1,500 Karma Coins</Text>
+              <Text style={styles.verificationReward}>
+                Reward calculated after verification
+              </Text>
               <Text style={styles.verificationCta}>Start verification  ›</Text>
             </View>
           </>

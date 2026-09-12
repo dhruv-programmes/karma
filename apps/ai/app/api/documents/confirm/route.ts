@@ -13,8 +13,13 @@ type ConfirmItem = {
   amount_inr: number;
   date: string;
   category?: string;
+  confidence?: "high" | "medium" | "low";
   discarded?: boolean;
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
 
 export async function POST(req: Request) {
   // Confirm does not need Gemini; key check optional. Keep soft so confirm works offline from AI key issues after extract.
@@ -22,9 +27,46 @@ export async function POST(req: Request) {
 
   let body: { items?: ConfirmItem[]; userName?: string; documentTitle?: string };
   try {
-    body = await req.json();
-  } catch {
-    return jsonError(400, "Invalid JSON body", req);
+    const raw = await req.json();
+    if (!isRecord(raw)) throw new Error("Expected a JSON object");
+    if (!Array.isArray(raw.items)) throw new Error("items must be an array");
+    const malformedIndex = raw.items.findIndex((item) => {
+      if (!isRecord(item)) return true;
+      return (
+        typeof item.merchant !== "string" ||
+        item.merchant.trim().length === 0 ||
+        typeof item.amount_inr !== "number" ||
+        !Number.isFinite(item.amount_inr) ||
+        item.amount_inr < 0 ||
+        typeof item.date !== "string" ||
+        item.date.trim().length === 0 ||
+        (item.category !== undefined && typeof item.category !== "string") ||
+        (item.confidence !== undefined &&
+          (typeof item.confidence !== "string" ||
+            !["high", "medium", "low"].includes(item.confidence))) ||
+        (item.discarded !== undefined && typeof item.discarded !== "boolean")
+      );
+    });
+    if (malformedIndex >= 0) {
+      throw new Error(`items[${malformedIndex}] is missing valid merchant, amount_inr, or date`);
+    }
+    if (raw.userName !== undefined && typeof raw.userName !== "string") {
+      throw new Error("userName must be a string");
+    }
+    if (raw.documentTitle !== undefined && typeof raw.documentTitle !== "string") {
+      throw new Error("documentTitle must be a string");
+    }
+    body = raw as unknown as typeof body;
+  } catch (e) {
+    return jsonError(
+      400,
+      `Invalid confirmation body: ${
+        e instanceof Error
+          ? e.message
+          : "expected an items array with merchant, amount_inr, and date"
+      }`,
+      req
+    );
   }
 
   const items = (body.items ?? []).filter((i) => !i.discarded);
@@ -50,6 +92,9 @@ export async function POST(req: Request) {
     amount_inr: i.amount_inr,
     date: i.date,
     category: i.category,
+    // Preserve confidence through the proxy so FastAPI can apply its
+    // risk-adjusted receipt reward multiplier for medium/low lines.
+    confidence: i.confidence ?? "high",
   }));
 
   const auth = req.headers.get("authorization") || "";
@@ -74,10 +119,36 @@ export async function POST(req: Request) {
       );
     }
 
-    const data = (await res.json()) as {
+    const rawData = await res.json().catch(() => null);
+    const imported = isRecord(rawData) ? rawData.imported : undefined;
+    const transactions = isRecord(rawData) ? rawData.transactions : undefined;
+    if (
+      typeof imported !== "number" ||
+      !Number.isInteger(imported) ||
+      imported < 0 ||
+      !Array.isArray(transactions)
+    ) {
+      return jsonError(
+        502,
+        "FastAPI returned an invalid import response; nothing was confirmed",
+        req
+      );
+    }
+    const data = rawData as {
       imported: number;
       transactions: { merchant?: string; amount_inr?: number }[];
+      co2e_kg_added?: number;
+      reward_points_awarded?: number;
+      duplicate_count?: number;
+      reward_formula_version?: string;
     };
+    if (data.imported > items.length) {
+      return jsonError(
+        502,
+        "FastAPI returned an inconsistent import count; nothing was confirmed",
+        req
+      );
+    }
 
     const totalInr = items.reduce(
       (sum, i) => sum + (Number(i.amount_inr) || 0),
@@ -108,6 +179,18 @@ export async function POST(req: Request) {
         badges_unlocked: [],
         is_mock: false,
         total_inr: totalInr,
+        ...(typeof data.co2e_kg_added === "number"
+          ? { co2e_kg_added: data.co2e_kg_added }
+          : {}),
+        ...(typeof data.reward_points_awarded === "number"
+          ? { reward_points_awarded: data.reward_points_awarded }
+          : {}),
+        ...(typeof data.duplicate_count === "number"
+          ? { duplicate_count: data.duplicate_count }
+          : {}),
+        ...(typeof data.reward_formula_version === "string"
+          ? { reward_formula_version: data.reward_formula_version }
+          : {}),
       }),
       req
     );

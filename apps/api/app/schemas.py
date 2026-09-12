@@ -278,6 +278,8 @@ class Transaction(BaseModel):
     amount_inr: float
     category: ProductCategory
     type: str = "debit"
+    co2e_kg: float | None = None
+    reward_points_awarded: int = 0
 
 
 class ReceiptParseResult(BaseModel):
@@ -285,6 +287,10 @@ class ReceiptParseResult(BaseModel):
     transactions: list[Transaction]
     message: str
     badges_unlocked: list[str] = Field(default_factory=list)
+    co2e_kg_added: float = 0.0
+    reward_points_awarded: int = 0
+    duplicate_count: int = 0
+    reward_formula_version: str = "receipt-reward-v1"
 
 
 class ExtractionConfidence(str, Enum):
@@ -348,6 +354,9 @@ class DocumentConfirmItem(BaseModel):
     amount_inr: float
     date: str
     category: ProductCategory
+    # Kept optional for the existing Gemini proxy; omitted confidence means
+    # the extracted item was accepted as high confidence.
+    confidence: ExtractionConfidence = "high"
     discarded: bool = False
 
 
@@ -362,6 +371,10 @@ class DocumentConfirmResult(BaseModel):
     message: str
     badges_unlocked: list[str] = Field(default_factory=list)
     is_mock: bool = True
+    co2e_kg_added: float = 0.0
+    reward_points_awarded: int = 0
+    duplicate_count: int = 0
+    reward_formula_version: str = "receipt-reward-v1"
 
 
 class BarcodeLookupRequest(BaseModel):
@@ -492,6 +505,9 @@ class SustainablePurchaseVerifyResponse(BaseModel):
     vehicle_type: str = "Electric Vehicle"
     ownership: str = "Verified"
     verification: str = "Successful"
+    provider: str = "MockVerificationProvider"
+    reward_formula_version: str = "sustainable-purchase-reward-v1"
+    reward_basis: str = ""
     is_mock: bool = True
 
 

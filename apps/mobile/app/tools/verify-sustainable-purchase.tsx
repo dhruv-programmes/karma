@@ -61,8 +61,10 @@ export default function VerifySustainablePurchaseScreen() {
     rewardClaimed || isVerified ? "verified" : "upload"
   );
   const [isResetting, setIsResetting] = useState(false);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
+  const [verifiedBaseBalance, setVerifiedBaseBalance] = useState<number | null>(null);
 
-  const currentPoints = me.data?.impact_points ?? authUser?.impact_points ?? 2850;
+  const currentPoints = me.data?.impact_points ?? authUser?.impact_points ?? null;
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -79,33 +81,59 @@ export default function VerifySustainablePurchaseScreen() {
   };
 
   // Called when laser scanning finishes the 5 stages
-  const handleScanComplete = () => {
-    setVerified({
-      documentName: pickedFile?.name || "vehicle_registration_rc.pdf",
-      documentSize: pickedFile?.size || 2450000,
-      vehicleMakeModel: "Tata Nexon EV",
-    });
-    setPhase("lootbox");
+  const handleScanComplete = async () => {
+    if (!pickedFile) return;
+    setVerificationError(null);
+
+    try {
+      // The API calculates the reward from the submitted document metadata.
+      // Only reveal the lootbox after that response succeeds.
+      const result = await api.verifySustainablePurchase({
+        filename: pickedFile.name,
+        mime_type: pickedFile.mimeType || "application/pdf",
+        size_bytes: pickedFile.size,
+      });
+      if (result.status !== "verified") {
+        throw new Error(result.verification || "Purchase verification was not successful.");
+      }
+
+      setVerified({
+        documentName: pickedFile.name,
+        documentSize: pickedFile.size,
+        vehicleMakeModel: result.vehicle_make_model,
+        vehicleType: result.vehicle_type,
+        ownership: result.ownership,
+        rewardPoints: result.reward_points,
+      });
+      setVerifiedBaseBalance(
+        Math.max(0, result.total_points - Math.max(0, result.reward_points))
+      );
+      queryClient.invalidateQueries({ queryKey: ["me"] });
+      queryClient.invalidateQueries({ queryKey: ["activity"] });
+      queryClient.invalidateQueries({ queryKey: ["score"] });
+
+      if (result.already_claimed || result.reward_points <= 0) {
+        // An idempotent retry is verified, but it does not mint a second
+        // reward or open a lootbox showing a made-up amount.
+        claimReward();
+        setPhase("verified");
+      } else {
+        setPhase("lootbox");
+      }
+    } catch (error) {
+      setVerificationError(
+        error instanceof Error
+          ? error.message
+          : "Verification is unavailable right now. Please try again."
+      );
+      setPhase("upload");
+    }
   };
 
   // Called when user claims reward inside the lootbox modal
   const handleLootboxClaimed = async () => {
     claimReward();
     setPhase("verified");
-
-    try {
-      await api.verifySustainablePurchase({
-        filename: pickedFile?.name || "vehicle_registration_rc.pdf",
-        mime_type: pickedFile?.mimeType || "application/pdf",
-        size_bytes: pickedFile?.size || 2450000,
-      });
-      // Refresh user balance & activity timeline across app
-      queryClient.invalidateQueries({ queryKey: ["me"] });
-      queryClient.invalidateQueries({ queryKey: ["activity"] });
-      queryClient.invalidateQueries({ queryKey: ["score"] });
-    } catch {
-      // Backend may already have recorded it or be offline; UI state is preserved
-    }
   };
 
   // Presentation reset handler
@@ -118,6 +146,7 @@ export default function VerifySustainablePurchaseScreen() {
         // Fallback gracefully
       } finally {
         resetDemo();
+        setVerifiedBaseBalance(null);
         setPickedFile(null);
         setPhase("upload");
         setIsResetting(false);
@@ -194,12 +223,23 @@ export default function VerifySustainablePurchaseScreen() {
 
         {/* Phase: Upload & Ready */}
         {phase === "upload" && (
-          <DocumentUploader
-            file={pickedFile}
-            onFileSelect={(file) => setPickedFile(file)}
-            onVerify={handleStartVerification}
-            onClear={() => setPickedFile(null)}
-          />
+          <>
+            <DocumentUploader
+              file={pickedFile}
+              onFileSelect={(file) => {
+                setPickedFile(file);
+                setVerificationError(null);
+              }}
+              onVerify={handleStartVerification}
+              onClear={() => setPickedFile(null)}
+            />
+            {verificationError ? (
+              <View style={styles.errorCard}>
+                <Text style={styles.errorTitle}>Verification unavailable</Text>
+                <Text style={styles.errorText}>{verificationError}</Text>
+              </View>
+            ) : null}
+          </>
         )}
 
         {/* Phase: Scanning Laser Chamber */}
@@ -220,11 +260,13 @@ export default function VerifySustainablePurchaseScreen() {
               </View>
               <View style={styles.certStatusText}>
                 <Text style={styles.certStatusEyebrow}>VERIFIED PURCHASE</Text>
-                <Text style={styles.certStatusTitle}>Electric Vehicle</Text>
+                <Text style={styles.certStatusTitle}>{vehicleType}</Text>
               </View>
               <View style={styles.certRewardPill}>
                 <Sparkles size={12} color="#F59E0B" />
-                <Text style={styles.certRewardText}>+1,500 Karma Coins</Text>
+                <Text style={styles.certRewardText}>
+                  {rewardPoints > 0 ? `+${rewardPoints.toLocaleString()} Karma Coins` : "No new reward"}
+                </Text>
               </View>
             </View>
 
@@ -292,8 +334,9 @@ export default function VerifySustainablePurchaseScreen() {
             <View style={styles.impactNotice}>
               <Info size={14} color="#2EA86E" />
               <Text style={styles.impactNoticeText}>
-                Recorded on your personal Impact Timeline. +1,500 Karma Coins
-                have been added to your balance.
+                {rewardPoints > 0
+                  ? `Recorded on your personal Impact Timeline. +${rewardPoints.toLocaleString()} Karma Coins have been added to your balance.`
+                  : "This purchase was already verified. No additional Karma Coins were added."}
               </Text>
             </View>
 
@@ -301,7 +344,9 @@ export default function VerifySustainablePurchaseScreen() {
             <View style={styles.claimedButton}>
               <CheckCircle2 size={18} color="#2EA86E" />
               <Text style={styles.claimedButtonText}>
-                Reward Claimed (+1,500 Karma Coins)
+                {rewardPoints > 0
+                  ? `Reward Claimed (+${rewardPoints.toLocaleString()} Karma Coins)`
+                  : "Already claimed · No new reward"}
               </Text>
             </View>
 
@@ -334,7 +379,7 @@ export default function VerifySustainablePurchaseScreen() {
       <LootboxReveal
         visible={phase === "lootbox"}
         rewardPoints={rewardPoints}
-        baseBalance={currentPoints}
+        baseBalance={verifiedBaseBalance ?? currentPoints ?? 0}
         onClaimComplete={handleLootboxClaimed}
         onDismiss={() => {
           claimReward();
@@ -433,6 +478,26 @@ const styles = StyleSheet.create({
     color: "rgba(235,255,244,0.78)",
     fontSize: 13,
     lineHeight: 19,
+    fontFamily: "Nunito_400Regular",
+  },
+  errorCard: {
+    marginTop: 12,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: "#FFF4F2",
+    borderWidth: 1,
+    borderColor: "#F4B4A8",
+  },
+  errorTitle: {
+    color: "#9D3024",
+    fontSize: 13,
+    fontFamily: "Nunito_800ExtraBold",
+  },
+  errorText: {
+    marginTop: 4,
+    color: "#8B4B42",
+    fontSize: 12,
+    lineHeight: 17,
     fontFamily: "Nunito_400Regular",
   },
   prototypePill: {

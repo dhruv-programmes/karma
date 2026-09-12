@@ -425,6 +425,8 @@ export interface DocumentConfirmItem {
   amount_inr: number;
   date: string;
   category: ProductCategory;
+  /** Preserve Gemini confidence for the receipt reward formula. */
+  confidence?: ExtractionConfidence;
   discarded?: boolean;
 }
 
@@ -435,6 +437,11 @@ export interface DocumentConfirmResult {
   badges_unlocked?: string[];
   is_mock?: boolean;
   total_inr?: number;
+  /** Accounting metadata returned by FastAPI when available. */
+  co2e_kg_added?: number;
+  reward_points_awarded?: number;
+  duplicate_count?: number;
+  reward_formula_version?: string;
 }
 
 export interface Transaction {

@@ -28,6 +28,7 @@ from app.db.models import (
     UserProductModel,
     UserRewardRedemptionModel,
     ensure_kcs_columns,
+    ensure_league_columns,
 )
 
 from app.services.leagues import LEAGUE_DEFINITIONS, season_key, week_key
@@ -288,6 +289,7 @@ def seed_database_if_empty(db: Session) -> None:
     # 0. Ensure auth and KCS columns exist on legacy SQLite files.
     try:
         ensure_kcs_columns(db)
+        ensure_league_columns(db)
     except Exception:
         pass
     # Backfill existing rows even when DB is already seeded

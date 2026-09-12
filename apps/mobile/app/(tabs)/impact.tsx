@@ -42,7 +42,9 @@ import {
   useTransactions,
   useMe,
   useRewards,
+  useActivity,
 } from "@/src/hooks/queries";
+import { useAuthStore } from "@/src/store/auth";
 import { useTabBarClearance } from "@/src/theme/layout";
 
 export default function ImpactScreen() {
@@ -54,6 +56,8 @@ export default function ImpactScreen() {
   const txns = useTransactions();
   const solar = useSolarImpact();
   const me = useMe();
+  const authUser = useAuthStore((state) => state.user);
+  const activity = useActivity();
   const rewards = useRewards();
   const [tab, setTab] = useState("overview");
 
@@ -67,13 +71,16 @@ export default function ImpactScreen() {
 
   const sustainableStore = useSustainablePurchaseStore();
   const isEvVerified = sustainableStore.isVerified || sustainableStore.rewardClaimed;
-  const pointsBalance =
-    (me.data?.impact_points ?? 420) +
-    (isEvVerified && (me.data?.impact_points ?? 420) < 1500 ? 1500 : 0);
-  const streakDays = me.data?.streak_days ?? 5;
-  const solarPoints = solar.data?.greenPoints ?? 75;
-  const verifiedActionsCount = 3 + (isEvVerified ? 1 : 0);
-  const sustainablePurchasesCount = isEvVerified ? 1 : 0;
+  const sustainableRewardPoints = sustainableStore.rewardPoints;
+  // The API owns the account balance. Sustainable-purchase verification
+  // already updates it, so adding a local bonus here would double-count.
+  const pointsBalance = me.data?.impact_points ?? authUser?.impact_points ?? null;
+  const streakDays = me.data?.streak_days ?? authUser?.streak_days ?? null;
+  const solarPoints = solar.data?.greenPoints ?? null;
+  const verifiedActionsCount = activity.data?.filter((event) => event.points_delta > 0).length ?? null;
+  const sustainablePurchasesCount = activity.data?.filter(
+    (event) => event.kind === "sustainable_purchase_verification"
+  ).length ?? null;
 
   return (
     <View style={styles.root}>
@@ -111,15 +118,19 @@ export default function ImpactScreen() {
             </View>
             <View style={styles.rewardsBarMeta}>
               <View style={styles.rewardsPointsRow}>
-                <Text style={styles.rewardsPointsVal}>{pointsBalance}</Text>
+                <Text style={styles.rewardsPointsVal}>{pointsBalance ?? "—"}</Text>
                 <Text style={styles.rewardsPointsLabel}>Karma Coins</Text>
                 <View style={styles.streakBadge}>
                   <Flame size={10} color="#EA580C" strokeWidth={2.4} />
-                  <Text style={styles.streakText}>{streakDays}d Streak</Text>
+                  <Text style={styles.streakText}>
+                    {streakDays === null ? "—" : `${streakDays}d Streak`}
+                  </Text>
                 </View>
               </View>
               <Text style={styles.rewardsSubCopy}>
-                +{solarPoints} solar pts today · Redeemable for govt subsidies
+                {solarPoints === null
+                  ? "Solar points unavailable"
+                  : `+${solarPoints} solar pts today · Redeemable for govt subsidies`}
               </Text>
             </View>
           </View>
@@ -338,18 +349,23 @@ export default function ImpactScreen() {
               <View style={styles.timelineMetricsRow}>
                 <View style={styles.timelineMetricBox}>
                   <Text style={styles.timelineMetricLabel}>VERIFIED ACTIONS</Text>
-                  <Text style={styles.timelineMetricValue}>{verifiedActionsCount}</Text>
+                  <Text style={styles.timelineMetricValue}>{verifiedActionsCount ?? "—"}</Text>
                 </View>
                 <View style={styles.timelineMetricBox}>
                   <Text style={styles.timelineMetricLabel}>SUSTAINABLE PURCHASES</Text>
                   <Text style={[styles.timelineMetricValue, isEvVerified && { color: "#2EA86E" }]}>
-                    {sustainablePurchasesCount}
+                    {sustainablePurchasesCount ?? "—"}
                   </Text>
                 </View>
                 <View style={styles.timelineMetricBox}>
                   <Text style={styles.timelineMetricLabel}>TOTAL REWARDS</Text>
                   <Text style={[styles.timelineMetricValue, { color: "#059669" }]}>
-                    +{isEvVerified ? 1625 : 125} coins
+                    {activity.data == null
+                      ? "—"
+                      : `+${activity.data.reduce(
+                          (total, event) => total + Math.max(0, event.points_delta),
+                          0
+                        )} coins`}
                   </Text>
                 </View>
               </View>
@@ -380,7 +396,11 @@ export default function ImpactScreen() {
                           </Text>
                         </View>
                       </View>
-                      <Text style={styles.timelinePointsPositive}>+1,500 Karma Coins</Text>
+                      <Text style={styles.timelinePointsPositive}>
+                        {sustainableRewardPoints > 0
+                          ? `+${sustainableRewardPoints.toLocaleString()} Karma Coins`
+                          : "No new reward"}
+                      </Text>
                     </View>
                   </View>
                 )}
@@ -411,7 +431,9 @@ export default function ImpactScreen() {
                       <Text style={styles.timelineItemTitle}>Solar Net Feed-in</Text>
                       <Text style={styles.timelineItemSub}>Clean power fed back to grid</Text>
                     </View>
-                    <Text style={styles.timelinePointsPositive}>+75 Karma Coins</Text>
+                    <Text style={styles.timelinePointsPositive}>
+                      {solarPoints === null ? "—" : `+${solarPoints} Karma Coins`}
+                    </Text>
                   </View>
                 </View>
               </View>
@@ -547,14 +569,16 @@ export default function ImpactScreen() {
               <View style={styles.rewardsBigStatRow}>
                 <View>
                   <Text style={styles.rewardsBigStatNumber}>
-                    {pointsBalance}
+                    {pointsBalance ?? "—"}
                   </Text>
                   <Text style={styles.rewardsBigStatLabel}>
                     Total Karma Coins Available
                   </Text>
                 </View>
                 <View style={styles.rewardsLevelBadge}>
-                  <Text style={styles.rewardsLevelText}>Level {me.data?.loop_level ?? 2}</Text>
+                  <Text style={styles.rewardsLevelText}>
+                    Level {me.data?.loop_level ?? authUser?.loop_level ?? "—"}
+                  </Text>
                 </View>
               </View>
 
@@ -578,7 +602,9 @@ export default function ImpactScreen() {
                       </View>
                     </View>
                     <Text style={[styles.milestoneBadge, { color: "#059669", fontSize: 12 }]}>
-                      +1,500 Karma Coins
+                      {sustainableRewardPoints > 0
+                        ? `+${sustainableRewardPoints.toLocaleString()} Karma Coins`
+                        : "Already claimed · no new reward"}
                     </Text>
                   </View>
                 ) : (
@@ -594,12 +620,12 @@ export default function ImpactScreen() {
                           ⚡ Electric Vehicle Purchase Verification
                         </Text>
                         <Text style={{ fontSize: 10, color: "#7A9082", fontFamily: "Nunito_400Regular" }}>
-                          Upload document to claim +1,500 Karma Coins
+                          Reward amount calculated from the verified document
                         </Text>
                       </View>
                     </View>
                     <Text style={[styles.milestoneBadge, { color: "#7A9082" }]}>
-                      +1,500 Karma Coins
+                      Reward calculated after verification
                     </Text>
                   </TouchableOpacity>
                 )}

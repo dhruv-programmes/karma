@@ -37,7 +37,7 @@ import {
   Flame,
 } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
-import { useMe } from "@/src/hooks/queries";
+import { useMe, useRedeemReward } from "@/src/hooks/queries";
 import { useAuthStore } from "@/src/store/auth";
 import { useTabBarClearance } from "@/src/theme/layout";
 
@@ -274,6 +274,47 @@ const STATIC_COUPONS: CouponItem[] = [
   },
 ];
 
+// IDs mirror the deterministic server catalog in app.seed.data. Keeping the
+// mapping explicit lets this richer presentation layer stay intact while all
+// redemptions use the same wallet, ledger, and idempotency path as Rewards.
+const SERVER_REWARD_IDS: Record<string, string> = {
+  "govt-solar": "55555555-5555-5555-5555-555555555601",
+  "govt-ev-charge": "55555555-5555-5555-5555-555555555602",
+  "govt-compost": "55555555-5555-5555-5555-555555555603",
+  "govt-metro": "55555555-5555-5555-5555-555555555604",
+  "eco-patagonia": "55555555-5555-5555-5555-555555555605",
+  "eco-allbirds": "55555555-5555-5555-5555-555555555606",
+  "eco-zerowaste": "55555555-5555-5555-5555-555555555607",
+  "eco-blueland": "55555555-5555-5555-5555-555555555608",
+  "eco-ecovessel": "55555555-5555-5555-5555-555555555609",
+  "partner-relove": "55555555-5555-5555-5555-555555555610",
+  "partner-repair": "55555555-5555-5555-5555-555555555611",
+  "partner-organic": "55555555-5555-5555-5555-555555555612",
+  "partner-bike": "55555555-5555-5555-5555-555555555613",
+};
+
+// Prices are the normalized server prices (not the old marketing fixtures).
+// Use these values for affordability and display so a failed request can
+// never be caused by the card showing a cheaper amount than the API charges.
+const SERVER_REWARD_COSTS: Record<string, number> = {
+  "govt-solar": 400,
+  "govt-ev-charge": 180,
+  "govt-compost": 140,
+  "govt-metro": 250,
+  "eco-patagonia": 350,
+  "eco-allbirds": 250,
+  "eco-zerowaste": 120,
+  "eco-blueland": 150,
+  "eco-ecovessel": 130,
+  "partner-relove": 350,
+  "partner-repair": 300,
+  "partner-organic": 130,
+  "partner-bike": 350,
+};
+
+const couponCost = (coupon: CouponItem) =>
+  SERVER_REWARD_COSTS[coupon.id] ?? coupon.costPts;
+
 const STATIC_OFFSETS: OffsetProject[] = [
   {
     id: "offset-ghats",
@@ -325,6 +366,7 @@ export default function OffersScreen() {
   const insets = useSafeAreaInsets();
   const tabClearance = useTabBarClearance();
   const me = useMe();
+  const redeemCoupon = useRedeemReward();
   const authUser = useAuthStore((state) => state.user);
 
   // Keep these derived from the current profile. Local state here used to
@@ -380,10 +422,18 @@ export default function OffersScreen() {
   }, [selectedCategory, searchQuery]);
 
   // Handle coupon redemption
-  const handleRedeemCoupon = (coupon: CouponItem) => {
+  const handleRedeemCoupon = async (coupon: CouponItem) => {
     if (claimedCodes[coupon.id]) {
       // Already claimed, just open detail modal
-      setActiveModalCoupon(coupon);
+      setActiveModalCoupon({ ...coupon, code: claimedCodes[coupon.id] });
+      return;
+    }
+
+    const serverRewardId = SERVER_REWARD_IDS[coupon.id];
+    const cost = couponCost(coupon);
+    if (!serverRewardId) {
+      setErrorToast("This offer is not available for redemption yet.");
+      setTimeout(() => setErrorToast(null), 3000);
       return;
     }
 
@@ -392,22 +442,28 @@ export default function OffersScreen() {
       setTimeout(() => setErrorToast(null), 3000);
       return;
     }
-    if (pointsBalance < coupon.costPts) {
+    if (pointsBalance < cost) {
       setErrorToast(
-        `Need ${coupon.costPts - pointsBalance} more Karma Coins to unlock!`
+        `Need ${cost - pointsBalance} more Karma Coins to unlock!`
       );
       setTimeout(() => setErrorToast(null), 3000);
       return;
     }
 
-    // This static catalog has no server reward ID. Do not pretend a local
-    // preview redemption spent account coins.
-    setClaimedCodes((prev) => ({
-      ...prev,
-      [coupon.id]: coupon.code,
-    }));
-    triggerHaptics();
-    setActiveModalCoupon(coupon);
+    try {
+      const result = await redeemCoupon.mutateAsync(serverRewardId);
+      const redeemedCoupon = { ...coupon, code: result.claim_code };
+      setClaimedCodes((prev) => ({
+        ...prev,
+        [coupon.id]: result.claim_code,
+      }));
+      await triggerHaptics();
+      setActiveModalCoupon(redeemedCoupon);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to redeem this offer.";
+      setErrorToast(message);
+      setTimeout(() => setErrorToast(null), 4000);
+    }
   };
 
   // Handle offset donation
@@ -796,7 +852,8 @@ export default function OffersScreen() {
             <View style={styles.couponsGrid}>
               {filteredCoupons.map((coupon) => {
                 const isClaimed = !!claimedCodes[coupon.id];
-                const canAfford = pointsBalance !== null && pointsBalance >= coupon.costPts;
+                const cost = couponCost(coupon);
+                const canAfford = pointsBalance !== null && pointsBalance >= cost;
 
                 return (
                   <View key={coupon.id} style={styles.couponCard}>
@@ -851,7 +908,7 @@ export default function OffersScreen() {
                       <View style={styles.couponCostPill}>
                         <Coins size={13} color="#D97706" strokeWidth={2.2} />
                         <Text style={styles.couponCostText}>
-                          {coupon.costPts} coins
+                          {cost} coins
                         </Text>
                       </View>
 
@@ -862,6 +919,7 @@ export default function OffersScreen() {
                           !isClaimed && !canAfford && styles.redeemButtonDisabled,
                         ]}
                         onPress={() => handleRedeemCoupon(coupon)}
+                        disabled={redeemCoupon.isPending}
                         activeOpacity={0.82}
                       >
                         {isClaimed ? (

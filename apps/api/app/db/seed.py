@@ -37,6 +37,7 @@ from app.engines.scoring import provisional_kcs
 from app.schemas import ProductCategory
 from app.seed.data import (
     BASE_RECOMMENDATIONS,
+    COUPON_REWARDS,
     FACILITIES,
     OFFSETS,
     PRODUCTS,
@@ -166,6 +167,39 @@ def _seed_challenges_and_friendships(db: Session) -> None:
             if not db.query(FriendConnectionModel).filter_by(user_id=owner, friend_id=friend).first():
                 db.add(FriendConnectionModel(user_id=owner, friend_id=friend, status="accepted"))
     db.commit()
+
+
+def _seed_coupon_rewards(db: Session) -> None:
+    """Backfill the offers-screen catalog into the server reward table.
+
+    The normal reward seed is intentionally insert-if-empty for demo data. A
+    separate idempotent backfill is required so databases created by an older
+    app version receive the coupon rows without duplicating or resetting any
+    existing redemptions.
+    """
+    changed = False
+    existing_ids = {
+        row.id for row in db.query(RewardModel.id).filter(
+            RewardModel.id.in_([str(reward.id) for reward in COUPON_REWARDS])
+        ).all()
+    }
+    for reward in COUPON_REWARDS:
+        if str(reward.id) in existing_ids:
+            continue
+        db.add(
+            RewardModel(
+                id=str(reward.id),
+                title=reward.title,
+                description=reward.description,
+                points_required=reward.points_required,
+                brand=reward.brand or "Carbon Loop partner",
+                is_mock=reward.is_mock,
+                expires_on=reward.expires_on or "2026-12-31",
+            )
+        )
+        changed = True
+    if changed:
+        db.commit()
 
 
 def _seed_league_definitions_and_states(db: Session) -> None:
@@ -391,6 +425,9 @@ def seed_database_if_empty(db: Session) -> None:
             )
             db.add(rew_row)
         db.flush()
+
+    # 4b. Backfill government and partner coupons for legacy databases.
+    _seed_coupon_rewards(db)
 
     # 5. Seed Recommendations if empty
     if db.query(RecommendationModel).count() == 0:

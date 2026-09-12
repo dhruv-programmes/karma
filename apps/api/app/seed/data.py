@@ -785,6 +785,46 @@ REWARDS: list[Reward] = [
     Reward(id=UUID("55555555-5555-5555-5555-555555555510"), title="Metro week pass nudge", description="Demo transport-reduce perk.", points_required=180, brand="BMTC/Namma Metro (demo)", is_mock=True, expires_on="2026-06-30"),
 ]
 
+# The mobile offers screen also contains the government and partner catalog.
+# Keep those offers server-backed so a redemption is a real wallet mutation
+# (and appears in the points ledger) rather than a local-only preview.  These
+# IDs are deterministic because existing local SQLite databases need to be
+# safely backfilled when the app starts again.
+COUPON_REWARD_IDS: dict[str, UUID] = {
+    "govt-solar": UUID("55555555-5555-5555-5555-555555555601"),
+    "govt-ev-charge": UUID("55555555-5555-5555-5555-555555555602"),
+    "govt-compost": UUID("55555555-5555-5555-5555-555555555603"),
+    "govt-metro": UUID("55555555-5555-5555-5555-555555555604"),
+    "eco-patagonia": UUID("55555555-5555-5555-5555-555555555605"),
+    "eco-allbirds": UUID("55555555-5555-5555-5555-555555555606"),
+    "eco-zerowaste": UUID("55555555-5555-5555-5555-555555555607"),
+    "eco-blueland": UUID("55555555-5555-5555-5555-555555555608"),
+    "eco-ecovessel": UUID("55555555-5555-5555-5555-555555555609"),
+    "partner-relove": UUID("55555555-5555-5555-5555-555555555610"),
+    "partner-repair": UUID("55555555-5555-5555-5555-555555555611"),
+    "partner-organic": UUID("55555555-5555-5555-5555-555555555612"),
+    "partner-bike": UUID("55555555-5555-5555-5555-555555555613"),
+}
+
+# Listed prices intentionally match the normalized pricing tiers used by
+# services.effective_reward_cost.  This keeps the amount shown on the offers
+# page identical to the amount deducted by the API.
+COUPON_REWARDS: list[Reward] = [
+    Reward(id=COUPON_REWARD_IDS["govt-solar"], title="National Rooftop Solar Subsidy", description="Government rebate voucher for an empanelled residential rooftop solar installation.", points_required=400, brand="Ministry of New & Renewable Energy", is_mock=True, expires_on="2026-12-31"),
+    Reward(id=COUPON_REWARD_IDS["govt-ev-charge"], title="Public EV Fast-Charging Credits", description="Complimentary EV fast charging credits at municipal chargers and highway stations.", points_required=180, brand="Bureau of Energy Efficiency", is_mock=True, expires_on="2026-12-31"),
+    Reward(id=COUPON_REWARD_IDS["govt-compost"], title="Home Aeration Composter Kit", description="Municipal home composting kit with bio-enzyme starter cultures.", points_required=140, brand="Clean City Municipal Action", is_mock=True, expires_on="2026-12-31"),
+    Reward(id=COUPON_REWARD_IDS["govt-metro"], title="Green Transit Smart Pass", description="Digital pass with free rides on electrified metro and feeder-bus routes.", points_required=250, brand="State Metro Rail Corporation", is_mock=True, expires_on="2026-12-31"),
+    Reward(id=COUPON_REWARD_IDS["eco-patagonia"], title="Garment Care & Recycled Outerwear", description="Circular repair and recycled-gear partner discount.", points_required=350, brand="Patagonia Worn Wear", is_mock=True, expires_on="2026-12-31"),
+    Reward(id=COUPON_REWARD_IDS["eco-allbirds"], title="SweetFoam & Merino Wool Shoes", description="Sustainable footwear partner voucher.", points_required=250, brand="Allbirds Eco Footwear", is_mock=True, expires_on="2026-12-31"),
+    Reward(id=COUPON_REWARD_IDS["eco-zerowaste"], title="Package-Free Pantry & Body Care", description="Package-free refill and body-care partner voucher.", points_required=120, brand="Bare Necessities Zero Waste", is_mock=True, expires_on="2026-12-31"),
+    Reward(id=COUPON_REWARD_IDS["eco-blueland"], title="Plastic-Free Cleaning Starter Kit", description="Plastic-free cleaning starter-kit partner voucher.", points_required=150, brand="Blueland Clean Tech", is_mock=True, expires_on="2026-12-31"),
+    Reward(id=COUPON_REWARD_IDS["eco-ecovessel"], title="Triple-Insulated Stainless Bottles", description="Reusable thermal bottle partner voucher.", points_required=130, brand="EcoVessel Thermal Gear", is_mock=True, expires_on="2026-12-31"),
+    Reward(id=COUPON_REWARD_IDS["partner-relove"], title="Authenticated Vintage & Pre-Owned", description="Pre-owned style partner voucher.", points_required=350, brand="Relove Thrift Collective", is_mock=True, expires_on="2026-12-31"),
+    Reward(id=COUPON_REWARD_IDS["partner-repair"], title="Electronics & Leather Restoration", description="Certified repair partner credit.", points_required=300, brand="Local Master Repair Network", is_mock=True, expires_on="2026-12-31"),
+    Reward(id=COUPON_REWARD_IDS["partner-organic"], title="Farm-to-Door Pesticide-Free CSA", description="Regenerative organic farm partner voucher.", points_required=130, brand="First Harvest Organic Farms", is_mock=True, expires_on="2026-12-31"),
+    Reward(id=COUPON_REWARD_IDS["partner-bike"], title="Complete Bicycle Overhaul & Safety Tune", description="Zero-emission commute bicycle tune-up voucher.", points_required=350, brand="City Cycle Works", is_mock=True, expires_on="2026-12-31"),
+]
+
 OFFSETS: list[OffsetProject] = [
     OffsetProject(id=UUID("77777777-7777-7777-7777-777777777701"), name="Mangrove restoration — Sundarbans", provider="EcoVerified Demo", co2e_kg=100, price_inr=450, verification_status="Verified", geography="IN", description="Community mangrove project. Demo listing only.", methodology="community-mangrove-v1", cover_image_url="https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&q=80&fit=crop"),
     OffsetProject(id=UUID("77777777-7777-7777-7777-777777777702"), name="Rural biogas clusters", provider="ClimateLink Demo", co2e_kg=250, price_inr=980, verification_status="Verified", geography="IN", description="Household biogas displacing firewood. Demo listing only.", methodology="biogas-cluster-v1", cover_image_url="https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=800&q=80&fit=crop"),

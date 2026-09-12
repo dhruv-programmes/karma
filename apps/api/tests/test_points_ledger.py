@@ -15,6 +15,7 @@ from app.services.core import (
     purchase_offset,
     redeem_reward,
 )
+from app.seed.data import COUPON_REWARDS
 
 
 def _db():
@@ -106,6 +107,31 @@ def test_redemption_is_idempotent_and_creates_one_spend_entry():
     assert len(spend_entries) == 1
     assert spend_entries[0]["points_delta"] == -50
     assert spend_entries[0]["redemption_status"] == "redeemed"
+    db.close()
+
+
+def test_government_coupon_uses_server_wallet_and_ledger():
+    db = _db()
+    user = _user(db)
+    catalog_reward = COUPON_REWARDS[2]  # Home Aeration Composter Kit
+    db.add(RewardModel(
+        id=str(catalog_reward.id), title=catalog_reward.title,
+        description=catalog_reward.description,
+        points_required=catalog_reward.points_required,
+        brand=catalog_reward.brand, is_mock=True,
+        expires_on=catalog_reward.expires_on or "2099-01-01",
+    ))
+    user.impact_points = 200
+    db.commit()
+
+    result = redeem_reward(catalog_reward.id, user, db)
+    assert result["points_spent"] == 140
+    assert result["points_remaining"] == 60
+    assert user.impact_points == 60
+    ledger = list_points_ledger(user, db)
+    assert ledger["entries"][0]["source"] == "redemption"
+    assert ledger["entries"][0]["points_delta"] == -140
+    assert ledger["entries"][0]["meta"]["reward_id"] == str(catalog_reward.id)
     db.close()
 
 

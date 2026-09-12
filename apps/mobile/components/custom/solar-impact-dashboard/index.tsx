@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Text } from "@/components/ui/text";
+import { SolarPanelHero } from "@/components/custom/solar-panel-hero";
 import type { SolarImpactResponse, SolarRecommendationStatus } from "@/src/types/api";
 import { useSolarRecommendationActions } from "@/src/hooks/queries";
 
@@ -117,6 +118,7 @@ function SolarOverview({ data }: { data: SolarImpactResponse }) {
   return (
     <Box className="gap-4">
       <Card variant="softPop" className="gap-3"><Box className="flex-row items-center gap-2"><Sun size={20} color={GOLD} /><Text bold size="lg">Solar Impact</Text></Box><Text size="xs" className="text-muted-foreground">{data.location} · {data.systemSizeKw} kW rooftop system · Demo estimates</Text><Box className="flex-row flex-wrap gap-2"><Metric label="Generated" value={`${data.generatedKwh.toFixed(1)} kWh`} /><Metric label="Used directly" value={`${data.consumedKwh.toFixed(1)} kWh`} /><Metric label="Exported" value={`${data.exportedKwh.toFixed(1)} kWh`} tone="info" /><Metric label="Grid imported" value={`${data.gridImportedKwh.toFixed(1)} kWh`} tone="warning" /></Box></Card>
+      <SolarPanelHero data={data} />
       <Card variant="soft" className="gap-3"><Text bold>Two ways to read solar performance</Text><Box className="flex-row gap-3"><Box className="flex-1"><Text size="xs" className="text-muted-foreground">Self-consumption</Text><Text size="2xl" bold className="text-primary">{data.selfConsumptionPct.toFixed(0)}%</Text><Text size="2xs" className="text-muted-foreground">of generated solar used directly</Text></Box><Box className="flex-1"><Text size="xs" className="text-muted-foreground">Solar contribution</Text><Text size="2xl" bold className="text-primary">{data.solarContributionPct.toFixed(0)}%</Text><Text size="2xs" className="text-muted-foreground">of household demand met by solar</Text></Box></Box></Card>
       <Box className="flex-row flex-wrap gap-2"><Metric label="CO₂ avoided (estimate)" value={`${data.co2AvoidedKg.toFixed(1)} kg`} /><Metric label="Money saved" value={`₹${Math.round(data.moneySavedInr)}`} tone="warning" /><Metric label="Green Points" value={`+${Math.round(data.greenPoints)}`} tone="info" /></Box>
       <SolarScore data={data} />

@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import { CircularityRing } from "@/components/custom/circularity-ring";
 import { PointsCounter } from "@/components/custom/points-counter";
 import { ProductImage } from "@/components/custom/product-image";
 import { Badge } from "@/components/ui/badge";
@@ -64,22 +63,22 @@ export default function RewardsScreen() {
         Wallet of demo brand perks — not real endorsements.
       </Text>
 
-      <Card variant="soft" className="flex-row items-center gap-4">
-        <CircularityRing score={me.data?.circularity_score ?? 74} size={110} />
-        <VStack space="xs" className="flex-1">
-          <Text size="2xl" bold className="font-mono">
-            {me.data?.impact_points ?? 420} pts
+      <Card variant="softPop" className="gap-3">
+        <Text size="sm" bold className="text-primary uppercase tracking-wider">
+          Rewards balance
+        </Text>
+        <VStack space="xs">
+          <Text size="3xl" bold className="font-mono text-foreground">
+            {me.data?.impact_points ?? 0} pts
           </Text>
           <Text size="sm" className="text-muted-foreground">
-            Loop Level {me.data?.loop_level ?? 2} · Streak{" "}
-            {me.data?.streak_days ?? 5}d
+            Impact Points available for partner offers
           </Text>
-          {lastPoints ? (
-            <Text className="font-mono text-primary">
-              Last award +{lastPoints}
-            </Text>
-          ) : null}
         </VStack>
+        <Text size="xs" className="text-muted-foreground">
+          Loop Level {me.data?.loop_level ?? 1} · Streak {me.data?.streak_days ?? 0}d
+          {lastPoints ? ` · Last award +${lastPoints}` : ""}
+        </Text>
       </Card>
 
       {claimCode ? (

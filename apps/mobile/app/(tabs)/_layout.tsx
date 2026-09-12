@@ -142,6 +142,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginHorizontal: 2,
+    // Lower the oversized center action slightly so its visual center aligns
+    // with the smaller dock icons and labels.
+    transform: [{ translateY: 4 }],
     ...Platform.select({
       ios: {
         shadowColor: "#2EA86E",

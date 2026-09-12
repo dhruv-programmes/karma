@@ -284,9 +284,11 @@ function ScoreRing({
       {/* Inner orb typography & icons */}
       <View
         style={{
+          width: size - 28,
+          maxWidth: size - 28,
           alignItems: "center",
           justifyContent: "center",
-          paddingHorizontal: 20,
+          paddingHorizontal: 10,
         }}
       >
         {/* Top Leaf Icon */}
@@ -304,7 +306,7 @@ function ScoreRing({
             textAlign: "center",
             lineHeight: 20,
             opacity: 0.92,
-            maxWidth: 180,
+            maxWidth: 190,
           }}
         >
           {insight}
@@ -312,12 +314,16 @@ function ScoreRing({
 
         {/* Big score */}
         <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
           style={{
             fontSize: 66,
             fontFamily: "Nunito_800ExtraBold",
             color: "#FFFFFF",
             lineHeight: 72,
             marginVertical: 2,
+            maxWidth: 210,
           }}
         >
           {score === null ? "—" : Math.round(score)}
@@ -325,11 +331,15 @@ function ScoreRing({
 
         {/* Level label */}
         <Text
+          numberOfLines={2}
           style={{
             fontSize: 13,
             fontFamily: "Nunito_600SemiBold",
             color: "rgba(255,255,255,0.78)",
             letterSpacing: 0.4,
+            lineHeight: 17,
+            textAlign: "center",
+            maxWidth: 206,
             marginBottom: 10,
           }}
         >
@@ -413,8 +423,6 @@ export default function HomeScreen() {
   const targetFootprint = Math.round(footprint * (1 - targetReduction / 100));
 
   const rating = ratingInfo(displayScore ?? KCS_MIN);
-  const scorePercent =
-    displayScore === null ? null : Math.round(kcsProgress(displayScore) * 100);
   const impactPoints = me.data?.impact_points ?? user?.impact_points ?? 0;
   const stepData = steps.data;
   const isWeb = Platform.OS === "web";
@@ -610,27 +618,6 @@ export default function HomeScreen() {
 
         {/* ── CONTENT SHEET ─────────────────────────────── */}
         <View style={styles.sheet}>
-          {/* Score progress bar */}
-          <View style={styles.progressSection}>
-            <View style={styles.progressLabelRow}>
-              <Text style={styles.sectionLabel}>Carbon Credit Score Progress</Text>
-              <Text style={[styles.progressPct, { color: rating.color }]}>
-                {scorePercent === null ? "—" : `${scorePercent}%`}
-              </Text>
-            </View>
-            <View style={styles.progressTrack}>
-              <View
-                style={[
-                  styles.progressFill,
-                  {
-                    width: `${scorePercent ?? 0}%`,
-                    backgroundColor: rating.color,
-                  },
-                ]}
-              />
-            </View>
-          </View>
-
           {/* ── WALK & EARN ── */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Walk & Earn</Text>
@@ -1009,30 +996,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 24,
     gap: 24,
-  },
-
-  // Progress
-  progressSection: {
-    gap: 8,
-  },
-  progressLabelRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  progressPct: {
-    fontSize: 13,
-    fontFamily: "Nunito_700Bold",
-  },
-  progressTrack: {
-    height: 6,
-    backgroundColor: "#E5EDE8",
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: 3,
   },
 
   // Walking rewards

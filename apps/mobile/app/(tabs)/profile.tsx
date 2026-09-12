@@ -139,7 +139,7 @@ export default function ProfileScreen() {
 
       <Card variant="soft" className="p-4 border border-border">
         <Text size="xs" bold className="text-muted-foreground uppercase tracking-wider font-mono">
-          Impact Points
+          Karma Coins
         </Text>
         <Text size="4xl" bold className="font-mono mt-1 text-foreground">
           {displayPoints}

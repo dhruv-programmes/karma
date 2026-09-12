@@ -1,10 +1,15 @@
 import React, { useState } from "react";
+import { useSustainablePurchaseStore } from "@/src/store/sustainable-purchase";
 import { View, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Leaf,
   Coins,
+  ShieldCheck,
+  CheckCircle2,
+  Lock,
+  Car,
   ArrowRight,
   Sparkles,
   Award,
@@ -60,9 +65,15 @@ export default function ImpactScreen() {
     { label: "Rewards", value: "rewards" },
   ];
 
-  const pointsBalance = me.data?.impact_points ?? 420;
+  const sustainableStore = useSustainablePurchaseStore();
+  const isEvVerified = sustainableStore.isVerified || sustainableStore.rewardClaimed;
+  const pointsBalance =
+    (me.data?.impact_points ?? 420) +
+    (isEvVerified && (me.data?.impact_points ?? 420) < 1500 ? 1500 : 0);
   const streakDays = me.data?.streak_days ?? 5;
   const solarPoints = solar.data?.greenPoints ?? 75;
+  const verifiedActionsCount = 3 + (isEvVerified ? 1 : 0);
+  const sustainablePurchasesCount = isEvVerified ? 1 : 0;
 
   return (
     <View style={styles.root}>
@@ -306,6 +317,105 @@ export default function ImpactScreen() {
                 </View>
               );
             })() : null}
+
+            {/* ========================================================= */}
+            {/* IMPACT TIMELINE & VERIFIED ACTIONS                        */}
+            {/* ========================================================= */}
+            <View style={styles.cleanCard}>
+              <View style={styles.cardHeaderRow}>
+                <View style={styles.iconCircle}>
+                  <ShieldCheck size={18} color="#2EA86E" strokeWidth={2.2} />
+                </View>
+                <View style={styles.cardHeaderInfo}>
+                  <Text style={styles.cardHeaderTitle}>Impact Timeline</Text>
+                  <Text style={styles.cardHeaderSubtitle}>
+                    Verified sustainable purchases &amp; green milestones
+                  </Text>
+                </View>
+              </View>
+
+              {/* Summary Stats Row */}
+              <View style={styles.timelineMetricsRow}>
+                <View style={styles.timelineMetricBox}>
+                  <Text style={styles.timelineMetricLabel}>VERIFIED ACTIONS</Text>
+                  <Text style={styles.timelineMetricValue}>{verifiedActionsCount}</Text>
+                </View>
+                <View style={styles.timelineMetricBox}>
+                  <Text style={styles.timelineMetricLabel}>SUSTAINABLE PURCHASES</Text>
+                  <Text style={[styles.timelineMetricValue, isEvVerified && { color: "#2EA86E" }]}>
+                    {sustainablePurchasesCount}
+                  </Text>
+                </View>
+                <View style={styles.timelineMetricBox}>
+                  <Text style={styles.timelineMetricLabel}>TOTAL REWARDS</Text>
+                  <Text style={[styles.timelineMetricValue, { color: "#059669" }]}>
+                    +{isEvVerified ? 1625 : 125} coins
+                  </Text>
+                </View>
+              </View>
+
+              {/* Timeline list */}
+              <View style={styles.timelineEventsList}>
+                {isEvVerified && (
+                  <View style={styles.timelineItemHighlight}>
+                    <View style={styles.timelineBadgeRow}>
+                      <View style={styles.timelineDateBadge}>
+                        <Text style={styles.timelineDateText}>TODAY</Text>
+                      </View>
+                      <View style={styles.timelineVerifiedTag}>
+                        <CheckCircle2 size={11} color="#059669" strokeWidth={2.4} />
+                        <Text style={styles.timelineVerifiedTagText}>VERIFIED</Text>
+                      </View>
+                    </View>
+                    <View style={styles.timelineContentRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.timelineItemTitle}>Electric Vehicle Verified</Text>
+                        <Text style={styles.timelineItemSub}>
+                          Major sustainable purchase · {sustainableStore.vehicleMakeModel || "Tata Nexon EV"}
+                        </Text>
+                        <View style={styles.achievementPill}>
+                          <Zap size={11} color="#D97706" fill="#D97706" />
+                          <Text style={styles.achievementPillText}>
+                            ⚡ Electric Pioneer unlocked
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={styles.timelinePointsPositive}>+1,500 Karma Coins</Text>
+                    </View>
+                  </View>
+                )}
+
+                <View style={styles.timelineItemNormal}>
+                  <View style={styles.timelineBadgeRow}>
+                    <View style={[styles.timelineDateBadge, { backgroundColor: "#F3F4F6" }]}>
+                      <Text style={[styles.timelineDateText, { color: "#6B7280" }]}>YESTERDAY</Text>
+                    </View>
+                  </View>
+                  <View style={styles.timelineContentRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.timelineItemTitle}>Recyclable Packaging Scan</Text>
+                      <Text style={styles.timelineItemSub}>Sorted &amp; dropped at circular eco-hub</Text>
+                    </View>
+                    <Text style={styles.timelinePointsPositive}>+50 Karma Coins</Text>
+                  </View>
+                </View>
+
+                <View style={styles.timelineItemNormal}>
+                  <View style={styles.timelineBadgeRow}>
+                    <View style={[styles.timelineDateBadge, { backgroundColor: "#F3F4F6" }]}>
+                      <Text style={[styles.timelineDateText, { color: "#6B7280" }]}>THIS WEEK</Text>
+                    </View>
+                  </View>
+                  <View style={styles.timelineContentRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.timelineItemTitle}>Solar Net Feed-in</Text>
+                      <Text style={styles.timelineItemSub}>Clean power fed back to grid</Text>
+                    </View>
+                    <Text style={styles.timelinePointsPositive}>+75 Karma Coins</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
           </>
         ) : tab === "spend" ? (
           /* ========================================================= */
@@ -454,6 +564,45 @@ export default function ImpactScreen() {
                 EARNED REWARD MILESTONES
               </Text>
               <View style={styles.milestonesList}>
+                {isEvVerified ? (
+                  <View style={[styles.milestoneRow, styles.milestoneRowVerified]}>
+                    <View style={styles.milestoneLeft}>
+                      <CheckCircle2 size={15} color="#059669" strokeWidth={2.4} />
+                      <View>
+                        <Text style={[styles.milestoneTitle, { color: "#065F46" }]}>
+                          ⚡ Electric Pioneer (EV Purchase Verified)
+                        </Text>
+                        <Text style={{ fontSize: 10, color: "#059669", fontFamily: "Nunito_600SemiBold" }}>
+                          Major sustainable purchase · Tata Nexon EV
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.milestoneBadge, { color: "#059669", fontSize: 12 }]}>
+                      +1,500 Karma Coins
+                    </Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={[styles.milestoneRow, { opacity: 0.85 }]}
+                    onPress={() => router.push("/tools/verify-sustainable-purchase")}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.milestoneLeft}>
+                      <Lock size={14} color="#7A9082" strokeWidth={2.2} />
+                      <View>
+                        <Text style={styles.milestoneTitle}>
+                          ⚡ Electric Vehicle Purchase Verification
+                        </Text>
+                        <Text style={{ fontSize: 10, color: "#7A9082", fontFamily: "Nunito_400Regular" }}>
+                          Upload document to claim +1,500 Karma Coins
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.milestoneBadge, { color: "#7A9082" }]}>
+                      +1,500 Karma Coins
+                    </Text>
+                  </TouchableOpacity>
+                )}
                 {(solar.data?.rewards ?? []).map((reward) => (
                   <View key={reward.label} style={styles.milestoneRow}>
                     <View style={styles.milestoneLeft}>
@@ -463,7 +612,7 @@ export default function ImpactScreen() {
                       </Text>
                     </View>
                     <Text style={styles.milestoneBadge}>
-                      +{reward.points} pts
+                      +{reward.points} Karma Coins
                     </Text>
                   </View>
                 ))}
@@ -1077,5 +1226,128 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: "Nunito_700Bold",
     color: "#FFFFFF",
+  },
+
+  // Impact Timeline & Milestones Styles
+  timelineMetricsRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 14,
+    marginBottom: 12,
+  },
+  timelineMetricBox: {
+    flex: 1,
+    backgroundColor: "#F8FAF9",
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5ECE8",
+    alignItems: "center",
+  },
+  timelineMetricLabel: {
+    fontSize: 8,
+    letterSpacing: 0.6,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#7A9082",
+    marginBottom: 4,
+    textAlign: "center",
+  },
+  timelineMetricValue: {
+    fontSize: 16,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#183222",
+  },
+  timelineEventsList: {
+    gap: 10,
+  },
+  timelineItemHighlight: {
+    backgroundColor: "#ECFDF5",
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
+  },
+  timelineItemNormal: {
+    backgroundColor: "#F8FAF9",
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#E5ECE8",
+  },
+  timelineBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 6,
+  },
+  timelineDateBadge: {
+    backgroundColor: "#D1FAE5",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  timelineDateText: {
+    fontSize: 9,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#065F46",
+    letterSpacing: 0.5,
+  },
+  timelineVerifiedTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(5,150,105,0.12)",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  timelineVerifiedTagText: {
+    fontSize: 9,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#059669",
+  },
+  timelineContentRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 8,
+  },
+  timelineItemTitle: {
+    fontSize: 14,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#183222",
+  },
+  timelineItemSub: {
+    fontSize: 12,
+    fontFamily: "Nunito_400Regular",
+    color: "#6C8375",
+    marginTop: 2,
+  },
+  timelinePointsPositive: {
+    fontSize: 13,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#059669",
+  },
+  achievementPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginTop: 6,
+    backgroundColor: "#FEF3C7",
+    alignSelf: "flex-start",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#FDE68A",
+  },
+  achievementPillText: {
+    fontSize: 11,
+    fontFamily: "Nunito_700Bold",
+    color: "#92400E",
+  },
+  milestoneRowVerified: {
+    backgroundColor: "#ECFDF5",
+    borderColor: "#A7F3D0",
   },
 });

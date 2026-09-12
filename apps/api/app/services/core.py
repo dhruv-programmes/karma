@@ -367,7 +367,7 @@ def verify_sustainable_purchase(
         db,
         "sustainable_purchase_verification",
         "EV purchase verified",
-        "Verified sustainable purchase · +1,500 Green Points",
+        "Verified sustainable purchase · +1,500 Karma Coins",
         points_delta=reward_points,
         meta={
             "filename": filename,
@@ -385,6 +385,38 @@ def verify_sustainable_purchase(
         "reward_points": reward_points,
         "total_points": int(user.impact_points),
         "already_claimed": False,
+        "vehicle_make_model": "Tata Nexon EV",
+        "vehicle_type": "Electric Vehicle",
+        "ownership": "Verified",
+        "verification": "Successful",
+        "is_mock": True,
+    }
+
+
+def reset_sustainable_purchase(user: UserModel, db: Session) -> dict:
+    events = (
+        db.query(ActivityEventModel)
+        .filter(
+            ActivityEventModel.user_id == user.id,
+            ActivityEventModel.kind == "sustainable_purchase_verification",
+        )
+        .all()
+    )
+    for e in events:
+        db.delete(e)
+    user.impact_points = max(420, int(user.impact_points) - 1500)
+    db.commit()
+    db.refresh(user)
+    return {
+        "status": "reset",
+        "reward_points": 0,
+        "total_points": int(user.impact_points),
+        "already_claimed": False,
+        "vehicle_make_model": "Tata Nexon EV",
+        "vehicle_type": "Electric Vehicle",
+        "ownership": "Pending",
+        "verification": "Reset",
+        "is_mock": True,
     }
 
 

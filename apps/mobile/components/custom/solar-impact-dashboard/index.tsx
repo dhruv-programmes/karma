@@ -86,7 +86,7 @@ export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
           </View>
           <View style={styles.heroPointsBadge}>
             <Coins size={13} color="#FBBF24" strokeWidth={2.4} />
-            <Text style={styles.heroPointsBadgeText}>+{totalPoints} Pts Earned</Text>
+            <Text style={styles.heroPointsBadgeText}>+{totalPoints} Karma Coins Earned</Text>
           </View>
         </View>
 
@@ -152,7 +152,7 @@ export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
             <View style={styles.pendingPointsPill}>
               <Sparkles size={11} color="#B45309" strokeWidth={2.4} />
               <Text style={styles.pendingPointsText}>
-                +{pendingPoints} Pts Waiting
+                +{pendingPoints} Karma Coins Waiting
               </Text>
             </View>
           ) : (
@@ -171,10 +171,10 @@ export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
           <View style={styles.spotlightMainInfo}>
             <View style={styles.spotlightPointsRow}>
               <Text style={styles.rewardsBigPoints}>+{totalPoints}</Text>
-              <Text style={styles.rewardsPointsUnit}>Green Points Today</Text>
+              <Text style={styles.rewardsPointsUnit}>Karma Coins Today</Text>
             </View>
             <Text style={styles.rewardsSpotlightSub}>
-              Liquid utility points · Redeemable on Offers tab
+              Liquid reward currency · Redeemable on Offers tab
             </Text>
           </View>
         </View>
@@ -187,7 +187,7 @@ export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
               <Text style={styles.milestoneLabel}>
                 {r.label}
               </Text>
-              <Text style={styles.milestonePts}>+{r.points}</Text>
+              <Text style={styles.milestonePts}>+{r.points} coins</Text>
             </View>
           ))}
         </View>
@@ -213,7 +213,7 @@ export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
         <View>
           <Text style={styles.sectionTitle}>Smart Solar Actions</Text>
           <Text style={styles.sectionSubtitle}>
-            Act now during peak sunlight to earn immediate Green Points
+            Act now during peak sunlight to earn immediate Karma Coins
           </Text>
         </View>
       </View>
@@ -239,7 +239,7 @@ export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
                 <View style={styles.actionPointsPillTop}>
                   <Coins size={12} color="#B45309" strokeWidth={2.4} />
                   <Text style={styles.actionPointsTextTop}>
-                    +{item.points} GREEN POINTS
+                    +{item.points} KARMA COINS
                   </Text>
                 </View>
               </View>
@@ -248,7 +248,7 @@ export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
               <View style={styles.actionBody}>
                 <View style={styles.actionRewardHeadlineRow}>
                   <Text style={styles.actionPerk}>
-                    Earn +{item.points} Pts · Save ₹{Math.round(item.expectedSavingsInr)}
+                    Earn +{item.points} Karma Coins · Save ₹{Math.round(item.expectedSavingsInr)}
                   </Text>
                   {isDone ? (
                     <View style={styles.statusBadgeDone}>
@@ -287,7 +287,7 @@ export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
                 {isDone ? (
                   <View style={styles.actionBtnDone}>
                     <Check size={13} color="#FFFFFF" strokeWidth={2.4} />
-                    <Text style={styles.actionBtnTextDone}>Points Claimed ✓</Text>
+                    <Text style={styles.actionBtnTextDone}>Karma Coins Claimed ✓</Text>
                   </View>
                 ) : (
                   <TouchableOpacity
@@ -305,8 +305,8 @@ export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
                   >
                     <Text style={styles.actionBtnText}>
                       {isAccepted
-                        ? `Complete for +${item.points} Pts`
-                        : `Claim +${item.points} Pts`}
+                        ? `Complete for +${item.points} Karma Coins`
+                        : `Claim +${item.points} Karma Coins`}
                     </Text>
                     <ArrowRight size={13} color="#FFFFFF" strokeWidth={2.2} />
                   </TouchableOpacity>
@@ -490,7 +490,7 @@ export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
                   <Text style={styles.timelineTime}>{event.time}</Text>
                   {event.points ? (
                     <Text style={styles.timelinePoints}>
-                      +{event.points} pts
+                      +{event.points} coins
                     </Text>
                   ) : null}
                 </View>

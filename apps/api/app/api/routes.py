@@ -423,6 +423,18 @@ def verify_sustainable_purchase(
     )
 
 
+@router.post(
+    "/sustainable-purchases/reset",
+    response_model=SustainablePurchaseVerifyResponse,
+)
+def reset_sustainable_purchase(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Reset the demo EV verification so judges/evaluators can replay the flow."""
+    return services.reset_sustainable_purchase(user=current_user, db=db)
+
+
 
 # ==========================================
 # PRODUCTS & SCANNING

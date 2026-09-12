@@ -16,7 +16,7 @@ export function TickerStrip({ points, streak, trend, level = 1 }: Props) {
   return (
     <Card variant="softPop" className="py-3">
       <HStack className="justify-around items-center">
-        <TickerCell label="Points" value={`${points}`} />
+        <TickerCell label="Karma Coins" value={`${points}`} />
         <TickerCell label="Streak" value={`${streak}d`} highlight={streak >= 5} />
         <TickerCell label="Level" value={`L${level}`} />
         <TickerCell label="Trend" value={`+${trend}`} highlight />

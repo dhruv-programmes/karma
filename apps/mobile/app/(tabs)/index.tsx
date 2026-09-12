@@ -17,6 +17,7 @@ import {
   Camera,
   CheckCircle2,
   ChevronRight,
+  Coins,
   Footprints,
   Leaf,
   Navigation,
@@ -457,7 +458,7 @@ export default function HomeScreen() {
     : steps.isError
       ? "Walking rewards are unavailable right now. Try again when you are online."
       : stepTracking.state === "denied"
-        ? "Motion permission is off. Enable it in Settings to earn walking points."
+        ? "Motion permission is off. Enable it in Settings to earn Karma Coins."
         : stepTracking.state === "unavailable"
           ? "This phone does not expose a pedometer to Carbon Loop."
           : stepTracking.state === "error"
@@ -466,7 +467,7 @@ export default function HomeScreen() {
               ? "Android tracks steps while Carbon Loop is open."
               : stepTracking.state === "enabled"
                 ? "Today's phone steps are synced to your rewards."
-                : "Enable on your phone to start earning Impact Points for walking.";
+                : "Enable on your phone to start earning Karma Coins for walking.";
   const stepCta = isWeb
     ? "Use on phone"
     : stepTracking.isSyncing
@@ -573,8 +574,9 @@ export default function HomeScreen() {
                 onPress={() => router.push("/rewards")}
                 activeOpacity={0.82}
               >
+                <Coins size={13} color="#FDE047" strokeWidth={2.4} />
                 <Text style={styles.pointsPillValue}>{impactPoints}</Text>
-                <Text style={styles.heroPillText}>Impact Points</Text>
+                <Text style={styles.heroPillText}>Karma Coins</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -618,14 +620,14 @@ export default function HomeScreen() {
                   <Footprints size={20} color="#2EA86E" strokeWidth={2} />
                 </View>
                 <View style={styles.walkHeaderCopy}>
-                  <Text style={styles.walkTitle}>Turn steps into Impact Points</Text>
+                  <Text style={styles.walkTitle}>Turn steps into Karma Coins</Text>
                   <Text style={styles.walkRating}>
                     {hasNativeStepData ? stepData.rating : "Phone-only metric"}
                   </Text>
                 </View>
                 {hasNativeStepData ? (
                   <View style={styles.walkPointsBadge}>
-                    <Text style={styles.walkPointsText}>+{stepData.todayPoints} pts</Text>
+                    <Text style={styles.walkPointsText}>+{stepData.todayPoints} Karma Coins</Text>
                   </View>
                 ) : null}
               </View>
@@ -701,7 +703,7 @@ export default function HomeScreen() {
                 </View>
                 <View style={styles.commutePointsBadge}>
                   <Text style={styles.commutePointsText}>
-                    +{commuteSummary.data?.todayPoints ?? 0} pts today
+                    +{commuteSummary.data?.todayPoints ?? 0} Karma Coins today
                   </Text>
                 </View>
               </View>
@@ -768,7 +770,7 @@ export default function HomeScreen() {
                   </View>
                   <View style={styles.commuteTiersPill}>
                     <Text style={styles.commuteTiersText}>
-                      Walk: 10 pts/km • Cycle: 5 pts/km
+                      Walk: 10 coins/km • Cycle: 5 coins/km
                     </Text>
                   </View>
                 </View>
@@ -782,7 +784,7 @@ export default function HomeScreen() {
                   activeOpacity={0.85}
                 >
                   <Square size={16} color="#FFFFFF" fill="#FFFFFF" />
-                  <Text style={styles.commuteCtaText}>End Trip & Claim Points</Text>
+                  <Text style={styles.commuteCtaText}>End Trip & Claim Karma Coins</Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
@@ -852,11 +854,11 @@ export default function HomeScreen() {
           {/* ── STAT TILES ── */}
           <View style={styles.tileRow}>
             <View style={[styles.tile, { flex: 1 }]}>
-              <Text style={styles.tileLabel}>Points</Text>
+              <Text style={styles.tileLabel}>Karma Coins</Text>
               <Text style={[styles.tileValue, { color: "#2EA86E" }]}>
                 {me.data?.impact_points ?? user?.impact_points ?? 420}
               </Text>
-              <Text style={styles.tileHint}>impact pts</Text>
+              <Text style={styles.tileHint}>karma coins</Text>
             </View>
             <View style={[styles.tile, { flex: 1 }]}>
               <Text style={styles.tileLabel}>Residual</Text>

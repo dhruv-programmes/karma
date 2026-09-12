@@ -208,7 +208,7 @@ export default function RewardsScreen() {
             <Text style={styles.balanceNumber}>{pointsBalance}</Text>
             <View style={styles.balanceMeta}>
               <Text style={styles.balanceUnit}>Karma Coins</Text>
-              <Text style={styles.balanceSubtext}>Points Available to Spend</Text>
+              <Text style={styles.balanceSubtext}>Karma Coins Available to Spend</Text>
             </View>
           </View>
 
@@ -234,7 +234,7 @@ export default function RewardsScreen() {
               <View style={styles.heroStatIconRow}>
                 <Sparkles size={12} color="#FBBF24" strokeWidth={2.4} />
                 <Text style={styles.heroStatValue}>
-                  +{lastPoints || 75} pts
+                  +{lastPoints || 75} Karma Coins
                 </Text>
               </View>
               <Text style={styles.heroStatLabel}>Last Earned</Text>
@@ -320,7 +320,7 @@ export default function RewardsScreen() {
                   <View style={styles.rewardPointsBadge}>
                     <Coins size={12} color="#B45309" strokeWidth={2.2} />
                     <Text style={styles.rewardPointsBadgeText}>
-                      {cost} Pts Required
+                      {cost} Karma Coins Required
                     </Text>
                   </View>
                 </View>
@@ -366,7 +366,7 @@ export default function RewardsScreen() {
                         !canAfford ? styles.redeemBtnTextDisabled : null,
                       ]}
                     >
-                      {canAfford ? "Redeem Perk" : `Need ${cost - pointsBalance} Pts`}
+                      {canAfford ? "Redeem Perk" : `Need ${cost - pointsBalance} Karma Coins`}
                     </Text>
                     {canAfford ? (
                       <ArrowRight size={13} color="#FFFFFF" strokeWidth={2.2} />

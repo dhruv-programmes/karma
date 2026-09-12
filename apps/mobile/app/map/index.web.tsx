@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import * as Location from "expo-location";
 import { BackButton } from "@/components/custom/back-button";
 import { FacilityCard } from "@/components/custom/facility-card";
-import { PointsCounter } from "@/components/custom/points-counter";
 import { Badge } from "@/components/ui/badge";
 import { Box } from "@/components/ui/box";
 import { Button } from "@/components/ui/button";
@@ -13,8 +12,7 @@ import { Chip } from "@/components/ui/chip";
 import { Pressable } from "@/components/ui/pressable";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Text } from "@/components/ui/text";
-import { useCompleteAction, useFacilitiesNearby } from "@/src/hooks/queries";
-import { api } from "@/src/lib/api";
+import { useCompleteAction, useFacilitiesNearby, useMe } from "@/src/hooks/queries";
 import { useAppStore } from "@/src/store/app";
 import { DEMO_RECYCLE_ACTION_ID, DEMO_REPAIR_ACTION_ID } from "@/src/types/api";
 import { MapPin } from "lucide-react-native";
@@ -30,7 +28,6 @@ const BLR = { lat: 12.9716, lng: 77.5946 };
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const params = useLocalSearchParams<{
     type?: string;
     actionId?: string;
@@ -44,6 +41,7 @@ export default function MapScreen() {
     coords.lng,
     { allowFallback: false },
   );
+  const me = useMe();
   const complete = useCompleteAction();
   const [selected, setSelected] = useState<string | null>(null);
   const [showPoints, setShowPoints] = useState(false);
@@ -81,6 +79,24 @@ export default function MapScreen() {
         (b.distance_km ?? Number.POSITIVE_INFINITY),
     );
   }, [facilitiesQuery.data]);
+
+  const mapPoints = useMemo(() => {
+    const points = [...facilities, { lat: coords.lat, lng: coords.lng }];
+    const latitudes = points.map((point) => point.lat);
+    const longitudes = points.map((point) => point.lng);
+    const latSpan = Math.max(0.01, Math.max(...latitudes) - Math.min(...latitudes));
+    const lngSpan = Math.max(0.01, Math.max(...longitudes) - Math.min(...longitudes));
+    const minLat = Math.min(...latitudes) - latSpan * 0.16;
+    const minLng = Math.min(...longitudes) - lngSpan * 0.16;
+    const paddedLatSpan = latSpan * 1.32;
+    const paddedLngSpan = lngSpan * 1.32;
+    return facilities.map((facility) => ({
+      facility,
+      left: Math.min(94, Math.max(6, ((facility.lng - minLng) / paddedLngSpan) * 100)),
+      top: Math.min(90, Math.max(10, (1 - (facility.lat - minLat) / paddedLatSpan) * 100)),
+    }));
+  }, [coords.lat, coords.lng, facilities]);
+  const [mapZoom, setMapZoom] = useState(1);
 
   async function markComplete() {
     const actionId =
@@ -122,16 +138,13 @@ export default function MapScreen() {
         /* sim */
       }
       setShowPoints(true);
-      setTimeout(() => router.replace("/rewards"), 1800);
-    } catch {
-      try {
-        const result = await api.completeAction(actionId, actionType);
-        setAwarded(result.points_awarded || 100);
-      } catch {
-        setAwarded(100);
-      }
-      setShowPoints(true);
-      setTimeout(() => router.replace("/(tabs)"), 1600);
+    } catch (error) {
+      setCheckInNote(
+        error instanceof Error
+          ? error.message
+          : "Could not complete this check-in. Please try again."
+      );
+      setShowPoints(false);
     }
   }
 
@@ -179,55 +192,54 @@ export default function MapScreen() {
         />
       </Box>
 
-      {/* Web-compatible interactive map view */}
-      <Box
-        className="mx-6 h-60 rounded-3xl overflow-hidden bg-muted/40 border border-border relative p-4 justify-between"
-        style={{
-          backgroundColor: "#121d17",
-        }}
-      >
-        <Box className="flex-row justify-between items-center z-10">
-          <Badge action="playful" label="Interactive Map View" />
-          <Text className="text-xs text-muted-foreground font-mono">
-            {coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}
-          </Text>
+      {/* Deterministic, web-compatible map. Pins are plotted exclusively from
+          the seeded facility coordinates returned by the API. */}
+      <Box className="mx-6 h-80 rounded-3xl overflow-hidden border border-border relative" style={{ backgroundColor: "#dce9df" }}>
+        <Box className="absolute inset-0" style={{ backgroundColor: "#dce9df" }} />
+        <Box className="absolute left-[-20%] right-[-20%] top-[42%] h-8 opacity-70" style={{ backgroundColor: "#f8fbf5", transform: [{ rotate: "-14deg" }] }} />
+        <Box className="absolute left-[-20%] right-[-20%] top-[66%] h-5 opacity-60" style={{ backgroundColor: "#f8fbf5", transform: [{ rotate: "22deg" }] }} />
+        <Box className="absolute top-[-30%] bottom-[-30%] left-[48%] w-7 opacity-60" style={{ backgroundColor: "#f8fbf5", transform: [{ rotate: "18deg" }] }} />
+        <Box className="absolute top-[-30%] bottom-[-30%] left-[20%] w-3 opacity-50" style={{ backgroundColor: "#f8fbf5", transform: [{ rotate: "-32deg" }] }} />
+        <Box className="absolute inset-0 opacity-30" style={{ backgroundColor: "transparent", borderWidth: 1, borderColor: "#8eb49d" }} />
+
+        <Box className="absolute left-4 right-4 top-4 flex-row justify-between items-center z-10">
+          <Badge action="playful" label="Seeded Bengaluru map" />
+          <Box className="flex-row gap-1">
+            <Pressable onPress={() => setMapZoom((value) => Math.min(1.8, value + 0.2))} className="h-8 w-8 rounded-full bg-white items-center justify-center border border-border">
+              <Text bold className="text-foreground">+</Text>
+            </Pressable>
+            <Pressable onPress={() => setMapZoom((value) => Math.max(0.8, value - 0.2))} className="h-8 w-8 rounded-full bg-white items-center justify-center border border-border">
+              <Text bold className="text-foreground">−</Text>
+            </Pressable>
+            <Pressable onPress={() => setMapZoom(1)} className="px-3 h-8 rounded-full bg-white items-center justify-center border border-border">
+              <Text className="text-xs text-foreground">Reset</Text>
+            </Pressable>
+          </Box>
         </Box>
 
-        <Box className="flex-row flex-wrap gap-2 my-auto justify-center z-10">
-          {facilities.slice(0, 4).map((f) => {
-            const isSel = selected === f.id;
+        <Box className="absolute inset-0" style={{ transform: [{ scale: mapZoom }] }}>
+          {mapPoints.map(({ facility, left, top }) => {
+            const isSel = selected === facility.id;
             return (
               <Pressable
-                key={f.id}
-                onPress={() => setSelected(f.id)}
-                className={`px-3 py-2 rounded-2xl flex-row items-center gap-1.5 transition-all ${
-                  isSel
-                    ? "bg-primary text-primary-foreground scale-105"
-                    : "bg-background/80 backdrop-blur border border-border/80"
-                }`}
+                key={facility.id}
+                onPress={() => setSelected(facility.id)}
+                className="absolute items-center"
+                style={{ left: `${left}%`, top: `${top}%`, transform: [{ translateX: -16 }, { translateY: -16 }] }}
               >
-                <MapPin size={14} color={isSel ? "#000" : "#2ea86e"} />
-                <Text
-                  className={`text-xs font-medium ${
-                    isSel ? "text-primary-foreground font-bold" : "text-foreground"
-                  }`}
-                  numberOfLines={1}
-                >
-                  {f.name.split(" ")[0]}
-                </Text>
-                {f.distance_km != null ? (
-                  <Text className="text-[10px] text-muted-foreground">
-                    {f.distance_km}km
-                  </Text>
-                ) : null}
+                <Box className={`h-8 w-8 rounded-full items-center justify-center border-2 ${isSel ? "bg-primary border-white" : "bg-white border-primary"}`}>
+                  <MapPin size={16} color={isSel ? "#FFFFFF" : "#2EA86E"} fill={isSel ? "#2EA86E" : "transparent"} />
+                </Box>
+                {isSel ? <Text className="mt-1 max-w-32 rounded-lg bg-white px-2 py-1 text-[10px] font-bold text-foreground" numberOfLines={1}>{facility.name}</Text> : null}
               </Pressable>
             );
           })}
         </Box>
 
-        <Text className="text-[11px] text-muted-foreground text-center z-10">
-          Select a facility pin or list card below to inspect and check in
-        </Text>
+        <Box className="absolute left-4 bottom-4 rounded-xl bg-white/90 px-3 py-2 z-10 border border-border">
+          <Text className="text-[11px] font-bold text-foreground">{facilities.length} seeded places</Text>
+          <Text className="text-[10px] text-muted-foreground">Tap a pin or card to select</Text>
+        </Box>
       </Box>
 
       <ScrollView
@@ -259,7 +271,14 @@ export default function MapScreen() {
         </Button>
       </Box>
 
-      <PointsCounter points={awarded} visible={showPoints} />
+      {showPoints ? (
+        <Box className="absolute left-6 right-6 bottom-28 rounded-2xl border border-primary/30 bg-card px-4 py-3">
+          <Text className="text-primary font-bold">+{awarded} Karma Coins earned</Text>
+          <Text className="text-muted-foreground text-xs mt-1">
+            Wallet total: {me.data?.impact_points ?? "updating…"} coins · This check-in is recorded in your activity.
+          </Text>
+        </Box>
+      ) : null}
     </Box>
   );
 }

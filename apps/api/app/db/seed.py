@@ -202,6 +202,19 @@ def _seed_coupon_rewards(db: Session) -> None:
         db.commit()
 
 
+def _backfill_facility_images(db: Session) -> None:
+    """Repair stale demo image URLs without touching custom facilities."""
+    seeded = {str(f.id): f.cover_image_url for f in FACILITIES if f.cover_image_url}
+    changed = False
+    for facility_id, image_url in seeded.items():
+        row = db.query(FacilityModel).filter(FacilityModel.id == facility_id).first()
+        if row and row.cover_image_url != image_url:
+            row.cover_image_url = image_url
+            changed = True
+    if changed:
+        db.commit()
+
+
 def _seed_league_definitions_and_states(db: Session) -> None:
     """Seed balance/config metadata and attach a visible tier badge to demos."""
     existing = {row.slug: row for row in db.query(LeagueDefinitionModel).all()}
@@ -392,6 +405,8 @@ def seed_database_if_empty(db: Session) -> None:
             )
             db.add(fac_row)
         db.flush()
+
+    _backfill_facility_images(db)
 
     # 3. Seed Offsets if empty
     if db.query(OffsetProjectModel).count() == 0:

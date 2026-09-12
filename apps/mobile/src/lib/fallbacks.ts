@@ -161,6 +161,7 @@ export const fallbackFacilities: Facility[] = [
     open_now: true,
     verification_status: "Verified",
     address: "100 Feet Rd, Indiranagar, Bengaluru",
+    cover_image_url: "https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=800&q=80&fit=crop",
   },
   {
     id: "33333333-3333-3333-3333-333333333302",
@@ -173,6 +174,7 @@ export const fallbackFacilities: Facility[] = [
     open_now: true,
     verification_status: "Verified",
     address: "5th Block, Koramangala, Bengaluru",
+    cover_image_url: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80&fit=crop",
   },
   {
     id: "33333333-3333-3333-3333-333333333303",
@@ -185,6 +187,7 @@ export const fallbackFacilities: Facility[] = [
     open_now: true,
     verification_status: "Verified",
     address: "Whitefield, Bengaluru",
+    cover_image_url: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&q=80&fit=crop",
   },
   {
     id: "33333333-3333-3333-3333-333333333305",
@@ -197,6 +200,7 @@ export const fallbackFacilities: Facility[] = [
     open_now: true,
     verification_status: "Verified",
     address: "HSR Layout, Bengaluru",
+    cover_image_url: "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=800&q=80&fit=crop",
   },
 ];
 

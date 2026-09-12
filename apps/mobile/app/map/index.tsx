@@ -1,12 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import MapView, { Marker } from "react-native-maps";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import * as Location from "expo-location";
 import { BackButton } from "@/components/custom/back-button";
 import { FacilityCard } from "@/components/custom/facility-card";
-import { PointsCounter } from "@/components/custom/points-counter";
 import { Badge } from "@/components/ui/badge";
 import { Box } from "@/components/ui/box";
 import { Button } from "@/components/ui/button";
@@ -14,8 +13,7 @@ import { Chip } from "@/components/ui/chip";
 import { Pressable } from "@/components/ui/pressable";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Text } from "@/components/ui/text";
-import { useCompleteAction, useFacilitiesNearby } from "@/src/hooks/queries";
-import { api } from "@/src/lib/api";
+import { useCompleteAction, useFacilitiesNearby, useMe } from "@/src/hooks/queries";
 import { useAppStore } from "@/src/store/app";
 import { DEMO_RECYCLE_ACTION_ID, DEMO_REPAIR_ACTION_ID } from "@/src/types/api";
 
@@ -30,7 +28,6 @@ const BLR = { lat: 12.9716, lng: 77.5946 };
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const params = useLocalSearchParams<{
     type?: string;
     actionId?: string;
@@ -44,6 +41,7 @@ export default function MapScreen() {
     coords.lng,
     { allowFallback: false },
   );
+  const me = useMe();
   const complete = useCompleteAction();
   const [selected, setSelected] = useState<string | null>(null);
   const [showPoints, setShowPoints] = useState(false);
@@ -122,16 +120,13 @@ export default function MapScreen() {
         /* sim */
       }
       setShowPoints(true);
-      setTimeout(() => router.replace("/rewards"), 1800);
-    } catch {
-      try {
-        const result = await api.completeAction(actionId, actionType);
-        setAwarded(result.points_awarded || 100);
-      } catch {
-        setAwarded(100);
-      }
-      setShowPoints(true);
-      setTimeout(() => router.replace("/(tabs)"), 1600);
+    } catch (error) {
+      setCheckInNote(
+        error instanceof Error
+          ? error.message
+          : "Could not complete this check-in. Please try again."
+      );
+      setShowPoints(false);
     }
   }
 
@@ -181,7 +176,7 @@ export default function MapScreen() {
 
       <MapView
         style={{
-          height: 240,
+          height: 340,
           marginHorizontal: 24,
           borderRadius: 24,
           overflow: "hidden",
@@ -233,7 +228,14 @@ export default function MapScreen() {
         </Button>
       </Box>
 
-      <PointsCounter points={awarded} visible={showPoints} />
+      {showPoints ? (
+        <Box className="absolute left-6 right-6 bottom-28 rounded-2xl border border-primary/30 bg-card px-4 py-3">
+          <Text className="text-primary font-bold">+{awarded} Karma Coins earned</Text>
+          <Text className="text-muted-foreground text-xs mt-1">
+            Wallet total: {me.data?.impact_points ?? "updating…"} coins · This check-in is recorded in your activity.
+          </Text>
+        </Box>
+      ) : null}
     </Box>
   );
 }

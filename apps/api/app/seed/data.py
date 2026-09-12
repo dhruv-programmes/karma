@@ -626,7 +626,7 @@ FACILITIES: list[Facility] = [
         open_now=True,
         verification_status="Verified",
         address="Whitefield, Bengaluru",
-        cover_image_url="https://images.unsplash.com/photo-1532996122724-e3c354a0b4ba?w=800&q=80&fit=crop",
+        cover_image_url="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&q=80&fit=crop",
     ),
     Facility(
         id=UUID("33333333-3333-3333-3333-333333333304"),
@@ -638,7 +638,7 @@ FACILITIES: list[Facility] = [
         open_now=False,
         verification_status="Unverified",
         address="Near Cubbon Park, Bengaluru",
-        cover_image_url="https://images.unsplash.com/photo-1611284446314-60a58ac0deb8?w=800&q=80&fit=crop",
+        cover_image_url="https://images.unsplash.com/photo-1604187351574-c75ca79f5807?w=800&q=80&fit=crop",
     ),
     Facility(
         id=UUID("33333333-3333-3333-3333-333333333305"),
@@ -698,7 +698,7 @@ FACILITIES: list[Facility] = [
         open_now=True,
         verification_status="Verified",
         address="Sampige Rd, Malleshwaram, Bengaluru",
-        cover_image_url="https://images.unsplash.com/photo-1611284446314-60a58ac0deb8?w=800&q=80&fit=crop",
+        cover_image_url="https://images.unsplash.com/photo-1605600659908-0ef719419d41?w=800&q=80&fit=crop",
     ),
     Facility(
         id=UUID("33333333-3333-3333-3333-333333333310"),

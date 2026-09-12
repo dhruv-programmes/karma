@@ -77,7 +77,12 @@ export default function RootLayout() {
             <Stack.Screen name="action/[id]" />
             <Stack.Screen name="map/index" />
             <Stack.Screen name="rewards/index" />
+            <Stack.Screen name="community/index" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="league/index" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="challenges/index" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="leaderboard/index" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="offsets/index" />
+            <Stack.Screen name="tools/verify-sustainable-purchase" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="receipt/index" />
             <Stack.Screen name="receipt/review" />
             <Stack.Screen name="receipt/result" />

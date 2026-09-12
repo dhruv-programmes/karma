@@ -203,7 +203,7 @@ export default function BaselineScreen() {
                           onPress={() => updateTransport(item.key, opt.id)}
                           className={`flex-1 min-w-[64px] py-1.5 px-1 rounded-xl items-center justify-center border transition-all ${
                             isSelected
-                              ? "bg-primary border-primary shadow-xs"
+                              ? "bg-primary border-primary"
                               : "bg-secondary/70 border-border/70 active:bg-secondary"
                           }`}
                         >
@@ -267,7 +267,7 @@ export default function BaselineScreen() {
                           onPress={() => updateShopping(item.key, opt.id)}
                           className={`flex-1 min-w-[64px] py-1.5 px-1 rounded-xl items-center justify-center border transition-all ${
                             isSelected
-                              ? "bg-primary border-primary shadow-xs"
+                              ? "bg-primary border-primary"
                               : "bg-secondary/70 border-border/70 active:bg-secondary"
                           }`}
                         >

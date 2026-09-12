@@ -457,7 +457,7 @@ export default function OffersScreen() {
             <Text style={styles.headerEyebrow}>OFFERS & REWARDS</Text>
             <Text style={styles.title}>Coupons & Offsets</Text>
             <Text style={styles.subtitle}>
-              Partner discounts, govt green subsidies & point donations
+              Partner discounts, govt green subsidies & Karma Coin donations
             </Text>
           </View>
         </View>
@@ -488,7 +488,7 @@ export default function OffersScreen() {
             <Text style={styles.balanceNumber}>{pointsBalance}</Text>
             <View style={styles.balanceMeta}>
               <Text style={styles.balanceUnit}>Karma Coins</Text>
-              <Text style={styles.balanceSubtext}>Points Available</Text>
+              <Text style={styles.balanceSubtext}>Karma Coins Available</Text>
             </View>
           </View>
 
@@ -702,7 +702,7 @@ export default function OffersScreen() {
                 <Text style={styles.sectionTitle}>Donate to Offsets</Text>
               </View>
               <Text style={styles.sectionSubtitle}>
-                Redeem your points directly into verified climate impact
+                Redeem your Karma Coins directly into verified climate impact
               </Text>
             </View>
 
@@ -756,7 +756,7 @@ export default function OffersScreen() {
                         activeOpacity={0.8}
                       >
                         <Text style={styles.offsetDonateButtonText}>
-                          {canAfford ? "Donate Points" : "Need Points"}
+                          {canAfford ? "Donate Karma Coins" : "Need Karma Coins"}
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -838,7 +838,7 @@ export default function OffersScreen() {
                       <View style={styles.couponCostPill}>
                         <Coins size={13} color="#D97706" strokeWidth={2.2} />
                         <Text style={styles.couponCostText}>
-                          {coupon.costPts} pts
+                          {coupon.costPts} coins
                         </Text>
                       </View>
 
@@ -860,7 +860,7 @@ export default function OffersScreen() {
                           </View>
                         ) : (
                           <Text style={styles.redeemButtonText}>
-                            {canAfford ? "Unlock Voucher" : "Need Points"}
+                            {canAfford ? "Unlock Voucher" : "Need Karma Coins"}
                           </Text>
                         )}
                       </TouchableOpacity>
@@ -1083,10 +1083,7 @@ const styles = StyleSheet.create({
     marginBottom: 18,
     borderWidth: 1,
     borderColor: "rgba(94,234,212,0.25)",
-    shadowColor: "#0D2418",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
+    boxShadow: "0px 8px 16px rgba(13,36,24,0.25)",
     elevation: 6,
   },
   heroGlowOrb: {
@@ -1338,10 +1335,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: "rgba(46,168,110,0.16)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
+    boxShadow: "0px 2px 8px rgba(0,0,0,0.04)",
     elevation: 2,
   },
   offsetCardTop: {
@@ -1430,10 +1424,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: "rgba(46,168,110,0.16)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
+    boxShadow: "0px 2px 8px rgba(0,0,0,0.04)",
     elevation: 2,
   },
   couponCardHeader: {
@@ -1573,10 +1564,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 24,
     padding: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
+    boxShadow: "0px 10px 20px rgba(0,0,0,0.25)",
     elevation: 8,
   },
   modalHeader: {

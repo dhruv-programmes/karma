@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { ScanOverlay } from "@/components/custom/scan-overlay";
+import { BackButton } from "@/components/custom/back-button";
 import { Badge } from "@/components/ui/badge";
 import { Box } from "@/components/ui/box";
 import { Button } from "@/components/ui/button";
@@ -54,9 +55,7 @@ export default function ScanScreen() {
   return (
     <Box className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       <Box className="flex-row items-center justify-between px-6 py-4">
-        <Pressable onPress={() => router.back()}>
-          <Text>Close</Text>
-        </Pressable>
+        <BackButton label="Close" fallbackRoute="/(tabs)" variant="circle" />
         <Text bold>Scan a product</Text>
         <Badge action="playful" label={badgeLabel} />
       </Box>

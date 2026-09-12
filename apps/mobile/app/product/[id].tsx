@@ -5,6 +5,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CircularityRing } from "@/components/custom/circularity-ring";
 import { CompareOption } from "@/components/custom/compare-option";
+import { BackButton } from "@/components/custom/back-button";
 import { ProductImage } from "@/components/custom/product-image";
 import { SkeletonCard } from "@/components/custom/skeleton-card";
 import { Badge } from "@/components/ui/badge";
@@ -62,9 +63,7 @@ export default function ProductScreen() {
         gap: 16,
       }}
     >
-      <Pressable onPress={() => router.back()}>
-        <Text className="text-primary">Back</Text>
-      </Pressable>
+      <BackButton label="Back" fallbackRoute="/scan" />
 
       {data.isLoading || !product ? (
         <SkeletonCard height={280} />

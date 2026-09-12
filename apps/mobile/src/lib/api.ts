@@ -6,20 +6,33 @@ import type {
   AuthResponse,
   Badge,
   BaselineSyncPayload,
+  Challenge,
+  ChallengePeriod,
   CircularOptionsResponse,
+  CommuteSummary,
+  CommuteTripRequest,
+  CommuteTripResult,
   CompletedActionResult,
   DemoUserSummary,
   Facility,
+  FriendResult,
   ImpactBreakdown,
   OffsetProject,
   OffsetPurchaseResult,
   Product,
   ReceiptParseResult,
   Recommendation,
+  LeaderboardEntry,
+  LeaderboardMetric,
+  LeaderboardScope,
+  LeagueSummary,
+  LeagueTier,
   RedeemResult,
   Reward,
   ScoreResponse,
   ScoreState,
+  SolarImpactResponse,
+  SolarRecommendationStatus,
   StepSummary,
   Transaction,
   UserProfile,
@@ -30,6 +43,24 @@ const DEFAULT_REQUEST_TIMEOUT_MS = 8_000;
 // Password verification deliberately uses a slow KDF. Give authentication a
 // realistic window without making every read request feel unresponsive.
 const AUTH_REQUEST_TIMEOUT_MS = 15_000;
+
+const DEMO_LEAGUE: LeagueSummary = {
+  tier: "silver",
+  league_name: "Silver League",
+  league_points: 640,
+  promotion_threshold: 800,
+  weekly_actions_completed: 3,
+  weekly_actions_target: 5,
+  promotion_status: "holding",
+  season_label: "September season",
+  demotion_note: "On the first day of each month, every league drops one tier. Bronze is protected.",
+  standings: [
+    { id: "rohan", display_name: "Rohan Mehta", username: "rohan.loop", league_points: 910, rank: 1 },
+    { id: "maya", display_name: "Maya Green", username: "maya.green", league_points: 760, rank: 2 },
+    { id: "aisha", display_name: "Aisha Sharma", username: "aisha.loop", league_points: 640, rank: 3, is_current_user: true },
+    { id: "dev", display_name: "Dev Kapoor", username: "dev.reuse", league_points: 520, rank: 4 },
+  ],
+};
 
 function resolveDevHost(): string | null {
   const hostUri =
@@ -217,6 +248,133 @@ export function normalizeStepSummary(raw: any): StepSummary {
   };
 }
 
+/** Normalize the Solar Impact dashboard contract, allowing backend snake_case during rollout. */
+export function normalizeSolarImpact(raw: any): SolarImpactResponse {
+  const src = raw && typeof raw === "object" ? raw : {};
+  const pick = (...keys: string[]) => keys.reduce((value, key) => value ?? src[key], undefined as any);
+  const num = (value: unknown, fallback = 0) => typeof value === "number" && Number.isFinite(value) ? value : fallback;
+  const live = pick("live", "live_energy_flow", "energy_flow", "live_flow") ?? {};
+  const financial = pick("financial", "financial_impact") ?? {};
+  const forecast = pick("forecast", "tomorrow_forecast") ?? {};
+  const comparison = pick("comparison", "before_vs_optimized") ?? {};
+  const current = comparison.current ?? {};
+  const optimized = comparison.optimized ?? {};
+  const score = pick("solarScore", "solar_score");
+  const list = (value: unknown) => Array.isArray(value) ? value : [];
+  return {
+    date: String(pick("date") ?? new Date().toISOString().slice(0, 10)),
+    location: String(pick("location") ?? "Ahmedabad"),
+    systemSizeKw: num(pick("systemSizeKw", "system_size_kw"), 5),
+    generatedKwh: num(pick("generatedKwh", "generated_kwh"), 20.4),
+    consumedKwh: num(pick("consumedKwh", "consumed_kwh", "directly_consumed_kwh"), 12.8),
+    exportedKwh: num(pick("exportedKwh", "exported_kwh"), 7.6),
+    gridImportedKwh: num(pick("gridImportedKwh", "grid_imported_kwh"), 4.3),
+    householdConsumptionKwh: num(pick("householdConsumptionKwh", "household_consumption_kwh"), 17.1),
+    selfConsumptionPct: num(pick("selfConsumptionPct", "self_consumption_pct"), 62.7),
+    solarContributionPct: num(pick("solarContributionPct", "solar_contribution_pct"), 74.9),
+    co2AvoidedKg: num(pick("co2AvoidedKg", "co2_avoided_kg"), 7.4),
+    moneySavedInr: num(pick("moneySavedInr", "money_saved_inr", "estimated_savings_inr"), 118),
+    greenPoints: num(pick("greenPoints", "green_points", "green_points_earned"), 75),
+    solarScore: num(typeof score === "object" ? score?.score : score, 78),
+    scoreBreakdown: list(pick("scoreBreakdown", "score_breakdown") ?? (score && typeof score === "object" ? Object.entries(score.components ?? {}).map(([label, value]) => ({ label, value })) : [])).map((item: any) => ({
+      label: String(item?.label ?? item?.name ?? "Metric"),
+      value: num(item?.value, 0),
+    })),
+    live: {
+      solarKw: num(live.solarKw ?? live.solar_kw ?? live.generation_kw ?? live.solar_generation_kw, 3.8),
+      homeKw: num(live.homeKw ?? live.home_kw ?? live.usage_kw ?? live.home_usage_kw, 2.4),
+      gridExportKw: num(live.gridExportKw ?? live.grid_export_kw ?? live.export_kw, 1.4),
+      gridImportKw: num(live.gridImportKw ?? live.grid_import_kw ?? live.import_kw),
+      batteryKw: num(live.batteryKw ?? live.battery_kw),
+      evKw: num(live.evKw ?? live.ev_kw),
+    },
+    hourly: list(pick("hourly", "hourly_data", "hourly_series")).map((point: any, index: number) => ({
+      label: String(point?.label ?? point?.time ?? point?.hour ?? `${index + 6}:00`),
+      solarKwh: num(point?.solarKwh ?? point?.solar_kwh ?? point?.solar_generation_kwh),
+      consumptionKwh: num(point?.consumptionKwh ?? point?.consumption_kwh ?? point?.load_kwh ?? point?.home_consumption_kwh),
+      gridImportKwh: num(point?.gridImportKwh ?? point?.grid_import_kwh),
+      gridExportKwh: num(point?.gridExportKwh ?? point?.grid_export_kwh),
+    })),
+    recommendations: list(pick("recommendations")).map((item: any, index: number) => ({
+      id: String(item?.id ?? `solar-rec-${index + 1}`),
+      title: String(item?.title ?? "Use more solar during the day"),
+      body: String(item?.body ?? item?.description ?? item?.subtitle ?? item?.explanation ?? "Shift flexible loads into the solar window."),
+      window: String(item?.window ?? item?.recommended_window ?? "12:30 PM – 3:00 PM"),
+      expectedSavingsInr: num(item?.expectedSavingsInr ?? item?.expected_savings_inr),
+      co2AvoidedKg: num(item?.co2AvoidedKg ?? item?.co2_avoided_kg),
+      points: num(item?.points ?? item?.green_points),
+      status: (item?.status ?? "suggested") as SolarRecommendationStatus,
+      action: item?.action ? String(item.action) : undefined,
+    })),
+    forecast: {
+      generatedKwh: num(forecast.generatedKwh ?? forecast.generated_kwh ?? forecast.expected_generation_kwh, 21.2),
+      peakWindow: String(forecast.peakWindow ?? forecast.peak_window ?? (forecast.peak_start && forecast.peak_end ? `${forecast.peak_start} – ${forecast.peak_end}` : "12:15 PM – 2:45 PM")),
+      weather: String(forecast.weather ?? "Mostly sunny"),
+      opportunity: String(forecast.opportunity ?? "High"),
+      message: String(forecast.message ?? forecast.advice ?? "Schedule EV charging, laundry and battery charging between 12 PM and 3 PM."),
+    },
+    financial: {
+      actualSavingsInr: num(financial.actualSavingsInr ?? financial.actual_savings_inr, num(pick("moneySavedInr", "money_saved_inr", "estimated_savings_inr"), 118)),
+      additionalSavingsInr: num(financial.additionalSavingsInr ?? financial.additional_savings_inr ?? financial.additional_possible_savings_inr, 34),
+      optimizedSavingsInr: num(financial.optimizedSavingsInr ?? financial.optimized_savings_inr ?? financial.potential_optimized_savings_inr, 152),
+      tariffInrPerKwh: num(financial.tariffInrPerKwh ?? financial.tariff_inr_per_kwh ?? financial.import_tariff_inr_per_kwh, 8),
+    },
+    rewards: list(pick("rewards", "green_rewards")).map((item: any) => ({
+      label: String(item?.label ?? item?.title ?? "Solar action"),
+      points: num(item?.points ?? item?.green_points),
+      unlocked: item?.unlocked !== false,
+    })),
+    comparison: {
+      current: {
+        generatedKwh: num(current.generatedKwh ?? current.generated_kwh, 20),
+        usedKwh: num(current.usedKwh ?? current.used_kwh ?? current.solar_used_kwh, 7),
+        exportedKwh: num(current.exportedKwh ?? current.exported_kwh, 13),
+        selfConsumptionPct: num(current.selfConsumptionPct ?? current.self_consumption_pct, 35),
+      },
+      optimized: {
+        generatedKwh: num(optimized.generatedKwh ?? optimized.generated_kwh, 20),
+        usedKwh: num(optimized.usedKwh ?? optimized.used_kwh ?? optimized.solar_used_kwh, 14),
+        exportedKwh: num(optimized.exportedKwh ?? optimized.exported_kwh, 6),
+        selfConsumptionPct: num(optimized.selfConsumptionPct ?? optimized.self_consumption_pct, 70),
+      },
+      additionalSavingsInr: num(comparison.additionalSavingsInr ?? comparison.additional_savings_inr, 42),
+      additionalCo2Kg: num(comparison.additionalCo2Kg ?? comparison.additional_co2_kg, 3.8),
+    },
+    timeline: list(pick("timeline", "impact_timeline")).map((item: any) => ({
+      time: String(item?.time ?? "Today"),
+      title: String(item?.title ?? "Solar surplus detected"),
+      detail: String(item?.detail ?? item?.description ?? ""),
+      points: item?.points == null ? undefined : num(item.points),
+    })),
+  };
+}
+
+/** Normalize commute summary payload to camelCase */
+export function normalizeCommuteSummary(raw: any): CommuteSummary {
+  const src = raw && typeof raw === "object" ? raw : {};
+  const num = (v: unknown, dflt = 0): number =>
+    typeof v === "number" && Number.isFinite(v) ? v : dflt;
+  const rawSeries = src.series;
+
+  return {
+    date: String(src.date ?? ""),
+    todayDistanceKm: num(src.todayDistanceKm ?? src.today_distance_km, 0),
+    todayPoints: num(src.todayPoints ?? src.today_points, 0),
+    dailyRewardCap: num(src.dailyRewardCap ?? src.daily_reward_cap, 150),
+    tripsToday: num(src.tripsToday ?? src.trips_today, 0),
+    series: Array.isArray(rawSeries)
+      ? rawSeries.map((item: any) => ({
+          date: String(item.date ?? ""),
+          label: String(item.label ?? ""),
+          distance_km: num(item.distance_km ?? item.distanceKm, 0),
+          points_awarded: num(item.points_awarded ?? item.pointsAwarded, 0),
+          trips: num(item.trips, 0),
+        }))
+      : [],
+
+  };
+}
+
 export const api = {  // Authentication
   signin: (email: string, password = "password123") =>
     request<AuthResponse>("/api/v1/auth/signin", {
@@ -244,6 +402,18 @@ export const api = {  // Authentication
     request<import("@/src/types/api").ImpactTimeseries>(
       "/api/v1/users/me/impact/timeseries"
     ),
+  getSolarImpact: () =>
+    request<any>("/api/v1/users/me/solar-impact").then(normalizeSolarImpact),
+  acceptSolarRecommendation: (id: string) =>
+    request<{ recommendation_id: string; status: string; points_awarded: number; message: string }>(
+      `/api/v1/users/me/solar-impact/recommendations/${encodeURIComponent(id)}/accept`,
+      { method: "POST" }
+    ),
+  completeSolarRecommendation: (id: string) =>
+    request<{ recommendation_id: string; status: string; points_awarded: number; message: string }>(
+      `/api/v1/users/me/solar-impact/recommendations/${encodeURIComponent(id)}/complete`,
+      { method: "POST" }
+    ),
   getActivity: () =>
     request<import("@/src/types/api").ActivityEvent[]>(
       "/api/v1/users/me/activity"
@@ -263,6 +433,27 @@ export const api = {  // Authentication
       method: "POST",
       body: JSON.stringify({ steps: Math.max(0, Math.round(steps)) }),
     }).then(normalizeStepSummary),
+  getCommuteSummary: () =>
+    request<any>("/api/v1/commute/summary").then(normalizeCommuteSummary),
+  logCommute: (payload: CommuteTripRequest) =>
+    request<CommuteTripResult>("/api/v1/commute/log", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  verifySustainablePurchase: (payload: {
+    filename: string;
+    mime_type?: string | null;
+    size_bytes?: number | null;
+  }) =>
+    request<import("@/src/types/api").SustainablePurchaseVerification>(
+      "/api/v1/sustainable-purchases/verify",
+      { method: "POST", body: JSON.stringify(payload) }
+    ),
+  resetSustainablePurchase: () =>
+    request<import("@/src/types/api").SustainablePurchaseVerification>(
+      "/api/v1/sustainable-purchases/reset",
+      { method: "POST" }
+    ),
   syncBaseline: (payload: BaselineSyncPayload) =>
     request<any>("/api/v1/onboarding/baseline", {
       method: "POST",
@@ -277,6 +468,84 @@ export const api = {  // Authentication
       loop_level: number;
       offset_kg_total: number;
     }>("/api/v1/profile/circularity-score"),
+
+  // Social competition. These endpoints are optional during rollout; the
+  // screen supplies an offline demo state until the API is deployed.
+  getLeaderboard: (scope: LeaderboardScope, metric: LeaderboardMetric) =>
+    request<any>(`/api/v1/leaderboard?scope=${scope}&metric=${metric === "impact_points" ? "reward_points" : "carbon_credit_score"}`)
+      .then((raw) => (Array.isArray(raw) ? raw : raw?.entries ?? []).map((item: any, index: number) => ({
+        id: String(item.id ?? item.user_id ?? index),
+        username: String(item.username ?? "member"),
+        display_name: String(item.display_name ?? item.name ?? item.username ?? "Member"),
+        impact_points: Number(item.impact_points ?? item.reward_points ?? 0),
+        carbon_score: Number(item.carbon_score ?? item.carbon_credit_score ?? 650),
+        rank: Number(item.rank ?? index + 1),
+        is_current_user: Boolean(item.is_current_user),
+      } as LeaderboardEntry))),
+  searchFriends: (username: string) =>
+    request<any[]>(`/api/v1/users/search?q=${encodeURIComponent(username)}`).then((items) => items.map((item: any) => ({
+      id: String(item.id), username: String(item.username ?? ""), display_name: String(item.display_name ?? item.name ?? "Member"),
+      impact_points: Number(item.impact_points ?? 0), carbon_score: Number(item.carbon_score ?? 650), is_friend: item.status === "accepted",
+    } as FriendResult))),
+  addFriend: (username: string) =>
+    request<FriendResult>(`/api/v1/friends/${encodeURIComponent(username)}`, { method: "POST" }),
+  removeFriend: (username: string) =>
+    request<{ status: string }>(`/api/v1/friends/${encodeURIComponent(username)}`, {
+      method: "DELETE",
+    }),
+  getChallenges: (period: ChallengePeriod) =>
+    request<any[]>(`/api/v1/challenges?cadence=${period}`).then((items) => items.map((item: any) => ({
+      id: String(item.id), title: String(item.title), description: String(item.description ?? ""),
+      action_label: String(item.action_label ?? "Complete challenge"), period: (item.period ?? item.cadence) as ChallengePeriod,
+      progress: Number(item.progress?.progress ?? item.progress ?? 0), target: Number(item.progress?.goal_value ?? item.target ?? item.goal_value ?? 1),
+      reward_points: Number(item.reward_points ?? 0), completed: Boolean(item.progress?.completed ?? item.completed), claimed: Boolean(item.progress?.reward_awarded ?? item.claimed),
+    } as Challenge))),
+  claimChallenge: async (id: string) => {
+    try {
+      return await request<Challenge & { points_awarded: number }>(`/api/v1/challenges/${encodeURIComponent(id)}/claim`, { method: "POST" });
+    } catch {
+      return request<Challenge & { points_awarded: number }>(`/api/v1/challenges/${encodeURIComponent(id)}/complete`, { method: "POST" });
+    }
+  },
+
+  /** League APIs are optional while the season service rolls out; demo data keeps the UI useful offline. */
+  getLeague: async (): Promise<LeagueSummary> => {
+    try {
+      const remote = await request<any>("/api/v1/league/status");
+      const current = remote.current_league ?? {};
+      const standings = await api.getLeagueStandings();
+      const status = remote.promotion_status === "ready" ? "promoted" : "holding";
+      return {
+        ...DEMO_LEAGUE,
+        tier: (current.slug ?? DEMO_LEAGUE.tier) as LeagueTier,
+        league_name: `${current.display_name ?? "Bronze"} League`,
+        league_points: Number(remote.season_league_points ?? 0),
+        promotion_threshold: remote.promotion_threshold == null ? null : Number(remote.promotion_threshold),
+        weekly_actions_completed: Number(remote.weekly_action_count ?? 0),
+        promotion_status: status,
+        season_label: `${remote.season_key ?? "Current"} season`,
+        standings,
+      };
+    } catch {
+      return DEMO_LEAGUE;
+    }
+  },
+  getLeagueStandings: async (): Promise<LeagueSummary["standings"]> => {
+    try {
+      const remote = await request<any>("/api/v1/league/standings");
+      const entries = Array.isArray(remote) ? remote : (remote.entries ?? remote.standings ?? []);
+      return entries.map((entry: any) => ({
+        id: String(entry.user_id ?? entry.id),
+        display_name: String(entry.name ?? entry.display_name ?? "Member"),
+        username: String(entry.username ?? "member"),
+        league_points: Number(entry.season_league_points ?? entry.league_points ?? 0),
+        rank: Number(entry.rank ?? 0),
+        is_current_user: Boolean(entry.is_current_user),
+      }));
+    } catch {
+      return DEMO_LEAGUE.standings;
+    }
+  },
 
   // Products
   lookupBarcode: (barcode: string) =>

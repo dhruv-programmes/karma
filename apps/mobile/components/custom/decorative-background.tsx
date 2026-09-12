@@ -6,8 +6,8 @@ import { Box } from "@/components/ui/box";
 export function DecorativeBackground() {
   return (
     <View
-      pointerEvents="none"
       style={{
+        pointerEvents: "none",
         position: "absolute",
         top: 0,
         left: 0,

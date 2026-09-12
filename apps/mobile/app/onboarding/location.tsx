@@ -127,7 +127,7 @@ export default function LocationPermissionScreen() {
             </Box>
             <VStack className="flex-1">
               <Text bold size="sm" className="text-foreground font-body">
-                Donation points
+                Donation hubs
               </Text>
               <Text size="xs" className="text-muted-foreground font-body">
                 Verified community re-circulation hubs.

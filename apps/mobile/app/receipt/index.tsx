@@ -13,6 +13,7 @@ import {
 import { Box } from "@/components/ui/box";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { BackButton } from "@/components/custom/back-button";
 import { Heading } from "@/components/ui/heading";
 import { HStack } from "@/components/ui/hstack";
 import { Pressable } from "@/components/ui/pressable";
@@ -223,9 +224,7 @@ export default function ReceiptScanScreen() {
           gap: 14,
         }}
       >
-        <Pressable onPress={() => router.back()}>
-          <Text className="text-primary">Back</Text>
-        </Pressable>
+        <BackButton label="Back" fallbackRoute="/(tabs)" />
         <Heading size="2xl">Import bill / receipt</Heading>
         <Text className="text-muted-foreground">
           Upload electricity, shopping, food, or travel bills. We read the

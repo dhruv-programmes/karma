@@ -91,6 +91,18 @@ export interface UserProfile {
   baseline_created_at?: string | null;
 }
 
+export interface SustainablePurchaseVerification {
+  status: "verified" | string;
+  reward_points: number;
+  total_points: number;
+  already_claimed: boolean;
+  vehicle_make_model: string;
+  vehicle_type: string;
+  ownership: string;
+  verification: string;
+  is_mock: boolean;
+}
+
 export interface ImpactBreakdown {
   purchases_kg: number;
   transport_kg: number;
@@ -181,6 +193,83 @@ export interface ImpactTimeseries {
   previous_month_kg: number;
 }
 
+export type SolarRecommendationStatus =
+  | "suggested"
+  | "accepted"
+  | "in_progress"
+  | "completed"
+  | "partially_completed"
+  | "missed";
+
+export interface SolarHourlyPoint {
+  label: string;
+  solarKwh: number;
+  consumptionKwh: number;
+  gridImportKwh: number;
+  gridExportKwh: number;
+}
+
+export interface SolarRecommendation {
+  id: string;
+  title: string;
+  body: string;
+  window: string;
+  expectedSavingsInr: number;
+  co2AvoidedKg: number;
+  points: number;
+  status: SolarRecommendationStatus;
+  action?: string;
+}
+
+export interface SolarImpactResponse {
+  date: string;
+  location: string;
+  systemSizeKw: number;
+  generatedKwh: number;
+  consumedKwh: number;
+  exportedKwh: number;
+  gridImportedKwh: number;
+  householdConsumptionKwh: number;
+  selfConsumptionPct: number;
+  solarContributionPct: number;
+  co2AvoidedKg: number;
+  moneySavedInr: number;
+  greenPoints: number;
+  solarScore: number;
+  scoreBreakdown: { label: string; value: number }[];
+  live: {
+    solarKw: number;
+    homeKw: number;
+    gridExportKw: number;
+    gridImportKw: number;
+    batteryKw?: number;
+    evKw?: number;
+  };
+  hourly: SolarHourlyPoint[];
+  recommendations: SolarRecommendation[];
+  forecast: {
+    generatedKwh: number;
+    peakWindow: string;
+    weather: string;
+    opportunity: string;
+    message: string;
+  };
+  financial: {
+    actualSavingsInr: number;
+    additionalSavingsInr: number;
+    optimizedSavingsInr: number;
+    tariffInrPerKwh: number;
+  };
+  rewards: { label: string; points: number; unlocked?: boolean }[];
+  comparison: {
+    current: { generatedKwh: number; usedKwh: number; exportedKwh: number; selfConsumptionPct: number };
+    optimized: { generatedKwh: number; usedKwh: number; exportedKwh: number; selfConsumptionPct: number };
+    additionalSavingsInr: number;
+    additionalCo2Kg: number;
+  };
+  timeline: { time: string; title: string; detail: string; points?: number }[];
+}
+
 /** Daily walking rewards returned by the step-rewards API. */
 export interface StepSeriesPoint {
   label: string;
@@ -201,6 +290,41 @@ export interface StepSummary {
   rating: string;
   status: string;
   series: StepSeriesPoint[];
+}
+
+export interface CommuteTripRequest {
+  distance_km: number;
+  duration_min: number;
+  avg_speed_kmh: number;
+}
+
+export interface CommuteTripResult {
+  trip_id: string;
+  mode: "walk" | "cycle" | "motor" | string;
+  distance_km: number;
+  duration_min: number;
+  avg_speed_kmh: number;
+  points_awarded: number;
+  daily_total_points: number;
+  daily_cap: number;
+  message: string;
+}
+
+export interface CommuteSeriesPoint {
+  date: string;
+  label: string;
+  distance_km: number;
+  points_awarded: number;
+  trips: number;
+}
+
+export interface CommuteSummary {
+  date: string;
+  todayDistanceKm: number;
+  todayPoints: number;
+  dailyRewardCap: number;
+  tripsToday: number;
+  series: CommuteSeriesPoint[];
 }
 
 export interface Badge {
@@ -392,4 +516,73 @@ export interface BaselineSyncPayload {
   reductionPct: number;
   totalKg: number;
   provisional: number;
+}
+
+export type LeaderboardMetric = "impact_points" | "kcs";
+export type LeaderboardScope = "global" | "friends";
+
+export interface LeaderboardEntry {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_url?: string | null;
+  impact_points: number;
+  carbon_score: number;
+  score_state?: "provisional" | "verified";
+  rank: number;
+  is_current_user?: boolean;
+}
+
+export interface FriendResult {
+  id: string;
+  username: string;
+  display_name: string;
+  impact_points: number;
+  carbon_score: number;
+  is_friend: boolean;
+  is_current_user?: boolean;
+}
+
+export type ChallengePeriod = "daily" | "weekly" | "monthly";
+
+export interface Challenge {
+  id: string;
+  title: string;
+  description: string;
+  action_label: string;
+  period: ChallengePeriod;
+  progress: number;
+  target: number;
+  reward_points: number;
+  completed: boolean;
+  claimed?: boolean;
+  category?: string;
+  expires_at?: string | null;
+}
+
+/** Competitive season track. League points are intentionally separate from KCS and Karma Coins. */
+export type LeagueTier = "bronze" | "silver" | "gold" | "platinum";
+
+export type LeaguePromotionStatus = "holding" | "promoted" | "at_risk";
+
+export interface LeagueStanding {
+  id: string;
+  display_name: string;
+  username: string;
+  league_points: number;
+  rank: number;
+  is_current_user?: boolean;
+}
+
+export interface LeagueSummary {
+  tier: LeagueTier;
+  league_name: string;
+  league_points: number;
+  promotion_threshold: number | null;
+  weekly_actions_completed: number;
+  weekly_actions_target: number;
+  promotion_status: LeaguePromotionStatus;
+  season_label: string;
+  demotion_note: string;
+  standings: LeagueStanding[];
 }

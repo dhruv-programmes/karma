@@ -19,6 +19,8 @@ import {
   ScanLine,
   TicketPercent,
   Wrench,
+  User,
+  Users,
   type LucideIcon,
 } from "lucide-react-native";
 import {
@@ -28,14 +30,7 @@ import {
 
 type TabBarProps = {
   state: { routes: { key: string; name: string }[]; index: number };
-  navigation: {
-    emit: (e: {
-      type: string;
-      target: string;
-      canPreventDefault: boolean;
-    }) => { defaultPrevented: boolean };
-    navigate: (name: string) => void;
-  };
+  navigation: any;
 };
 
 type DockTab = {
@@ -50,14 +45,14 @@ const LEFT_TABS: DockTab[] = [
 ];
 
 const RIGHT_TABS: DockTab[] = [
-  { name: "actions", label: "Actions", icon: ListChecks },
+  { name: "community", label: "Community", icon: Users },
 ];
 
 const MORE_DESTINATIONS = [
   {
     name: "impact",
     title: "Impact",
-    detail: "Footprint, trends & score story",
+    detail: "Live carbon footprint, solar & rewards",
     icon: Leaf,
     tint: "#5EEAD4",
     soft: "rgba(94,234,212,0.14)",
@@ -65,10 +60,26 @@ const MORE_DESTINATIONS = [
   {
     name: "offers",
     title: "Offers",
-    detail: "Subsidies, rewards & offsets",
+    detail: "Govt subsidies, brand perks & offsets",
     icon: TicketPercent,
     tint: "#F5D08A",
     soft: "rgba(245,208,138,0.16)",
+  },
+  {
+    name: "profile",
+    title: "Profile",
+    detail: "Account, personas & preferences",
+    icon: User,
+    tint: "#93C5FD",
+    soft: "rgba(147,197,253,0.16)",
+  },
+  {
+    name: "actions",
+    title: "Actions",
+    detail: "Your next circular actions",
+    icon: ListChecks,
+    tint: "#86EFAC",
+    soft: "rgba(134,239,172,0.16)",
   },
 ] as const;
 
@@ -133,14 +144,14 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
 
   const activeRoute = state.routes[state.index]?.name;
   const moreActive =
-    activeRoute === "impact" || activeRoute === "offers" || moreOpen;
+    activeRoute === "impact" || activeRoute === "offers" || activeRoute === "actions" || moreOpen;
 
   const openMore = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setMoreOpen(true);
   };
 
-  const chooseDestination = (name: "impact" | "offers") => {
+  const chooseDestination = (name: (typeof MORE_DESTINATIONS)[number]["name"]) => {
     void Haptics.selectionAsync();
     setMoreOpen(false);
     router.push(`/(tabs)/${name}`);
@@ -218,8 +229,7 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
       </Modal>
 
       <View
-        style={[styles.container, { paddingBottom: dockLift }]}
-        pointerEvents="box-none"
+        style={[styles.container, { paddingBottom: dockLift, pointerEvents: "box-none" }]}
       >
         <View style={styles.dock}>
           <View style={styles.sideCluster}>
@@ -311,10 +321,7 @@ const styles = StyleSheet.create({
     width: "100%",
     ...Platform.select({
       ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 20,
+        boxShadow: "0px 8px 20px rgba(0,0,0,0.3)",
       },
       android: {
         elevation: 16,
@@ -361,10 +368,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     ...Platform.select({
       ios: {
-        shadowColor: "#2EA86E",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.45,
-        shadowRadius: 10,
+        boxShadow: "0px 4px 10px rgba(46,168,110,0.45)",
       },
       android: { elevation: 8 },
     }),
@@ -389,10 +393,7 @@ const styles = StyleSheet.create({
     gap: 6,
     ...Platform.select({
       ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.35,
-        shadowRadius: 24,
+        boxShadow: "0px 12px 24px rgba(0,0,0,0.35)",
       },
       android: { elevation: 20 },
     }),
@@ -471,6 +472,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" options={{ title: "Home" }} />
       <Tabs.Screen name="tools" options={{ title: "Tools" }} />
       <Tabs.Screen name="actions" options={{ title: "Actions" }} />
+      <Tabs.Screen name="community" options={{ title: "Community" }} />
       <Tabs.Screen name="impact" options={{ title: "Impact", href: null }} />
       <Tabs.Screen name="offers" options={{ title: "Offers", href: null }} />
       <Tabs.Screen name="profile" options={{ title: "Profile", href: null }} />

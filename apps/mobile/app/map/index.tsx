@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import * as Location from "expo-location";
+import { BackButton } from "@/components/custom/back-button";
 import { FacilityCard } from "@/components/custom/facility-card";
 import { PointsCounter } from "@/components/custom/points-counter";
 import { Badge } from "@/components/ui/badge";
@@ -128,9 +129,7 @@ export default function MapScreen() {
   return (
     <Box className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       <Box className="flex-row justify-between items-center px-6 py-3">
-        <Pressable onPress={() => router.back()}>
-          <Text className="text-primary">Back</Text>
-        </Pressable>
+        <BackButton label="Back" fallbackRoute="/(tabs)" variant="circle" />
         <Text bold>{TITLE[facilityType] ?? "Nearby places"}</Text>
         <Box className="w-10" />
       </Box>

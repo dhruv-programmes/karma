@@ -9,6 +9,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+<<<<<<< HEAD
 import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 import {
   Award,
@@ -20,9 +21,24 @@ import {
 } from "lucide-react-native";
 import { ActionRow } from "@/components/custom/action-row";
 import { CircularityRing } from "@/components/custom/circularity-ring";
+=======
+import Animated, { FadeInRight } from "react-native-reanimated";
+import { BackButton } from "@/components/custom/back-button";
+import { CircularityScore } from "@/components/custom/circularity-score";
+import { Badge } from "@/components/ui/badge";
+import { Box } from "@/components/ui/box";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Heading } from "@/components/ui/heading";
+import { HStack } from "@/components/ui/hstack";
+import { ScrollView } from "@/components/ui/scroll-view";
+import { Text } from "@/components/ui/text";
+import { VStack } from "@/components/ui/vstack";
+>>>>>>> 0a89030986d80ed0ce11f6ef943295ed1c5723ac
 import { useBadges, useMe, useScore } from "@/src/hooks/queries";
 import { useAuthStore } from "@/src/store/auth";
 import { useTabBarClearance } from "@/src/theme/layout";
+import { Crown } from "lucide-react-native";
 
 const C = {
   ink: "#0D1811",
@@ -89,6 +105,7 @@ export default function ProfileScreen() {
   const badgeList = badges.data ?? [];
 
   return (
+<<<<<<< HEAD
     <View style={styles.root}>
       <ScrollView
         style={styles.scroll}
@@ -107,6 +124,27 @@ export default function ProfileScreen() {
             Your Karma snapshot, {firstName} — score, impact, and settings.
           </Text>
         </Animated.View>
+=======
+    <ScrollView
+      className="flex-1 bg-background"
+      contentContainerStyle={{
+        paddingTop: insets.top + 16,
+        paddingBottom: tabClearance,
+        paddingHorizontal: 24,
+        gap: 20,
+      }}
+      showsVerticalScrollIndicator={false}
+    >
+      <BackButton label="Home" fallbackRoute="/(tabs)" />
+      <Heading size="2xl" className="font-heading -mt-2">Profile</Heading>
+      <CircularityScore
+        score={displayScore}
+        minScore={480}
+        maxScore={820}
+        title={scoreTitle}
+        detail={scoreDetail}
+      />
+>>>>>>> 0a89030986d80ed0ce11f6ef943295ed1c5723ac
 
         {/* Identity hero */}
         <Animated.View entering={FadeInDown.delay(40).duration(320)}>
@@ -146,6 +184,7 @@ export default function ProfileScreen() {
           </LinearGradient>
         </Animated.View>
 
+<<<<<<< HEAD
         {/* Score */}
         <Animated.View entering={FadeInDown.delay(80).duration(320)}>
           <View style={styles.card}>
@@ -156,6 +195,66 @@ export default function ProfileScreen() {
                 label={displayScore === null ? "…" : "KCS"}
                 minScore={480}
                 maxScore={820}
+=======
+        <HStack className="gap-2 mt-4 pt-3 border-t border-border/60">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="flex-1"
+            onPress={handleReplayOnboarding}
+          >
+            Replay Onboarding
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="flex-1"
+            onPress={handleLogout}
+          >
+            Sign Out
+          </Button>
+        </HStack>
+      </Card>
+
+      <Card variant="soft" className="p-4 border border-border">
+        <Text size="xs" bold className="text-muted-foreground uppercase tracking-wider font-mono">
+          Karma Coins
+        </Text>
+        <Text size="4xl" bold className="font-mono mt-1 text-foreground">
+          {displayPoints}
+        </Text>
+        <Text size="xs" className="text-muted-foreground mt-1 font-body">
+          Loop Level {me.data?.loop_level ?? 2} · Streak{" "}
+          {me.data?.streak_days ?? 5} days · Offsets ~
+          {Math.round(me.data?.offset_kg_total ?? 0)} kg
+        </Text>
+      </Card>
+
+      <Card variant="soft" className="p-4 border border-border">
+        <HStack className="items-center justify-between gap-3">
+          <HStack className="items-center gap-3 flex-1">
+            <Box className="h-10 w-10 rounded-xl bg-amber-100 items-center justify-center">
+              <Crown size={18} color="#B7791F" />
+            </Box>
+            <VStack space="xs" className="flex-1">
+              <Text size="xs" bold className="text-muted-foreground uppercase tracking-wider font-mono">Karma League</Text>
+              <Text bold className="font-heading">Silver League · 640 pts</Text>
+              <Text size="xs" className="text-muted-foreground font-body">160 points to Gold · 3/5 actions</Text>
+            </VStack>
+          </HStack>
+          <Button size="sm" variant="outline" onPress={() => router.push("/league")}>View</Button>
+        </HStack>
+      </Card>
+
+      <VStack space="sm">
+        <Text bold size="sm" className="font-heading">Badges</Text>
+        <Box className="flex-row flex-wrap gap-2">
+          {(badges.data ?? []).map((b, i) => (
+            <Animated.View key={b.id} entering={FadeInRight.delay(i * 40)}>
+              <Badge
+                action={b.unlocked ? "playful" : "muted"}
+                label={b.unlocked ? b.title : `Locked · ${b.title}`}
+>>>>>>> 0a89030986d80ed0ce11f6ef943295ed1c5723ac
               />
               <View style={styles.scoreCopy}>
                 <Text style={styles.cardEyebrow}>KARMA CREDIT SCORE</Text>
@@ -166,6 +265,7 @@ export default function ProfileScreen() {
           </View>
         </Animated.View>
 
+<<<<<<< HEAD
         {/* Impact metrics */}
         <Animated.View entering={FadeInDown.delay(110).duration(320)}>
           <View style={styles.metricsRow}>
@@ -186,6 +286,30 @@ export default function ProfileScreen() {
             </View>
           </View>
         </Animated.View>
+=======
+      <Box className="flex-row gap-3">
+        <Button
+          variant="outline"
+          className="flex-1"
+          onPress={() => router.push("/rewards")}
+        >
+          Rewards
+        </Button>
+        <Button
+          variant="outline"
+          className="flex-1"
+          onPress={() => router.push("/community")}
+        >
+          Community
+        </Button>
+        <Button
+          className="flex-1"
+          onPress={() => router.push("/offsets" as import("expo-router").Href)}
+        >
+          Offsets
+        </Button>
+      </Box>
+>>>>>>> 0a89030986d80ed0ce11f6ef943295ed1c5723ac
 
         {/* Badges */}
         <Animated.View entering={FadeInDown.delay(140).duration(320)}>

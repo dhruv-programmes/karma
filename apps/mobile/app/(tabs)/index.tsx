@@ -13,12 +13,20 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   ArrowRight,
+  Award,
+  Bike,
   Camera,
+  CheckCircle2,
   ChevronRight,
+  Coins,
+  Crown,
   Footprints,
   Leaf,
+  Navigation,
+  Play,
   Receipt,
   Recycle,
+  Square,
   TrendingUp,
   Wrench,
 } from "lucide-react-native";
@@ -40,8 +48,10 @@ import {
   useRecommendations,
   useScore,
   useSteps,
+  useCommuteSummary,
 } from "@/src/hooks/queries";
 import { useStepTracking } from "@/src/hooks/use-step-tracking";
+import { useCommuteTracking } from "@/src/hooks/use-commute-tracking";
 import { useAuthStore } from "@/src/store/auth";
 import { DEMO_REPAIR_ACTION_ID } from "@/src/types/api";
 import { useTabBarClearance } from "@/src/theme/layout";
@@ -173,8 +183,8 @@ function ScoreRing({
     <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
       {/* Fill disc only — keeps borderRadius from clipping the SVG stroke */}
       <View
-        pointerEvents="none"
         style={{
+          pointerEvents: "none",
           position: "absolute",
           width: disc,
           height: disc,
@@ -213,8 +223,7 @@ function ScoreRing({
           strokeDasharray={`${c} ${c}`}
           animatedProps={animatedProps}
           strokeLinecap="round"
-          rotation="-90"
-          origin={`${cx}, ${cy}`}
+          transform={`rotate(-90 ${cx} ${cy})`}
           opacity={0.45}
         />
 
@@ -228,8 +237,7 @@ function ScoreRing({
           strokeDasharray={`${c} ${c}`}
           animatedProps={animatedProps}
           strokeLinecap="round"
-          rotation="-90"
-          origin={`${cx}, ${cy}`}
+          transform={`rotate(-90 ${cx} ${cy})`}
           opacity={1}
         />
 
@@ -243,8 +251,7 @@ function ScoreRing({
           strokeDasharray={`${c} ${c}`}
           animatedProps={animatedProps}
           strokeLinecap="round"
-          rotation="-90"
-          origin={`${cx}, ${cy}`}
+          transform={`rotate(-90 ${cx} ${cy})`}
           opacity={1}
         />
       </Svg>
@@ -289,10 +296,7 @@ function ScoreRing({
             height: 7,
             borderRadius: 3.5,
             backgroundColor: "#FFFFFF",
-            shadowColor: color,
-            shadowOffset: { width: 0, height: 0 },
-            shadowOpacity: 1,
-            shadowRadius: 6,
+            boxShadow: `0px 0px 6px ${color}`,
             elevation: 4,
           }}
         />
@@ -412,6 +416,8 @@ export default function HomeScreen() {
   const activity = useActivity();
   const steps = useSteps();
   const stepTracking = useStepTracking(steps.data?.todaySteps ?? 0);
+  const commuteSummary = useCommuteSummary();
+  const commuteTracking = useCommuteTracking();
   const best = recs.data?.[0];
 
   const displayName = me.data?.name || user?.name || "Member";
@@ -441,8 +447,8 @@ export default function HomeScreen() {
   const rating = ratingInfo(displayScore ?? KCS_MIN);
   const impactPoints = me.data?.impact_points ?? user?.impact_points ?? 0;
   const stepData = steps.data;
-  const isWeb = Platform.OS === "web";
-  const hasNativeStepData = !isWeb && !!stepData;
+  const isWeb = false;
+  const hasNativeStepData = !!stepData;
   const stepProgress = stepData
     ? Math.min(100, Math.round((stepData.todaySteps / stepData.targetSteps) * 100))
     : 0;
@@ -455,7 +461,7 @@ export default function HomeScreen() {
     : steps.isError
       ? "Walking rewards are unavailable right now. Try again when you are online."
       : stepTracking.state === "denied"
-        ? "Motion permission is off. Enable it in Settings to earn walking points."
+        ? "Motion permission is off. Enable it in Settings to earn Karma Coins."
         : stepTracking.state === "unavailable"
           ? "This phone does not expose a pedometer to Carbon Loop."
           : stepTracking.state === "error"
@@ -464,7 +470,7 @@ export default function HomeScreen() {
               ? "Android tracks steps while Carbon Loop is open."
               : stepTracking.state === "enabled"
                 ? "Today's phone steps are synced to your rewards."
-                : "Enable on your phone to start earning Impact Points for walking.";
+                : "Enable on your phone to start earning Karma Coins for walking.";
   const stepCta = isWeb
     ? "Use on phone"
     : stepTracking.isSyncing
@@ -495,30 +501,30 @@ export default function HomeScreen() {
             locations={[0, 0.45, 1]}
             start={{ x: 0.05, y: 0 }}
             end={{ x: 0.75, y: 1 }}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
+            style={[StyleSheet.absoluteFill, { pointerEvents: "none" }]}
           />
           <LinearGradient
             colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.14)", "rgba(255,255,255,0)"]}
             locations={[0, 0.5, 1]}
             start={{ x: 0.85, y: 0 }}
             end={{ x: 0.15, y: 1 }}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
+            style={[StyleSheet.absoluteFill, { pointerEvents: "none" }]}
           />
           <LinearGradient
             colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.08)"]}
             start={{ x: 0.5, y: 0.45 }}
             end={{ x: 0.5, y: 1 }}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
+            style={[StyleSheet.absoluteFill, { pointerEvents: "none" }]}
           />
           <View
             style={[
               StyleSheet.absoluteFill,
+<<<<<<< HEAD
               { backgroundColor: "rgba(0,0,0,0.06)" },
+=======
+              { backgroundColor: "rgba(0,0,0,0.06)", pointerEvents: "none" },
+>>>>>>> 0a89030986d80ed0ce11f6ef943295ed1c5723ac
             ]}
-            pointerEvents="none"
           />
 
           {/* Header row */}
@@ -575,8 +581,9 @@ export default function HomeScreen() {
                 onPress={() => router.push("/rewards")}
                 activeOpacity={0.82}
               >
+                <Coins size={13} color="#FDE047" strokeWidth={2.4} />
                 <Text style={styles.pointsPillValue}>{impactPoints}</Text>
-                <Text style={styles.heroPillText}>Impact Points</Text>
+                <Text style={styles.heroPillText}>Karma Coins</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -611,6 +618,17 @@ export default function HomeScreen() {
 
         {/* ── CONTENT SHEET ─────────────────────────────── */}
         <View style={styles.sheet}>
+          {/* ── LEAGUE SNAPSHOT ── */}
+          <TouchableOpacity style={styles.leagueMiniCard} onPress={() => router.push("/league")} activeOpacity={0.86}>
+            <View style={styles.leagueMiniBadge}><Crown size={18} color="#D58B19" /></View>
+            <View style={styles.leagueMiniCopy}>
+              <Text style={styles.leagueMiniEyebrow}>KARMA LEAGUE</Text>
+              <Text style={styles.leagueMiniTitle}>Silver League · 640 pts</Text>
+              <Text style={styles.leagueMiniHint}>160 points to Gold · 3/5 weekly actions</Text>
+            </View>
+            <ChevronRight size={18} color="#2EA86E" />
+          </TouchableOpacity>
+
           {/* ── WALK & EARN ── */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Walk & Earn</Text>
@@ -620,18 +638,27 @@ export default function HomeScreen() {
                   <Footprints size={20} color="#2EA86E" strokeWidth={2} />
                 </View>
                 <View style={styles.walkHeaderCopy}>
+<<<<<<< HEAD
                   <Text style={styles.walkTitle} numberOfLines={2}>
                     Turn steps into Impact Points
                   </Text>
                   <Text style={styles.walkRating} numberOfLines={1}>
+=======
+                  <Text style={styles.walkTitle}>Turn steps into Karma Coins</Text>
+                  <Text style={styles.walkRating}>
+>>>>>>> 0a89030986d80ed0ce11f6ef943295ed1c5723ac
                     {hasNativeStepData ? stepData.rating : "Phone-only metric"}
                   </Text>
                 </View>
                 {hasNativeStepData ? (
                   <View style={styles.walkPointsBadge}>
+<<<<<<< HEAD
                     <Text style={styles.walkPointsText}>
                       +{stepData.todayPoints} pts
                     </Text>
+=======
+                    <Text style={styles.walkPointsText}>+{stepData.todayPoints} Karma Coins</Text>
+>>>>>>> 0a89030986d80ed0ce11f6ef943295ed1c5723ac
                   </View>
                 ) : null}
               </View>
@@ -711,6 +738,138 @@ export default function HomeScreen() {
             </View>
           </View>
 
+          {/* ── GREEN COMMUTE (GPS TRACKING) ── */}
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Green Commute (GPS)</Text>
+            <View style={styles.commuteCard}>
+              <View style={styles.commuteHeader}>
+                <View style={styles.commuteIconBox}>
+                  {commuteTracking.isTracking ? (
+                    <Bike size={20} color="#2EA86E" strokeWidth={2} />
+                  ) : (
+                    <Navigation size={20} color="#2EA86E" strokeWidth={2} />
+                  )}
+                </View>
+                <View style={styles.commuteHeaderCopy}>
+                  <Text style={styles.commuteTitle}>
+                    {commuteTracking.isTracking
+                      ? "Recording Commute..."
+                      : "Walk or Cycle to Earn"}
+                  </Text>
+                  <Text style={styles.commuteSubtitle}>
+                    {commuteTracking.isTracking
+                      ? `${commuteTracking.currentSpeedKmh.toFixed(1)} km/h • Auto-detecting mode`
+                      : "No motor vehicle • GPS verified speed"}
+                  </Text>
+                </View>
+                <View style={styles.commutePointsBadge}>
+                  <Text style={styles.commutePointsText}>
+                    +{commuteSummary.data?.todayPoints ?? 0} Karma Coins today
+                  </Text>
+                </View>
+              </View>
+
+              {/* Trip Result Banner */}
+              {commuteTracking.lastResult ? (
+                <View style={styles.tripResultBanner}>
+                  <View style={styles.tripResultHeader}>
+                    <CheckCircle2 size={16} color="#2EA86E" />
+                    <Text style={styles.tripResultTitle}>
+                      {commuteTracking.lastResult.mode === "walk"
+                        ? "🚶 Walk Logged"
+                        : commuteTracking.lastResult.mode === "cycle"
+                        ? "🚴 Cycle Logged"
+                        : "🚗 Motor Transit"}
+                    </Text>
+                  </View>
+                  <Text style={styles.tripResultDesc}>
+                    {commuteTracking.lastResult.message}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={commuteTracking.dismissResult}
+                    style={styles.tripResultDismiss}
+                  >
+                    <Text style={styles.tripResultDismissText}>Dismiss</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+
+              {/* Active Trip Telemetry */}
+              {commuteTracking.isTracking ? (
+                <View style={styles.liveTelemetryBox}>
+                  <View style={styles.telemetryItem}>
+                    <Text style={styles.telemetryValue}>
+                      {commuteTracking.distanceKm.toFixed(2)}
+                    </Text>
+                    <Text style={styles.telemetryLabel}>km traveled</Text>
+                  </View>
+                  <View style={styles.telemetryDivider} />
+                  <View style={styles.telemetryItem}>
+                    <Text style={styles.telemetryValue}>
+                      {Math.floor(commuteTracking.elapsedSec / 60)}:
+                      {(commuteTracking.elapsedSec % 60).toString().padStart(2, "0")}
+                    </Text>
+                    <Text style={styles.telemetryLabel}>duration</Text>
+                  </View>
+                  <View style={styles.telemetryDivider} />
+                  <View style={styles.telemetryItem}>
+                    <Text style={styles.telemetryValue}>
+                      {commuteTracking.currentSpeedKmh.toFixed(1)}
+                    </Text>
+                    <Text style={styles.telemetryLabel}>km/h speed</Text>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.commuteStatsRow}>
+                  <View>
+                    <Text style={styles.commuteDistanceText}>
+                      {(commuteSummary.data?.todayDistanceKm ?? 0).toFixed(2)} km
+                    </Text>
+                    <Text style={styles.commuteDistanceLabel}>
+                      Clean distance today ({commuteSummary.data?.tripsToday ?? 0} trips)
+                    </Text>
+                  </View>
+                  <View style={styles.commuteTiersPill}>
+                    <Text style={styles.commuteTiersText}>
+                      Walk: 10 coins/km • Cycle: 5 coins/km
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Action Button */}
+              {commuteTracking.isTracking ? (
+                <TouchableOpacity
+                  style={[styles.commuteCta, styles.commuteCtaStop]}
+                  onPress={commuteTracking.stopTracking}
+                  activeOpacity={0.85}
+                >
+                  <Square size={16} color="#FFFFFF" fill="#FFFFFF" />
+                  <Text style={styles.commuteCtaText}>End Trip & Claim Karma Coins</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[
+                    styles.commuteCta,
+                    (isWeb || commuteTracking.isSyncing) && styles.walkCtaMuted,
+                  ]}
+                  onPress={commuteTracking.startTracking}
+                  disabled={isWeb || commuteTracking.isSyncing}
+                  activeOpacity={0.85}
+                >
+                  <Play size={16} color="#FFFFFF" fill="#FFFFFF" />
+                  <Text style={styles.commuteCtaText}>
+                    {commuteTracking.isSyncing
+                      ? "Saving Trip..."
+                      : isWeb
+                      ? "Phone GPS Required"
+                      : "Start Commute Tracking"}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
           {/* ── NEXT BEST ACTION ── */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Your Next Best Action</Text>
@@ -760,12 +919,21 @@ export default function HomeScreen() {
 
           {/* ── STAT TILES ── */}
           <View style={styles.tileRow}>
+<<<<<<< HEAD
             <View style={[styles.tile, styles.tilePrimary]}>
               <Text style={styles.tileLabelOnPrimary}>Points</Text>
               <Text style={styles.tileValueOnPrimary}>
                 {me.data?.impact_points ?? user?.impact_points ?? 420}
               </Text>
               <Text style={styles.tileHintOnPrimary}>impact pts</Text>
+=======
+            <View style={[styles.tile, { flex: 1 }]}>
+              <Text style={styles.tileLabel}>Karma Coins</Text>
+              <Text style={[styles.tileValue, { color: "#2EA86E" }]}>
+                {me.data?.impact_points ?? user?.impact_points ?? 420}
+              </Text>
+              <Text style={styles.tileHint}>karma coins</Text>
+>>>>>>> 0a89030986d80ed0ce11f6ef943295ed1c5723ac
             </View>
             <View style={styles.tile}>
               <Text style={styles.tileLabel}>Residual</Text>
@@ -1093,6 +1261,21 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     gap: 22,
   },
+  leagueMiniCard: {
+    backgroundColor: "#FFF9EC",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#F0D898",
+    padding: 13,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  leagueMiniBadge: { width: 40, height: 40, borderRadius: 13, backgroundColor: "#FFF0C9", alignItems: "center", justifyContent: "center" },
+  leagueMiniCopy: { flex: 1, gap: 2 },
+  leagueMiniEyebrow: { color: "#A46C13", fontSize: 9, fontFamily: "Nunito_800ExtraBold", letterSpacing: 1.1 },
+  leagueMiniTitle: { color: "#183222", fontSize: 14, fontFamily: "Nunito_800ExtraBold" },
+  leagueMiniHint: { color: "#8F774C", fontSize: 10, fontFamily: "Nunito_600SemiBold" },
 
   // Walking rewards
   walkCard: {
@@ -1102,6 +1285,11 @@ const styles = StyleSheet.create({
     gap: 12,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(46,168,110,0.16)",
+<<<<<<< HEAD
+=======
+    boxShadow: "0px 2px 10px rgba(0,0,0,0.05)",
+    elevation: 2,
+>>>>>>> 0a89030986d80ed0ce11f6ef943295ed1c5723ac
   },
   walkHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
   walkIconBox: {
@@ -1201,6 +1389,95 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
 
+  // Commute Card
+  commuteCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: "rgba(46,168,110,0.16)",
+    boxShadow: "0px 2px 10px rgba(0,0,0,0.05)",
+    elevation: 2,
+  },
+  commuteHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
+  commuteIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(46,168,110,0.11)",
+  },
+  commuteHeaderCopy: { flex: 1, minWidth: 0 },
+  commuteTitle: { fontSize: 14, fontFamily: "Nunito_700Bold", color: "#183222" },
+  commuteSubtitle: { marginTop: 1, fontSize: 11, fontFamily: "Nunito_600SemiBold", color: "#2EA86E" },
+  commutePointsBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    backgroundColor: "rgba(46,168,110,0.1)",
+  },
+  commutePointsText: { fontSize: 11, fontFamily: "Nunito_700Bold", color: "#2EA86E" },
+  commuteStatsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#F4FAF6",
+    borderRadius: 14,
+    padding: 12,
+  },
+  commuteDistanceText: { fontSize: 20, fontFamily: "Nunito_800ExtraBold", color: "#183222" },
+  commuteDistanceLabel: { fontSize: 11, fontFamily: "Nunito_600SemiBold", color: "#7A9082", marginTop: 2 },
+  commuteTiersPill: {
+    backgroundColor: "rgba(46,168,110,0.12)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  commuteTiersText: { fontSize: 10, fontFamily: "Nunito_700Bold", color: "#2EA86E" },
+  liveTelemetryBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+    backgroundColor: "#EBF7F0",
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: "#A7E5C2",
+  },
+  telemetryItem: { alignItems: "center" },
+  telemetryValue: { fontSize: 20, fontFamily: "Nunito_800ExtraBold", color: "#183222" },
+  telemetryLabel: { fontSize: 10, fontFamily: "Nunito_600SemiBold", color: "#6A8372", marginTop: 2 },
+  telemetryDivider: { width: 1, height: 28, backgroundColor: "#C3EBD4" },
+  commuteCta: {
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#2EA86E",
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  commuteCtaStop: {
+    backgroundColor: "#E04F4F",
+  },
+  commuteCtaText: { fontSize: 13, fontFamily: "Nunito_700Bold", color: "#FFFFFF" },
+  tripResultBanner: {
+    backgroundColor: "#EBF7F0",
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#A7E5C2",
+    gap: 6,
+  },
+  tripResultHeader: { flexDirection: "row", alignItems: "center", gap: 6 },
+  tripResultTitle: { fontSize: 13, fontFamily: "Nunito_700Bold", color: "#183222" },
+  tripResultDesc: { fontSize: 12, fontFamily: "Nunito_400Regular", color: "#45614F", lineHeight: 16 },
+  tripResultDismiss: { alignSelf: "flex-end", paddingVertical: 2, paddingHorizontal: 6 },
+  tripResultDismissText: { fontSize: 11, fontFamily: "Nunito_700Bold", color: "#2EA86E" },
+
   // Sections
   section: {
     gap: 12,
@@ -1236,8 +1513,13 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     padding: 16,
     gap: 14,
+<<<<<<< HEAD
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(46,168,110,0.16)",
+=======
+    boxShadow: "0px 2px 12px rgba(0,0,0,0.06)",
+    elevation: 3,
+>>>>>>> 0a89030986d80ed0ce11f6ef943295ed1c5723ac
   },
   actionImpactBadge: {
     alignSelf: "flex-start",
@@ -1306,12 +1588,17 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 10,
     gap: 2,
+<<<<<<< HEAD
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(46,168,110,0.14)",
   },
   tilePrimary: {
     backgroundColor: "#2EA86E",
     borderColor: "transparent",
+=======
+    boxShadow: "0px 1px 8px rgba(0,0,0,0.05)",
+    elevation: 2,
+>>>>>>> 0a89030986d80ed0ce11f6ef943295ed1c5723ac
   },
   tileLabel: {
     fontSize: 10,
@@ -1353,8 +1640,13 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.92)",
     borderRadius: 22,
     overflow: "hidden",
+<<<<<<< HEAD
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(46,168,110,0.14)",
+=======
+    boxShadow: "0px 2px 10px rgba(0,0,0,0.05)",
+    elevation: 2,
+>>>>>>> 0a89030986d80ed0ce11f6ef943295ed1c5723ac
   },
 
   // Closet
@@ -1364,6 +1656,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 12,
     gap: 8,
+<<<<<<< HEAD
     overflow: "hidden",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(46,168,110,0.14)",
@@ -1373,6 +1666,10 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 12,
     overflow: "hidden",
+=======
+    boxShadow: "0px 1px 8px rgba(0,0,0,0.05)",
+    elevation: 2,
+>>>>>>> 0a89030986d80ed0ce11f6ef943295ed1c5723ac
   },
   closetName: {
     fontSize: 13,
@@ -1398,8 +1695,13 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.92)",
     borderRadius: 22,
     overflow: "hidden",
+<<<<<<< HEAD
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(46,168,110,0.14)",
+=======
+    boxShadow: "0px 2px 10px rgba(0,0,0,0.05)",
+    elevation: 2,
+>>>>>>> 0a89030986d80ed0ce11f6ef943295ed1c5723ac
   },
   activityRow: {
     flexDirection: "row",
@@ -1443,8 +1745,13 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 14,
     gap: 10,
+<<<<<<< HEAD
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(46,168,110,0.14)",
+=======
+    boxShadow: "0px 1px 8px rgba(0,0,0,0.05)",
+    elevation: 2,
+>>>>>>> 0a89030986d80ed0ce11f6ef943295ed1c5723ac
   },
   toolIconBox: {
     width: 40,

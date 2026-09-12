@@ -18,6 +18,7 @@ from app.auth.security import (
 from app.config import settings
 from app.db.models import (
     ActivityEventModel,
+    ChallengeModel,
     OffsetProjectModel,
     ProductModel,
     RewardModel,
@@ -34,6 +35,15 @@ from app.schemas import (
     AuthResponse,
     BarcodeLookupRequest,
     BaselineRequest,
+    CommuteSummaryResponse,
+    CommuteTripRequest,
+    CommuteTripResult,
+    ChallengeProgressRequest,
+    LeagueActionRequest,
+    LeagueActionSyncRequest,
+    LeagueRolloverRequest,
+    LeagueStatusResponse,
+    LeagueStandingsResponse,
     CompletedActionResult,
     DataMeterResponse,
     DemoUserSummary,
@@ -54,10 +64,17 @@ from app.schemas import (
     SignUpRequest,
     StepsMetricResponse,
     StepsSyncRequest,
+    SustainablePurchaseVerifyRequest,
+    SustainablePurchaseVerifyResponse,
     UserPreferences,
+    SolarImpactResponse,
+    SolarRecommendationActionResponse,
 )
 from app.seed.data import PHONE_ID
 from app.services import core as services
+from app.services import solar as solar_service
+from app.services import leaderboard as leaderboard_service
+from app.services import leagues as league_service
 
 router = APIRouter(prefix="/api/v1")
 
@@ -82,12 +99,23 @@ def signup(body: SignUpRequest, db: Session = Depends(get_db)):
             detail="An account with this email already exists",
         )
 
+    requested_username = (body.username or body.name).strip().lower().replace(" ", "-")
+    username_taken = db.query(UserModel).filter(UserModel.username == requested_username).first()
+    if username_taken:
+        if body.username:
+            raise HTTPException(status_code=400, detail="That username is already taken")
+        base_username = requested_username
+        suffix = 2
+        while db.query(UserModel).filter(UserModel.username == requested_username).first():
+            requested_username = f"{base_username}-{suffix}"
+            suffix += 1
     user_id = str(uuid4())
     _now_iso = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
     user = UserModel(
         id=user_id,
         name=body.name.strip(),
         email=email_clean,
+        username=requested_username,
         password_hash=hash_password(body.password),
         circularity_score=68,
         impact_points=100,
@@ -256,6 +284,165 @@ def circularity_score(
 
 
 # ==========================================
+# FRIENDS, LEADERBOARD & CHALLENGES
+# ==========================================
+
+
+@router.get("/users/search")
+def search_users(
+    q: str = Query(..., min_length=1, max_length=80),
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return leaderboard_service.search_users(db, q, current_user)
+
+
+@router.get("/friends")
+def friends(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return leaderboard_service.list_friends(db, current_user)
+
+
+@router.post("/friends/{username}")
+def add_friend(
+    username: str,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        return leaderboard_service.add_friend(db, current_user, username)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.delete("/friends/{username}")
+def remove_friend(
+    username: str,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    leaderboard_service.remove_friend(db, current_user, username)
+    return {"status": "removed"}
+
+
+@router.get("/leaderboard")
+def get_leaderboard(
+    scope: str = Query("global", pattern="^(global|friends)$"),
+    metric: str = Query("reward_points", pattern="^(reward_points|carbon_credit_score)$"),
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return leaderboard_service.leaderboard(db, current_user, scope, metric)
+
+
+@router.get("/challenges")
+def get_challenges(
+    cadence: str | None = Query(default=None, pattern="^(daily|weekly|monthly)$"),
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return leaderboard_service.list_challenges(db, current_user, cadence)
+
+
+@router.post("/challenges/{challenge_id}/progress")
+def update_challenge(
+    challenge_id: UUID,
+    body: ChallengeProgressRequest,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        return leaderboard_service.update_challenge_progress(db, current_user, challenge_id, body.progress)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/challenges/{challenge_id}/complete")
+def complete_challenge(
+    challenge_id: UUID,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Convenience endpoint for UI actions that complete a challenge at once."""
+    try:
+        challenge = db.query(ChallengeModel).filter(ChallengeModel.id == str(challenge_id)).first()
+        if challenge is None:
+            raise ValueError("Challenge not found")
+        return leaderboard_service.update_challenge_progress(db, current_user, challenge_id, challenge.goal_value)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+# ==========================================
+# MONTHLY CCS-ACTION LEAGUES
+# ==========================================
+
+
+@router.get("/league/status", response_model=LeagueStatusResponse)
+@router.get("/leagues/me", response_model=LeagueStatusResponse)
+def get_league_status(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return league_service.get_status(db, current_user)
+
+
+@router.get("/league/standings", response_model=LeagueStandingsResponse)
+@router.get("/leagues/standings", response_model=LeagueStandingsResponse)
+def get_league_standings(
+    scope: str = Query("global", pattern="^(global|friends)$"),
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        return league_service.standings(db, current_user, scope)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/league/actions", response_model=LeagueStatusResponse)
+@router.post("/leagues/actions/record")
+def record_league_action(
+    body: LeagueActionRequest,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        return league_service.record_action(db, current_user, **body.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/league/actions/sync")
+@router.post("/leagues/actions/sync")
+def sync_league_actions(
+    body: LeagueActionSyncRequest,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        actions = [item.model_dump() for item in body.actions]
+        return league_service.sync_actions(db, current_user, actions)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/league/rollover")
+@router.post("/leagues/rollover")
+def evaluate_league_rollover(
+    body: LeagueRolloverRequest | None = None,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # Rollover is deliberately request-driven rather than scheduler-driven.
+    count = league_service.rollover_all(db)
+    return {"status": "evaluated", "users_evaluated": count,
+            "league": league_service.get_status(db, current_user)}
+
+
+# ==========================================
 # KCS SCORE & ONBOARDING BASELINE
 # ==========================================
 
@@ -322,6 +509,110 @@ def sync_users_me_steps(
     db: Session = Depends(get_db),
 ):
     return services.sync_steps(body.steps, current_user, db)
+
+
+# ==========================================
+# IMPACT / SOLAR INTELLIGENCE + GREEN REWARDS
+#
+
+# ==========================================
+
+
+@router.get("/users/me/solar-impact", response_model=SolarImpactResponse)
+@router.get("/users/me/impact/solar", response_model=SolarImpactResponse)
+def users_me_solar_impact(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return the demo household solar dashboard and current recommendation state."""
+    return solar_service.build_solar_impact(current_user, db)
+
+
+@router.post(
+    "/users/me/solar-impact/recommendations/{recommendation_id}/accept",
+    response_model=SolarRecommendationActionResponse,
+)
+def accept_solar_recommendation(
+    recommendation_id: str,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return solar_service.accept_recommendation(current_user, db, recommendation_id)
+
+
+@router.post(
+    "/users/me/solar-impact/recommendations/{recommendation_id}/complete",
+    response_model=SolarRecommendationActionResponse,
+)
+def complete_solar_recommendation(
+    recommendation_id: str,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return solar_service.complete_recommendation(current_user, db, recommendation_id)
+# ==========================================
+# GPS COMMUTE REWARDS
+# ==========================================
+
+
+@router.post("/commute/log", response_model=CommuteTripResult)
+def log_commute(
+    body: CommuteTripRequest,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return services.log_commute_trip(
+        distance_km=body.distance_km,
+        duration_min=body.duration_min,
+        avg_speed_kmh=body.avg_speed_kmh,
+        user=current_user,
+        db=db,
+    )
+
+
+@router.get("/commute/summary", response_model=CommuteSummaryResponse)
+def commute_summary(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return services.build_commute_summary(current_user, db)
+
+
+# ==========================================
+# SUSTAINABLE PURCHASE VERIFICATION (DEMO)
+# ==========================================
+
+
+@router.post(
+    "/sustainable-purchases/verify",
+    response_model=SustainablePurchaseVerifyResponse,
+)
+def verify_sustainable_purchase(
+    body: SustainablePurchaseVerifyRequest,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Run the mock provider; no document bytes are uploaded or parsed yet."""
+    return services.verify_sustainable_purchase(
+        filename=body.filename,
+        mime_type=body.mime_type,
+        size_bytes=body.size_bytes,
+        user=current_user,
+        db=db,
+    )
+
+
+@router.post(
+    "/sustainable-purchases/reset",
+    response_model=SustainablePurchaseVerifyResponse,
+)
+def reset_sustainable_purchase(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Reset the demo EV verification so judges/evaluators can replay the flow."""
+    return services.reset_sustainable_purchase(user=current_user, db=db)
+
 
 
 # ==========================================

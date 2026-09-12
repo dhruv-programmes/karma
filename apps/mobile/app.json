@@ -26,7 +26,9 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow Carbon Loop to find nearby repair and recycling centers."
+          "locationWhenInUsePermission": "Allow Carbon Loop to detect walking and cycling commutes.",
+          "locationAlwaysAndWhenInUsePermission": "Allow Carbon Loop to track walking and cycling trips in the background to award green commute points.",
+          "isAndroidBackgroundLocationEnabled": true
         }
       ]
     ],
@@ -35,7 +37,9 @@
       "bundleIdentifier": "com.carbonloop.app",
       "infoPlist": {
         "NSCameraUsageDescription": "Scan product barcodes for circular decisions.",
-        "NSLocationWhenInUseUsageDescription": "Find nearby repair and recycling facilities."
+        "NSLocationWhenInUseUsageDescription": "Allow Carbon Loop to detect walking and cycling commutes.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow Carbon Loop to track walking and cycling trips in the background to award green commute points.",
+        "UIBackgroundModes": ["location"]
       }
     },
     "android": {
@@ -51,7 +55,10 @@
         "CAMERA",
         "ACTIVITY_RECOGNITION",
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION"
       ],
       "package": "com.carbonloop.app"
     },

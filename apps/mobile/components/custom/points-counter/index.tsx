@@ -43,7 +43,7 @@ export function PointsCounter({ points, visible, label }: Props) {
       className="absolute bottom-28 self-center bg-accent px-6 py-3 rounded-full"
     >
       <Text bold className="text-accent-foreground">
-        {label ?? `+${points} Impact Points`}
+        {label ?? `+${points} Karma Coins`}
       </Text>
     </Animated.View>
   );

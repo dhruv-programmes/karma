@@ -61,7 +61,7 @@ const FALLBACK_DEMO_USERS: DemoUserSummary[] = [
     id: "11111111-1111-1111-1111-111111111111",
     name: "Aisha Sharma",
     email: "aisha@example.com",
-    role_description: "Urban Commuter · 74 Circularity Score · 420 pts",
+    role_description: "Urban Commuter · Carbon Credit Score 740 · 420 Karma Coins",
     circularity_score: 74,
     impact_points: 420,
     streak_days: 5,
@@ -71,7 +71,7 @@ const FALLBACK_DEMO_USERS: DemoUserSummary[] = [
     id: "11111111-1111-1111-1111-111111111112",
     name: "Rohan Patel",
     email: "rohan@example.com",
-    role_description: "Eco Minimalist · 88 Circularity Score · 850 pts",
+    role_description: "Eco Minimalist · Carbon Credit Score 810 · 850 Karma Coins",
     circularity_score: 88,
     impact_points: 850,
     streak_days: 19,
@@ -81,7 +81,7 @@ const FALLBACK_DEMO_USERS: DemoUserSummary[] = [
     id: "11111111-1111-1111-1111-111111111113",
     name: "Maya Sen",
     email: "maya@example.com",
-    role_description: "Convenience Shopper · 52 Circularity Score · 110 pts",
+    role_description: "Convenience Shopper · Carbon Credit Score 560 · 110 Karma Coins",
     circularity_score: 52,
     impact_points: 110,
     streak_days: 2,
@@ -339,7 +339,7 @@ export default function SignInScreen() {
           <Button
             onPress={() => handleSignIn()}
             disabled={loading}
-            className="mt-1 h-12 rounded-xl bg-primary shadow-sm opacity-100"
+            className="mt-1 h-12 rounded-xl bg-primary opacity-100"
           >
             {loading ? (
               <HStack className="items-center gap-2 min-w-0">

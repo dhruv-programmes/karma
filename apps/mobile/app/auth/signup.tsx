@@ -212,7 +212,7 @@ export default function SignUpScreen() {
                 onPress={() => setSelectedBudget(opt.kg)}
                 className={`p-3.5 rounded-2xl border transition-all ${
                   isSelected
-                    ? "bg-card border-primary shadow-sm"
+                    ? "bg-card border-primary"
                     : "bg-card/70 border-border/60 hover:bg-card"
                 }`}
               >

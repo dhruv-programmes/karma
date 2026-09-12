@@ -161,7 +161,7 @@ export default function GoalScreen() {
                     onPress={() => setReductionPct(step)}
                     className={`flex-1 min-w-[44px] py-2.5 px-1 rounded-xl items-center justify-center border transition-all ${
                       isSelected
-                        ? "bg-primary border-primary shadow-sm"
+                        ? "bg-primary border-primary"
                         : "bg-secondary/70 border-border/80 active:bg-secondary"
                     }`}
                   >
@@ -205,7 +205,7 @@ export default function GoalScreen() {
                   onPress={() => togglePriority(item.id)}
                   className={`p-3.5 rounded-2xl border transition-all ${
                     isSelected
-                      ? "bg-card border-primary shadow-sm"
+                      ? "bg-card border-primary"
                       : "bg-card/70 border-border/70 active:bg-card"
                   }`}
                 >

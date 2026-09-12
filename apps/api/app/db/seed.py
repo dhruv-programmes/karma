@@ -71,9 +71,13 @@ DEMO_USER_DEFAULTS = (
         "offset_kg_total": 0.0,
         "monthly_budget_kg": 90.0,
         "preferences_json": json.dumps({"budget_goal": "on_track", "persona": "balanced_commuter"}),
-        "provisional_score": 681,
-        "score_confidence": 0.4,
-        "score_state": "provisional",
+        # Aisha is the verified demo persona used for reward-gating flows.
+        # Keep both score columns aligned so older clients that still render
+        # the provisional field also show the canonical CCS of 767.
+        "provisional_score": 767,
+        "verified_score": 767,
+        "score_confidence": 1.0,
+        "score_state": "verified",
         "baseline_total_kg": 96.0,
         "baseline_created_at": "2026-03-01T00:00:00Z",
     },
@@ -227,6 +231,22 @@ def _backfill_kcs_users(db: Session) -> None:
     changed = False
     for u in users:
         try:
+            # The Aisha persona is intentionally the verified demo account so
+            # judges can exercise high-value reward redemption without first
+            # completing the real data-verification flow.
+            if (u.email or "").lower() == "aisha@example.com":
+                if getattr(u, "provisional_score", None) != 767:
+                    u.provisional_score = 767
+                    changed = True
+                if getattr(u, "verified_score", None) != 767:
+                    u.verified_score = 767
+                    changed = True
+                if getattr(u, "score_state", None) != "verified":
+                    u.score_state = "verified"
+                    changed = True
+                if getattr(u, "score_confidence", None) != 1.0:
+                    u.score_confidence = 1.0
+                    changed = True
             if getattr(u, "provisional_score", None) is None:
                 email = (u.email or "").lower()
                 if email == "aisha@example.com":
@@ -408,10 +428,10 @@ def seed_database_if_empty(db: Session) -> None:
             offset_kg_total=0.0,
             monthly_budget_kg=90.0,
             preferences_json=json.dumps({"budget_goal": "on_track", "persona": "balanced_commuter"}),
-            provisional_score=681,
-            verified_score=None,
-            score_confidence=0.4,
-            score_state="provisional",
+            provisional_score=767,
+            verified_score=767,
+            score_confidence=1.0,
+            score_state="verified",
             baseline_total_kg=96.0,
             baseline_created_at="2026-03-01T00:00:00Z",
         )

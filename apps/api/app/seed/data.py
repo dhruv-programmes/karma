@@ -1086,6 +1086,10 @@ class DemoState:
             owned_product_ids=list(OWNED_PRODUCT_IDS),
             unlocked_badge_ids=[],
             monthly_budget_kg=90.0,
+            provisional_score=767,
+            verified_score=767,
+            score_state="verified",
+            score_confidence=1.0,
         )
         self.completed_action_ids: set[UUID] = set()
         self.redeemed_reward_ids: set[UUID] = set()

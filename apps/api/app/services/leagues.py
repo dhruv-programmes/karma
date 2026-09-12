@@ -74,6 +74,148 @@ DAILY_CATEGORY_CAP = 200
 MONTHLY_POINTS_CAP = 2500
 DIMINISHING_RETURNS = (1.0, 0.5, 0.25, 0.1)
 
+# Reward bonuses are intentionally modest and are paid in Impact/Karma Points,
+# not in Carbon Credit Score or league points.  A qualifying action can earn
+# one streak bonus per calendar day; this prevents repeating the same action
+# from minting an unbounded daily streak reward.
+STREAK_BONUS_FORMULA_VERSION = "streak-bonus-v1"
+STREAK_BONUS_RATE_PER_DAY = 0.05
+STREAK_BONUS_MAX_RATE = 0.50
+STREAK_BONUS_MAX_POINTS = 50
+LEAGUE_REWARD_MULTIPLIERS: dict[str, float] = {
+    "bronze": 1.00,
+    "silver": 1.05,
+    "gold": 1.10,
+    "platinum": 1.15,
+}
+LEAGUE_BONUS_MAX_POINTS = 40
+
+
+def calculate_streak_bonus(base_reward_points: int, streak_days: int) -> int:
+    """Return the bounded streak bonus for one verified green action.
+
+    ``base_reward * min(streak_days * 5%, 50%)`` is rounded to whole points
+    and capped at 50 points.  Thus the streak can feel meaningful without
+    making a high-value action or a very long streak economically dominant.
+    """
+    try:
+        base = max(0, int(base_reward_points))
+        days = max(0, int(streak_days))
+    except (TypeError, ValueError):
+        return 0
+    rate = min(STREAK_BONUS_MAX_RATE, days * STREAK_BONUS_RATE_PER_DAY)
+    return min(STREAK_BONUS_MAX_POINTS, max(0, round(base * rate)))
+
+
+def league_reward_multiplier(league_slug: str) -> float:
+    """Return the server-owned multiplier for the user's current league."""
+    return LEAGUE_REWARD_MULTIPLIERS.get(str(league_slug).lower(), 1.0)
+
+
+def calculate_league_bonus(base_reward_points: int, league_slug: str) -> int:
+    """Return the bounded reward bonus for the current league tier."""
+    try:
+        base = max(0, int(base_reward_points))
+    except (TypeError, ValueError):
+        return 0
+    multiplier = league_reward_multiplier(league_slug)
+    return min(LEAGUE_BONUS_MAX_POINTS, max(0, round(base * (multiplier - 1.0))))
+
+
+def _advance_streak(user: UserModel, today: date) -> int:
+    """Advance a user's consecutive verified-action streak exactly once/day."""
+    today_key = today.isoformat()
+    last_key = getattr(user, "streak_last_activity_date", None)
+    try:
+        last_day = date.fromisoformat(last_key) if last_key else None
+    except (TypeError, ValueError):
+        last_day = None
+
+    current = max(1, int(getattr(user, "streak_days", 0) or 0))
+    if last_day == today:
+        # Multiple different green actions in one day do not inflate streak
+        # length, and the date remains the source of truth for idempotency.
+        pass
+    elif last_day == today - timedelta(days=1):
+        current += 1
+    else:
+        # Legacy rows have no verifiable date. Start a fresh evidence-backed
+        # streak rather than trusting a stale display-only counter.
+        current = 1
+    user.streak_days = current
+    user.streak_last_activity_date = today_key
+    return current
+
+
+def _award_reward_bonuses(
+    db: Session,
+    user: UserModel,
+    row: UserLeagueStateModel,
+    reward_points: int | None,
+    today: date,
+    action_type: str,
+    action_key: str,
+) -> dict[str, int | float]:
+    """Apply one eligible action's streak/league bonuses transactionally.
+
+    ``None`` means the caller is recording a league-only action with no known
+    Impact Points base reward; it must not mutate the user's reward balance.
+    """
+    if reward_points is None or int(reward_points) <= 0:
+        return {
+            "reward_points_base": 0,
+            "streak_bonus_points": 0,
+            "league_bonus_points": 0,
+            "reward_points_total": 0,
+            "league_reward_multiplier": league_reward_multiplier(row.current_league_slug),
+            "streak_days": int(getattr(user, "streak_days", 0) or 0),
+        }
+
+    base = int(reward_points)
+    streak_days = _advance_streak(user, today)
+    streak_bonus = 0
+    if getattr(user, "streak_last_bonus_date", None) != today.isoformat():
+        streak_bonus = calculate_streak_bonus(base, streak_days)
+        user.streak_last_bonus_date = today.isoformat()
+    multiplier = league_reward_multiplier(row.current_league_slug)
+    league_bonus = calculate_league_bonus(base, row.current_league_slug)
+    total = streak_bonus + league_bonus
+    if total:
+        user.impact_points = int(user.impact_points or 0) + total
+        user.loop_level = max(1, int(user.impact_points) // 250 + 1)
+    formula_meta = {
+        "action_key": action_key,
+        "action_type": action_type,
+        "base_reward_points": base,
+        "streak_days": streak_days,
+        "streak_bonus_points": streak_bonus,
+        "league": row.current_league_slug,
+        "league_reward_multiplier": multiplier,
+        "league_bonus_points": league_bonus,
+        "formula_version": STREAK_BONUS_FORMULA_VERSION,
+    }
+    if streak_bonus:
+        log_activity_event(
+            user, db, "streak_bonus", f"{streak_days}-day green streak bonus",
+            f"+{streak_bonus} Impact Points · {action_type.replace('_', ' ')}",
+            points_delta=streak_bonus, meta={**formula_meta, "bonus_kind": "streak"},
+        )
+    if league_bonus:
+        log_activity_event(
+            user, db, "league_bonus", f"{row.current_league_slug.title()} league bonus",
+            f"+{league_bonus} Impact Points · {multiplier:.2f}× action reward",
+            points_delta=league_bonus,
+            meta={**formula_meta, "bonus_kind": "league"},
+        )
+    return {
+        "reward_points_base": base,
+        "streak_bonus_points": streak_bonus,
+        "league_bonus_points": league_bonus,
+        "reward_points_total": base + total,
+        "league_reward_multiplier": multiplier,
+        "streak_days": streak_days,
+    }
+
 
 def season_key(day: date | None = None) -> str:
     return (day or date.today()).strftime("%Y-%m")
@@ -292,6 +434,7 @@ def record_action(
     verified: bool = True,
     source: str = "app",
     evidence: dict | None = None,
+    reward_points: int | None = None,
     today: date | None = None,
     _commit: bool = True,
 ) -> dict:
@@ -311,8 +454,23 @@ def record_action(
         LeagueActionLogModel.action_key == action_key,
     ).first()
     if existing is not None:
+        existing_evidence = {}
+        try:
+            existing_evidence = json.loads(existing.evidence_json or "{}")
+        except (TypeError, ValueError):
+            pass
         payload = _status_payload(db, user, row)
-        payload.update({"action_key": action_key, "awarded_points": existing.awarded_points, "already_recorded": True})
+        payload.update({
+            "action_key": action_key,
+            "awarded_points": existing.awarded_points,
+            "already_recorded": True,
+            "reward_points_base": int(existing_evidence.get("reward_points_base", 0) or 0),
+            "streak_bonus_points": int(existing_evidence.get("streak_bonus_points", 0) or 0),
+            "league_bonus_points": int(existing_evidence.get("league_bonus_points", 0) or 0),
+            "reward_points_total": int(existing_evidence.get("reward_points_total", 0) or 0),
+            "league_reward_multiplier": float(existing_evidence.get("league_reward_multiplier", 1.0) or 1.0),
+            "streak_days": int(existing_evidence.get("streak_days", getattr(user, "streak_days", 0)) or 0),
+        })
         if _commit:
             db.commit()
         return payload
@@ -345,12 +503,17 @@ def record_action(
     stamp = datetime.combine(today, datetime.min.time(), tzinfo=timezone.utc) + timedelta(
         seconds=len(month_rows)
     )
+    bonus = _award_reward_bonuses(
+        db, user, row, reward_points, today, action_type, action_key,
+    )
+    action_evidence = dict(evidence or {})
+    action_evidence.update(bonus)
     event = LeagueActionLogModel(
         id=str(uuid4()), user_id=user.id, action_key=action_key,
         action_type=action_type, source=source, verified=True,
         week_key=week_key(today), season_key=season_key(today),
         base_points=base_points, awarded_points=awarded,
-        evidence_json=json.dumps(evidence or {}), created_at=stamp,
+        evidence_json=json.dumps(action_evidence), created_at=stamp,
     )
     db.add(event)
     row.season_points += awarded
@@ -368,6 +531,7 @@ def record_action(
     payload = _status_payload(db, user, row)
     payload.update({"action_key": action_key, "base_points": base_points, "awarded_points": awarded,
                     "already_recorded": False, "promoted": promoted,
+                    **bonus,
                     "impact_points": int(user.impact_points or 0),
                     "carbon_credit_score": int(user.verified_score if user.verified_score is not None else (user.provisional_score or 650))})
     return payload

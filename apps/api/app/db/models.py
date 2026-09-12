@@ -37,6 +37,11 @@ class UserModel(Base):
     circularity_score = Column(Integer, default=70, nullable=False)
     impact_points = Column(Integer, default=0, nullable=False)
     streak_days = Column(Integer, default=1, nullable=False)
+    # Calendar dates used by the verified-action streak bonus.  These are
+    # nullable so legacy/demo accounts can be upgraded without inventing
+    # historical activity.
+    streak_last_activity_date = Column(String(10), nullable=True)
+    streak_last_bonus_date = Column(String(10), nullable=True)
     trend_delta = Column(Integer, default=0, nullable=False)
     loop_level = Column(Integer, default=1, nullable=False)
     offset_kg_total = Column(Float, default=0.0, nullable=False)
@@ -556,6 +561,8 @@ USER_MIGRATION_COLUMNS: dict[str, str] = {
     "baseline_total_kg": "FLOAT",
     "data_meter_json": "TEXT",
     "baseline_created_at": "VARCHAR(50)",
+    "streak_last_activity_date": "VARCHAR(10)",
+    "streak_last_bonus_date": "VARCHAR(10)",
 }
 
 

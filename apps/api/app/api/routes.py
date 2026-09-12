@@ -525,7 +525,8 @@ def sync_users_me_steps(
             league_service.record_action(
                 db, current_user,
                 action_key=f"steps:{result['date']}:{result['steps']}",
-                action_type="steps", source="steps", evidence={"steps": result["steps"]},
+                action_type="steps", source="steps", reward_points=result.get("points_delta", 0),
+                evidence={"steps": result["steps"]},
             )
         except Exception:
             db.rollback()
@@ -576,7 +577,8 @@ def complete_solar_recommendation(
             league_service.record_action(
                 db, current_user,
                 action_key=f"solar:{recommendation_id}",
-                action_type="solar", source="solar", evidence={"recommendation_id": recommendation_id},
+                action_type="solar", source="solar", reward_points=result.get("points_awarded", 0),
+                evidence={"recommendation_id": recommendation_id},
             )
         except Exception:
             db.rollback()
@@ -604,7 +606,7 @@ def log_commute(
             league_service.record_action(
                 db, current_user,
                 action_key=f"commute:{result['trip_id']}",
-                action_type="commute", source="commute",
+                action_type="commute", source="commute", reward_points=result.get("points_awarded", 0),
                 evidence={"trip_id": result["trip_id"], "mode": result["mode"]},
             )
         except Exception:
@@ -648,6 +650,7 @@ def verify_sustainable_purchase(
                 db, current_user,
                 action_key=f"sustainable-purchase:{body.filename.strip().lower()}",
                 action_type="sustainable_purchase", source="sustainable_purchase",
+                reward_points=result.get("reward_points", 0),
                 evidence={"filename": body.filename, "provider": result.get("provider")},
             )
         except Exception:
@@ -739,7 +742,7 @@ def import_transactions(
             league_service.record_action(
                 db, current_user,
                 action_key=f"receipt-import:{datetime.now(timezone.utc).isoformat()}",
-                action_type="receipt", source="receipt",
+                action_type="receipt", source="receipt", reward_points=reward_points_awarded,
                 evidence={"line_items": len(created), "reward_points": reward_points_awarded},
             )
         except Exception:
@@ -768,6 +771,24 @@ def parse_receipt(
 ):
     payload = body or ReceiptParseRequest()
     result = services.parse_receipt_text(payload.text, payload.use_demo, current_user, db)
+    if result.get("reward_points_awarded", 0):
+        try:
+            transaction_keys = []
+            for item in result.get("transactions", []):
+                item_id = getattr(item, "id", None)
+                if item_id is None and isinstance(item, dict):
+                    item_id = item.get("id")
+                if item_id is not None:
+                    transaction_keys.append(str(item_id))
+            league_service.record_action(
+                db, current_user,
+                action_key="receipt-parse:" + ":".join(transaction_keys),
+                action_type="receipt", source="receipt",
+                reward_points=result["reward_points_awarded"],
+                evidence={"line_items": result.get("imported", 0), "flow": "receipt_parse"},
+            )
+        except Exception:
+            db.rollback()
     return ReceiptParseResult(**result)
 
 
@@ -790,6 +811,17 @@ def process_document(
     db: Session = Depends(get_db),
 ):
     result = services.process_document_example(body.example_id, current_user, db)
+    if result.get("reward_points_awarded", 0):
+        try:
+            league_service.record_action(
+                db, current_user,
+                action_key=f"document:{body.example_id}:process",
+                action_type="receipt", source="document",
+                reward_points=result["reward_points_awarded"],
+                evidence={"example_id": body.example_id, "flow": "document_process"},
+            )
+        except Exception:
+            db.rollback()
     return DocumentProcessResult(**result)
 
 
@@ -802,6 +834,19 @@ def confirm_document(
     result = services.confirm_document_import(
         body.example_id, body.items, current_user, db
     )
+    if result.get("reward_points_awarded", 0):
+        try:
+            selected = ":".join(str(item.get("id") or index) for index, item in enumerate(body.items))
+            digest = hashlib.sha256(selected.encode("utf-8")).hexdigest()[:24]
+            league_service.record_action(
+                db, current_user,
+                action_key=f"document:{body.example_id}:confirm:{digest}",
+                action_type="receipt", source="document",
+                reward_points=result["reward_points_awarded"],
+                evidence={"example_id": body.example_id, "flow": "document_confirm"},
+            )
+        except Exception:
+            db.rollback()
     return DocumentConfirmResult(**result)
 
 
@@ -881,7 +926,8 @@ def complete_action_endpoint(
                 db, current_user,
                 action_key=f"action:{action_id}",
                 action_type=str(result.get("action_type") or (action_type.value if action_type else "repair")).lower(),
-                source="action", evidence={"action_id": str(action_id)},
+                source="action", reward_points=result.get("points_awarded", 0),
+                evidence={"action_id": str(action_id)},
             )
         except Exception:
             db.rollback()

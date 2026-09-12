@@ -72,6 +72,7 @@ export function LootboxReveal({
   const vaultFloat = useRef(new Animated.Value(0)).current;
   const vaultGlow = useRef(new Animated.Value(0)).current;
   const vaultShake = useRef(new Animated.Value(0)).current;
+  const lidOpen = useRef(new Animated.Value(0)).current;
   const flashOpacity = useRef(new Animated.Value(0)).current;
   const shockwave1 = useRef(new Animated.Value(0)).current;
   const shockwave2 = useRef(new Animated.Value(0)).current;
@@ -86,6 +87,17 @@ export function LootboxReveal({
     if (!visible) {
       setPhase("vault");
       setDisplayedPoints(0);
+      vaultFloat.setValue(0);
+      vaultGlow.setValue(0);
+      vaultShake.setValue(0);
+      lidOpen.setValue(0);
+      flashOpacity.setValue(0);
+      shockwave1.setValue(0);
+      shockwave2.setValue(0);
+      particlesAnim.setValue(0);
+      crestSpring.setValue(0);
+      counterAnim.setValue(0);
+      achievementFade.setValue(0);
       return;
     }
 
@@ -156,12 +168,20 @@ export function LootboxReveal({
     setPhase("bursting");
 
     // Phase 1: Micro-shake building up tension
-    Animated.sequence([
-      Animated.timing(vaultShake, { toValue: 8, duration: 50, useNativeDriver: isNative }),
-      Animated.timing(vaultShake, { toValue: -8, duration: 50, useNativeDriver: isNative }),
-      Animated.timing(vaultShake, { toValue: 6, duration: 50, useNativeDriver: isNative }),
-      Animated.timing(vaultShake, { toValue: -6, duration: 50, useNativeDriver: isNative }),
-      Animated.timing(vaultShake, { toValue: 0, duration: 50, useNativeDriver: isNative }),
+    Animated.parallel([
+      Animated.sequence([
+        Animated.timing(vaultShake, { toValue: 8, duration: 50, useNativeDriver: isNative }),
+        Animated.timing(vaultShake, { toValue: -8, duration: 50, useNativeDriver: isNative }),
+        Animated.timing(vaultShake, { toValue: 6, duration: 50, useNativeDriver: isNative }),
+        Animated.timing(vaultShake, { toValue: -6, duration: 50, useNativeDriver: isNative }),
+        Animated.timing(vaultShake, { toValue: 0, duration: 50, useNativeDriver: isNative }),
+      ]),
+      Animated.timing(lidOpen, {
+        toValue: 1,
+        duration: 480,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: isNative,
+      }),
     ]).start(() => {
       // Phase 2: Massive Flash & Particle Shockwave Burst
       Animated.parallel([
@@ -322,6 +342,10 @@ export function LootboxReveal({
                 activeOpacity={0.9}
                 onPress={handleOpenVault}
                 style={styles.vaultWrapper}
+                accessibilityRole="button"
+                accessibilityLabel="Reward vault"
+                accessibilityHint="Opens the verified sustainable purchase reward"
+                accessibilityState={{ disabled: phase !== "vault" }}
               >
                 {/* Floating ambient rising particles */}
                 {AMBIENT_SPARKLES.map((spark, idx) => {
@@ -364,7 +388,8 @@ export function LootboxReveal({
                   ]}
                 />
 
-                {/* 3D-styled Eco Vault Body */}
+                {/* Layered pseudo-3D reward vault. Native views keep this
+                    consistent on web and on a device without a 3D runtime. */}
                 <Animated.View
                   style={[
                     styles.vaultBox,
@@ -381,25 +406,80 @@ export function LootboxReveal({
                     },
                   ]}
                 >
-                  {/* Energy Conduit Stripes */}
-                  <View style={styles.vaultConduitTop} />
-                  <View style={styles.vaultConduitBottom} />
-
-                  {/* Vault Center Glowing Core */}
-                  <View style={styles.vaultCore}>
-                    <Animated.View
-                      style={[
-                        styles.vaultCoreGlow,
-                        {
-                          opacity: vaultGlow.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }),
-                          transform: [
-                            { scale: vaultGlow.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.25] }) },
-                          ],
-                        },
-                      ]}
-                    />
-                    <Zap size={38} color="#FBBF24" fill="#FBBF24" strokeWidth={1.5} />
+                  <View style={styles.vaultBackFace} />
+                  <View style={styles.vaultSideLeft} />
+                  <View style={styles.vaultSideRight} />
+                  <View style={styles.vaultBottomFace} />
+                  <View style={styles.vaultInnerCavity}>
+                    <View style={styles.vaultCavityLine} />
+                    <View style={styles.vaultCavityCore}>
+                      <Sparkles size={14} color="#5EEAD4" strokeWidth={2.2} />
+                    </View>
                   </View>
+
+                  <Animated.View
+                    style={[
+                      styles.vaultLid,
+                      {
+                        transform: [
+                          { perspective: 700 },
+                          {
+                            translateY: lidOpen.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [0, -18],
+                            }),
+                          },
+                          {
+                            rotateX: lidOpen.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: ["0deg", "-72deg"],
+                            }),
+                          },
+                        ],
+                      },
+                    ]}
+                  >
+                    <LinearGradient
+                      colors={["#1B5940", "#0E3929"]}
+                      start={{ x: 0.1, y: 0 }}
+                      end={{ x: 0.9, y: 1 }}
+                      style={styles.vaultLidGradient}
+                    >
+                      <View style={styles.vaultLidInset} />
+                      <View style={styles.vaultLidMark}>
+                        <Zap size={18} color="#FBBF24" fill="#FBBF24" strokeWidth={1.7} />
+                      </View>
+                    </LinearGradient>
+                  </Animated.View>
+
+                  <LinearGradient
+                    colors={["#174B36", "#0B2A1E"]}
+                    start={{ x: 0.1, y: 0 }}
+                    end={{ x: 0.9, y: 1 }}
+                    style={styles.vaultFrontFace}
+                  >
+                    <View style={styles.vaultLabelRow}>
+                      <Text style={styles.vaultLabel}>KARMA</Text>
+                      <Text style={styles.vaultLabel}>REWARD</Text>
+                    </View>
+
+                    {/* Vault Center Glowing Core */}
+                    <View style={styles.vaultCore}>
+                      <Animated.View
+                        style={[
+                          styles.vaultCoreGlow,
+                          {
+                            opacity: vaultGlow.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }),
+                            transform: [
+                              { scale: vaultGlow.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.25] }) },
+                            ],
+                          },
+                        ]}
+                      />
+                      <Zap size={38} color="#FBBF24" fill="#FBBF24" strokeWidth={1.5} />
+                    </View>
+                    <Text style={styles.vaultHint}>VERIFIED ENERGY CREDIT</Text>
+                  </LinearGradient>
 
                   {/* Glowing Seam Light Beams */}
                   <Animated.View
@@ -624,35 +704,159 @@ const styles = StyleSheet.create({
     boxShadow: "0px 0px 36px rgba(46, 168, 110, 0.9)",
   },
   vaultBox: {
-    width: 170,
-    height: 170,
-    borderRadius: 36,
-    backgroundColor: "#0D2E20",
-    borderWidth: 2,
-    borderColor: "rgba(247, 201, 72, 0.75)",
+    width: 190,
+    height: 178,
     alignItems: "center",
     justifyContent: "center",
-    boxShadow: "0px 8px 24px rgba(251, 191, 36, 0.45)",
+    overflow: "visible",
+    boxShadow: "0px 14px 28px rgba(251, 191, 36, 0.28)",
     elevation: 12,
+  },
+  vaultBackFace: {
+    position: "absolute",
+    top: 16,
+    left: 10,
+    width: 170,
+    height: 140,
+    borderRadius: 22,
+    backgroundColor: "#08271B",
+    borderWidth: 1,
+    borderColor: "rgba(94,234,212,0.3)",
+  },
+  vaultSideLeft: {
+    position: "absolute",
+    left: 0,
+    top: 34,
+    width: 16,
+    height: 126,
+    backgroundColor: "#0A3021",
+    borderLeftWidth: 1,
+    borderColor: "rgba(94,234,212,0.35)",
+    transform: [{ skewY: "-17deg" }],
+  },
+  vaultSideRight: {
+    position: "absolute",
+    right: 0,
+    top: 34,
+    width: 16,
+    height: 126,
+    backgroundColor: "#071E15",
+    borderRightWidth: 1,
+    borderColor: "rgba(247,201,72,0.42)",
+    transform: [{ skewY: "17deg" }],
+  },
+  vaultBottomFace: {
+    position: "absolute",
+    left: 14,
+    top: 148,
+    width: 162,
+    height: 14,
+    backgroundColor: "#061A12",
+    borderBottomWidth: 1,
+    borderColor: "rgba(94,234,212,0.3)",
+    transform: [{ skewX: "-20deg" }],
+  },
+  vaultInnerCavity: {
+    position: "absolute",
+    top: 16,
+    left: 10,
+    width: 170,
+    height: 52,
+    borderRadius: 20,
+    backgroundColor: "#03150D",
+    borderWidth: 1,
+    borderColor: "rgba(94,234,212,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
     overflow: "hidden",
   },
-  vaultConduitTop: {
+  vaultCavityLine: {
     position: "absolute",
     top: 0,
-    left: 20,
-    right: 20,
-    height: 3,
-    backgroundColor: "#5EEAD4",
-    opacity: 0.6,
-  },
-  vaultConduitBottom: {
-    position: "absolute",
     bottom: 0,
-    left: 20,
-    right: 20,
-    height: 3,
-    backgroundColor: "#5EEAD4",
-    opacity: 0.6,
+    width: 1,
+    backgroundColor: "rgba(94,234,212,0.5)",
+  },
+  vaultCavityCore: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(94,234,212,0.14)",
+  },
+  vaultLid: {
+    position: "absolute",
+    top: 9,
+    left: 10,
+    width: 170,
+    height: 48,
+    zIndex: 5,
+    borderRadius: 21,
+    borderWidth: 1.5,
+    borderColor: "rgba(247,201,72,0.86)",
+    backfaceVisibility: "hidden",
+  },
+  vaultLidGradient: {
+    flex: 1,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  vaultLidInset: {
+    position: "absolute",
+    left: 12,
+    right: 12,
+    top: 8,
+    bottom: 8,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(94,234,212,0.34)",
+  },
+  vaultLidMark: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(247,201,72,0.12)",
+  },
+  vaultFrontFace: {
+    position: "absolute",
+    top: 35,
+    left: 10,
+    width: 170,
+    height: 125,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: "rgba(247,201,72,0.78)",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    zIndex: 2,
+  },
+  vaultLabelRow: {
+    position: "absolute",
+    top: 10,
+    left: 14,
+    right: 14,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  vaultLabel: {
+    color: "rgba(191,247,216,0.72)",
+    fontSize: 8,
+    letterSpacing: 1.3,
+    fontFamily: "IBMPlexMono_600SemiBold",
+  },
+  vaultHint: {
+    position: "absolute",
+    bottom: 10,
+    color: "rgba(191,247,216,0.72)",
+    fontSize: 7,
+    letterSpacing: 0.8,
+    fontFamily: "IBMPlexMono_600SemiBold",
   },
   vaultCore: {
     width: 76,
@@ -673,17 +877,21 @@ const styles = StyleSheet.create({
   },
   seamBeamHorizontal: {
     position: "absolute",
-    left: 0,
-    right: 0,
+    top: 97,
+    left: 10,
+    right: 10,
     height: 1.5,
     backgroundColor: "#FBBF24",
+    zIndex: 4,
   },
   seamBeamVertical: {
     position: "absolute",
-    top: 0,
-    bottom: 0,
+    top: 35,
+    bottom: 18,
+    left: 94,
     width: 1.5,
     backgroundColor: "#FBBF24",
+    zIndex: 4,
   },
   cornerNut: {
     position: "absolute",
@@ -692,10 +900,10 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: "#FBBF24",
   },
-  cornerTL: { top: 10, left: 10 },
-  cornerTR: { top: 10, right: 10 },
-  cornerBL: { bottom: 10, left: 10 },
-  cornerBR: { bottom: 10, right: 10 },
+  cornerTL: { top: 28, left: 18 },
+  cornerTR: { top: 28, right: 18 },
+  cornerBL: { bottom: 24, left: 18 },
+  cornerBR: { bottom: 24, right: 18 },
 
   openRewardBtn: {
     flexDirection: "row",

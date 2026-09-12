@@ -239,6 +239,7 @@ def build_steps_metric(user: UserModel, db: Session, today: date | None = None) 
         "date": end,
         "steps": steps,
         "points_awarded": earned_points,
+        "points_delta": 0,
         "daily_reward_cap": 100,
         "next_threshold": next_threshold,
         "next_points": next_points,
@@ -285,7 +286,11 @@ def sync_steps(steps: int, user: UserModel, db: Session) -> dict:
 
     db.commit()
     db.refresh(user)
-    return build_steps_metric(user, db, today)
+    result = build_steps_metric(user, db, today)
+    # Keep the public metric cumulative while exposing the actual increment
+    # for callers that award one streak/league event per newly crossed tier.
+    result["points_delta"] = points_delta
+    return result
 
 
 def log_commute_trip(
@@ -1290,6 +1295,8 @@ _POINTS_LEDGER_SOURCES = {
     "challenge": "challenge",
     "complete": "impact_action",
     "redeem": "redemption",
+    "streak_bonus": "streak_bonus",
+    "league_bonus": "league_bonus",
 }
 
 
@@ -1816,7 +1823,6 @@ def complete_action(
 
     user.impact_points += points
     user.circularity_score = min(100, previous + bump)
-    user.streak_days += 1
     user.trend_delta = max(user.trend_delta, bump)
     user.loop_level = max(1, user.impact_points // 250 + 1)
 

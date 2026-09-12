@@ -607,7 +607,7 @@ export default function HomeScreen() {
             <View style={styles.statPill}>
               <Text style={styles.statLabel}>Streak</Text>
               <Text style={[styles.statValue, { color: rating.color }]}>
-                {me.data?.streak_days ?? user?.streak_days ?? 5}
+                {me.data?.streak_days ?? user?.streak_days ?? "—"}
                 <Text style={styles.statUnit}> days</Text>
               </Text>
             </View>

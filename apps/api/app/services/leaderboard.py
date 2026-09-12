@@ -208,6 +208,7 @@ def update_challenge_progress(db: Session, user: UserModel, challenge_id: UUID, 
             action_key=f"challenge:{challenge.id}:{row.period_key}",
             action_type="challenge",
             source="challenge",
+            reward_points=challenge.reward_points,
             evidence={"challenge_id": challenge.id, "cadence": challenge.cadence},
             _commit=False,
         )

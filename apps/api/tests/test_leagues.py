@@ -7,7 +7,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.db.models import Base, LeagueDefinitionModel, UserLeagueStateModel, UserModel
-from app.services.leagues import get_status, record_action, rollover_user, standings
+from app.services.leagues import (
+    calculate_league_bonus,
+    calculate_streak_bonus,
+    get_status,
+    record_action,
+    rollover_user,
+    standings,
+)
 
 
 def _db():
@@ -115,4 +122,74 @@ def test_standings_expose_weekly_and_season_league_points():
     result = standings(db, user, "global", date(2026, 9, 12))
     assert result["entries"][0]["username"] == "aisha"
     assert "weekly_league_points" in result["entries"][0]
+    db.close()
+
+
+def test_streak_bonus_advances_once_per_day_and_is_idempotent():
+    db = _db()
+    user = _user(db)
+    user.streak_days = 4
+    user.streak_last_activity_date = "2026-09-11"
+    user.streak_last_bonus_date = "2026-09-11"
+    db.commit()
+
+    first = record_action(
+        db, user, "repair-day-1", "repair", today=date(2026, 9, 12),
+        reward_points=100,
+    )
+    assert first["streak_days"] == 5
+    assert first["streak_bonus_points"] == 25
+    assert first["league_bonus_points"] == 0
+    assert first["reward_points_total"] == 125
+    assert user.impact_points == 125
+
+    duplicate = record_action(
+        db, user, "repair-day-1", "repair", today=date(2026, 9, 12),
+        reward_points=100,
+    )
+    assert duplicate["already_recorded"] is True
+    assert user.impact_points == 125
+
+    # A new verified action on the same day can still earn league points, but
+    # never a second daily streak bonus.
+    second = record_action(
+        db, user, "recycle-day-1", "recycle", today=date(2026, 9, 12),
+        reward_points=100,
+    )
+    assert second["streak_days"] == 5
+    assert second["streak_bonus_points"] == 0
+    assert user.impact_points == 125
+    db.close()
+
+
+def test_bonus_formulas_are_bounded_and_league_configured():
+    assert calculate_streak_bonus(10_000, 100) == 50
+    assert calculate_streak_bonus(0, 20) == 0
+    assert calculate_league_bonus(1_000, "bronze") == 0
+    assert calculate_league_bonus(1_000, "silver") == 40
+    assert calculate_league_bonus(1_000, "gold") == 40
+    assert calculate_league_bonus(1_000, "platinum") == 40
+
+
+def test_league_multiplier_uses_current_tier_and_stays_separate():
+    db = _db()
+    user = _user(db)
+    user.impact_points = 100
+    state = UserLeagueStateModel(
+        user_id=user.id, season_key="2026-09", weekly_key="2026-W37",
+        current_league_slug="gold", lifetime_best_league_slug="gold",
+    )
+    db.add(state)
+    db.commit()
+    result = record_action(
+        db, user, "gold-repair", "repair", today=date(2026, 9, 12),
+        reward_points=100,
+    )
+    assert result["league_reward_multiplier"] == 1.10
+    assert result["league_bonus_points"] == 10
+    assert result["reward_points_total"] == 115
+    assert user.impact_points == 115
+    # League points and Carbon Credit Score remain independent balances.
+    assert result["season_league_points"] == 120
+    assert user.provisional_score == 700
     db.close()

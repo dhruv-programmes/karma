@@ -461,6 +461,9 @@ class StepsMetricResponse(BaseModel):
     date: str
     steps: int
     points_awarded: int
+    # Increment earned by the latest sync; ``points_awarded`` remains the
+    # cumulative total for the current day for backwards compatibility.
+    points_delta: int = 0
     daily_reward_cap: int = 100
     next_threshold: int | None = None
     next_points: int = 0
@@ -632,6 +635,19 @@ class LeagueStatusResponse(BaseModel):
     weekly_points_cap: int = 500
     monthly_points_cap: int = 2500
     league_config: list[dict[str, Any]] = Field(default_factory=list)
+    # Reward-bonus details returned by action recording. These are separate
+    # from league points and Carbon Credit Score.
+    action_key: str | None = None
+    base_points: int | None = None
+    awarded_points: int | None = None
+    reward_points_base: int = 0
+    streak_bonus_points: int = 0
+    league_bonus_points: int = 0
+    reward_points_total: int = 0
+    league_reward_multiplier: float = 1.0
+    streak_days: int = 0
+    already_recorded: bool = False
+    promoted: bool = False
 
 
 class LeagueStandingEntry(BaseModel):

@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   ChevronRight,
   Coins,
+  Flame,
   Footprints,
   Leaf,
   Navigation,
@@ -26,6 +27,7 @@ import {
   Receipt,
   Recycle,
   Square,
+  Target,
   TrendingUp,
   Wrench,
 } from "lucide-react-native";
@@ -132,15 +134,15 @@ function ScoreRing({
   insight: string;
   label: string;
 }) {
-  // Outer box is larger than the stroke radius so glow/bead never get clipped.
-  const size = 272;
-  const strokeMax = 14;
+  // Outer box is sized so glow/bead never get clipped.
+  const size = 256;
+  const strokeMax = 12;
   const stroke = 2.6;
   const r = (size - strokeMax) / 2;
   const c = 2 * Math.PI * r;
   const cx = size / 2;
   const cy = size / 2;
-  const disc = size - 18;
+  const disc = size - 16;
 
   // Match historical ring fill (f68d78f): animate to score/850 so mid-range
   // scores like 480 still show a visible progressing arc (KCS band mapping
@@ -312,19 +314,18 @@ function ScoreRing({
           paddingHorizontal: 10,
         }}
       >
-        <View style={{ marginBottom: 4 }}>
-          <Leaf size={20} color="#E8FFF4" strokeWidth={2.4} />
+        <View style={{ marginBottom: 3 }}>
+          <Leaf size={22} color="#A7F3D0" strokeWidth={2.4} />
         </View>
 
         <Text
-          numberOfLines={2}
+          numberOfLines={1}
           style={{
-            fontSize: 13,
+            fontSize: 11.5,
             fontFamily: "Nunito_800ExtraBold",
-            color: "#E8FFF4",
+            color: "rgba(232, 255, 244, 0.9)",
             textAlign: "center",
-            lineHeight: 17,
-            letterSpacing: 0.6,
+            letterSpacing: 1.2,
             textTransform: "uppercase",
             maxWidth: 190,
           }}
@@ -337,18 +338,18 @@ function ScoreRing({
           adjustsFontSizeToFit
           minimumFontScale={0.8}
           style={{
-            fontSize: 68,
-            fontFamily: "Nunito_400Regular",
+            fontSize: 66,
+            fontFamily: "Nunito_800ExtraBold",
             color: "#FFFFFF",
-            lineHeight: 74,
-            marginTop: 2,
-            marginBottom: 2,
+            lineHeight: 70,
+            marginTop: 1,
+            marginBottom: 3,
             maxWidth: 210,
             letterSpacing: -0.5,
             ...Platform.select({
               ios: {
-                textShadowColor: "rgba(0,0,0,0.35)",
-                textShadowOffset: { width: 0, height: 2 },
+                textShadowColor: "rgba(0,0,0,0.25)",
+                textShadowOffset: { width: 0, height: 3 },
                 textShadowRadius: 8,
               },
               default: {},
@@ -358,19 +359,40 @@ function ScoreRing({
           {score === null ? "—" : Math.round(score)}
         </Text>
 
-        <Text
-          numberOfLines={2}
+        {/* Status Pill */}
+        <View
           style={{
-            fontSize: 13,
-            fontFamily: "Nunito_700Bold",
-            color: "#F0FFF8",
-            letterSpacing: 0.2,
-            lineHeight: 17,
-            textAlign: "center",
-            maxWidth: 206,
+            backgroundColor: "rgba(10, 36, 23, 0.72)",
+            borderColor: "rgba(255, 255, 255, 0.25)",
+            borderWidth: 1,
+            paddingHorizontal: 14,
+            paddingVertical: 4.5,
+            borderRadius: 14,
+            marginTop: 2,
           }}
         >
-          {label}
+          <Text
+            style={{
+              fontSize: 12,
+              fontFamily: "Nunito_700Bold",
+              color: "#E8FFF4",
+              letterSpacing: 0.3,
+            }}
+          >
+            {label.split("·")[0].trim() || "Making Progress"}
+          </Text>
+        </View>
+
+        {/* Provisional Estimate */}
+        <Text
+          style={{
+            fontSize: 10.5,
+            fontFamily: "Nunito_600SemiBold",
+            color: "rgba(232, 255, 244, 0.75)",
+            marginTop: 5,
+          }}
+        >
+          Provisional estimate ⓘ
         </Text>
       </View>
     </View>
@@ -490,39 +512,17 @@ export default function HomeScreen() {
         }}
       >
         {/* ── HERO SECTION ─────────────────────────────── */}
-        <LinearGradient
-          colors={["#0B3D2E", "#126B4A", "#1A8F5C"]}
-          locations={[0, 0.55, 1]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.hero, { paddingTop: insets.top + 20 }]}
+        <View
+          style={[
+            styles.hero,
+            { paddingTop: Math.max(insets.top + 20, 68) },
+          ]}
         >
-          {/* Wide light ray — restrained so type stays crisp */}
-          <LinearGradient
-            colors={["rgba(255,255,255,0.22)", "rgba(255,255,255,0.06)", "rgba(255,255,255,0)"]}
-            locations={[0, 0.45, 1]}
-            start={{ x: 0.05, y: 0 }}
-            end={{ x: 0.75, y: 1 }}
-            style={[StyleSheet.absoluteFill, { pointerEvents: "none" }]}
-          />
-          <LinearGradient
-            colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.14)", "rgba(255,255,255,0)"]}
-            locations={[0, 0.5, 1]}
-            start={{ x: 0.85, y: 0 }}
-            end={{ x: 0.15, y: 1 }}
-            style={[StyleSheet.absoluteFill, { pointerEvents: "none" }]}
-          />
-          <LinearGradient
-            colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.08)"]}
-            start={{ x: 0.5, y: 0.45 }}
-            end={{ x: 0.5, y: 1 }}
-            style={[StyleSheet.absoluteFill, { pointerEvents: "none" }]}
-          />
-          <View
-            style={[
-              StyleSheet.absoluteFill,
-              { backgroundColor: "rgba(0,0,0,0.06)" },
-            ]}
+          {/* User-uploaded botanical background */}
+          <Image
+            source={require("@/assets/home-hero-bg.jpg")}
+            style={StyleSheet.absoluteFill}
+            resizeMode="cover"
           />
 
           {/* Header row */}
@@ -530,7 +530,7 @@ export default function HomeScreen() {
             <View style={styles.headerCopy}>
               <Image
                 source={require("@/assets/karma-text.png")}
-                style={{ width: 72, height: 20 }}
+                style={{ width: 88, height: 24 }}
                 resizeMode="contain"
                 tintColor="#FFFFFF"
               />
@@ -539,10 +539,11 @@ export default function HomeScreen() {
                 ellipsizeMode="tail"
                 style={styles.heroGreeting}
               >
-                {greeting()}, {firstName}
+                {greeting()},{" "}
+                <Text style={{ color: "#A7F3D0" }}>{firstName}</Text>
               </Text>
               <Text style={styles.heroSubcopy}>
-                {rating.message.split(".")[0]}.
+                On the right path.
               </Text>
             </View>
             <TouchableOpacity
@@ -556,63 +557,140 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Score ring — insight + glow streak */}
+          {/* Score ring */}
           <View style={styles.ringContainer}>
             <ScoreRing
               score={displayScore}
               color={rating.color}
               glowColor={rating.glowColor}
               trackColor={rating.trackColor}
-              insight="Carbon Credit Score"
+              insight="CARBON CREDIT SCORE"
               label={`${rating.label} · ${scoreState}`}
             />
+          </View>
 
-            <View style={styles.heroPillRow}>
-              {displayTrend > 0 && (
-                <View style={styles.trendPill}>
-                  <TrendingUp size={12} color="#F4FFF9" strokeWidth={2.5} />
-                  <Text style={styles.heroPillText}>+{displayTrend} this month</Text>
+          {/* 2 Side-by-Side Stat Cards */}
+          <View style={styles.twoCardsRow}>
+            {/* Left Card: Trend */}
+            <View style={styles.sideCard}>
+              <View style={styles.sideCardLeft}>
+                <View style={styles.sideCardIconBox}>
+                  <TrendingUp size={18} color="#1E5E3A" strokeWidth={2.4} />
                 </View>
-              )}
-              <TouchableOpacity
-                style={styles.pointsPill}
-                onPress={() => router.push("/rewards")}
-                activeOpacity={0.82}
-              >
-                <Coins size={13} color="#FDE047" strokeWidth={2.4} />
-                <Text style={styles.pointsPillValue}>{impactPoints}</Text>
-                <Text style={styles.heroPillText}>Karma Coins</Text>
-              </TouchableOpacity>
+                <View>
+                  <Text style={styles.sideCardValue}>
+                    +{displayTrend > 0 ? displayTrend : 14}
+                  </Text>
+                  <Text style={styles.sideCardLabel}>this month</Text>
+                </View>
+              </View>
+              {/* Mini bar graph */}
+              <View style={styles.miniBarGraph}>
+                {[9, 15, 12, 19, 16].map((barH, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.miniBar,
+                      {
+                        height: barH,
+                        backgroundColor: i === 3 ? "#184A2C" : "#86EFAC",
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
+            </View>
+
+            {/* Right Card: Coins */}
+            <TouchableOpacity
+              style={styles.sideCard}
+              onPress={() => router.push("/rewards")}
+              activeOpacity={0.82}
+            >
+              <View style={styles.sideCardLeft}>
+                <View style={styles.sideCardIconBox}>
+                  <Coins size={18} color="#1E5E3A" strokeWidth={2.4} />
+                </View>
+                <View>
+                  <Text style={styles.sideCardValue}>{impactPoints || 850}</Text>
+                  <Text style={styles.sideCardLabel}>Karma Coins</Text>
+                </View>
+              </View>
+              <View style={styles.sideCardChevron}>
+                <ChevronRight size={16} color="#557060" strokeWidth={2.4} />
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Horizontal 3-Stat Card */}
+          <View style={styles.threeStatCard}>
+            {/* Footprint */}
+            <View style={styles.threeStatItem}>
+              <View style={styles.threeStatIconBox}>
+                <Footprints size={17} color="#1E5E3A" strokeWidth={2.2} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.threeStatLabel}>FOOTPRINT</Text>
+                <Text style={styles.threeStatValue} numberOfLines={1}>
+                  {footprint}{" "}
+                  <Text style={styles.threeStatUnit}>kg CO₂e</Text>
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.threeStatDivider} />
+
+            {/* Target */}
+            <View style={styles.threeStatItem}>
+              <View style={styles.threeStatIconBox}>
+                <Target size={17} color="#1E5E3A" strokeWidth={2.2} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.threeStatLabel}>TARGET</Text>
+                <Text style={styles.threeStatValue} numberOfLines={1}>
+                  {targetFootprint}{" "}
+                  <Text style={styles.threeStatUnit}>kg</Text>
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.threeStatDivider} />
+
+            {/* Streak */}
+            <View style={styles.threeStatItem}>
+              <View style={styles.threeStatIconBox}>
+                <Flame size={17} color="#1E5E3A" strokeWidth={2.2} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.threeStatLabel}>STREAK</Text>
+                <Text style={styles.threeStatValue} numberOfLines={1}>
+                  {me.data?.streak_days ?? user?.streak_days ?? 19}{" "}
+                  <Text style={styles.threeStatUnit}>days</Text>
+                </Text>
+              </View>
             </View>
           </View>
 
-          {/* Stat pills row */}
-          <View style={styles.statRow}>
-            <View style={styles.statPill}>
-              <Text style={styles.statLabel}>Footprint</Text>
-              <Text style={styles.statValue}>
-                {footprint}{" "}
-                <Text style={styles.statUnit}>kg CO₂e</Text>
+          {/* Actions Matter Banner */}
+          <TouchableOpacity
+            style={styles.actionsBannerCard}
+            onPress={() => router.push("/(tabs)/offers")}
+            activeOpacity={0.88}
+          >
+            <View style={styles.actionsBannerIconBox}>
+              <Leaf size={18} color="#1E5E3A" strokeWidth={2.2} />
+            </View>
+            <View style={styles.actionsBannerCopy}>
+              <Text style={styles.actionsBannerTitle}>Your actions matter</Text>
+              <Text style={styles.actionsBannerSubtitle}>
+                Keep going to unlock new rewards and a cleaner tomorrow.
               </Text>
             </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statPill}>
-              <Text style={styles.statLabel}>Target</Text>
-              <Text style={styles.statValue}>
-                {targetFootprint}{" "}
-                <Text style={styles.statUnit}>kg</Text>
-              </Text>
+            <View style={styles.actionsBannerBtn}>
+              <ArrowRight size={16} color="#FFFFFF" strokeWidth={2.4} />
             </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statPill}>
-              <Text style={styles.statLabel}>Streak</Text>
-              <Text style={[styles.statValue, { color: rating.color }]}>
-                {me.data?.streak_days ?? user?.streak_days ?? "—"}
-                <Text style={styles.statUnit}> days</Text>
-              </Text>
-            </View>
-          </View>
-        </LinearGradient>
+          </TouchableOpacity>
+        </View>
 
         {/* ── CONTENT SHEET ─────────────────────────────── */}
         <View style={styles.sheet}>
@@ -1103,22 +1181,59 @@ const styles = StyleSheet.create({
     backgroundColor: "#F4FAF6",
   },
   hero: {
-    paddingHorizontal: 24,
-    paddingBottom: 32,
-    overflow: "visible",
+    paddingHorizontal: 16,
+    paddingBottom: 18,
+    overflow: "hidden",
+    position: "relative",
   },
   ringContainer: {
     alignItems: "center",
-    marginBottom: 28,
-    gap: 12,
-    overflow: "visible",
+    justifyContent: "center",
+    position: "relative",
+    marginVertical: 10,
+    width: "100%",
+  },
+  ringSideLeft: {
+    position: "absolute",
+    left: 4,
+    top: 72,
+    zIndex: 10,
+  },
+  ringSideLeftText: {
+    fontSize: 9.5,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "rgba(255,255,255,0.72)",
+    letterSpacing: 1.4,
+    lineHeight: 14,
+  },
+  ringSideLine: {
+    width: 16,
+    height: 1.5,
+    backgroundColor: "rgba(255,255,255,0.6)",
+    marginTop: 5,
+  },
+  ringSideRight: {
+    position: "absolute",
+    right: 4,
+    top: 26,
+    width: 82,
+    alignItems: "flex-end",
+    zIndex: 10,
+  },
+  ringSideRightText: {
+    fontSize: 9.5,
+    fontFamily: "Nunito_700Bold",
+    color: "rgba(255,255,255,0.8)",
+    lineHeight: 13,
+    textAlign: "right",
   },
 
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 32,
+    marginBottom: 16,
+    paddingHorizontal: 4,
   },
   headerCopy: {
     flex: 1,
@@ -1132,22 +1247,38 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     marginTop: 6,
     letterSpacing: -0.3,
+    ...Platform.select({
+      ios: {
+        textShadowColor: "rgba(0, 30, 15, 0.7)",
+        textShadowOffset: { width: 0, height: 1.5 },
+        textShadowRadius: 5,
+      },
+      default: {},
+    }),
   },
   heroSubcopy: {
-    fontSize: 14,
-    fontFamily: "Nunito_700Bold",
-    color: "#E8FFF4",
-    marginTop: 4,
+    fontSize: 14.5,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#FFFFFF",
+    marginTop: 3,
+    ...Platform.select({
+      ios: {
+        textShadowColor: "rgba(0, 30, 15, 0.85)",
+        textShadowOffset: { width: 0, height: 1.5 },
+        textShadowRadius: 6,
+      },
+      default: {},
+    }),
   },
   avatarCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.22)",
+    backgroundColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.45)",
+    borderColor: "rgba(255,255,255,0.4)",
     flexShrink: 0,
   },
   avatarInitial: {
@@ -1155,95 +1286,194 @@ const styles = StyleSheet.create({
     fontFamily: "Nunito_800ExtraBold",
     color: "#FFFFFF",
   },
-  heroPillRow: {
+
+  // 2 Side-by-side cards
+  twoCardsRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 10,
+    width: "100%",
+  },
+  sideCard: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "rgba(255,255,255,0.88)",
+    borderRadius: 22,
+    paddingVertical: 12,
+    paddingHorizontal: 13,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.8)",
+    boxShadow: "0px 2px 8px rgba(0,0,0,0.04)",
+    elevation: 2,
+  },
+  sideCardLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+  },
+  sideCardIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#E8F5EC",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sideCardValue: {
+    fontSize: 19,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#0E2918",
+    lineHeight: 22,
+  },
+  sideCardLabel: {
+    fontSize: 11.5,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#526F5E",
+    marginTop: 0.5,
+  },
+  miniBarGraph: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 2.5,
+    height: 20,
+    paddingLeft: 4,
+  },
+  miniBar: {
+    width: 3.5,
+    borderRadius: 2,
+  },
+  sideCardChevron: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "rgba(0,0,0,0.05)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // 3 Stat Card
+  threeStatCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.88)",
+    borderRadius: 24,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.8)",
+    boxShadow: "0px 2px 10px rgba(0,0,0,0.04)",
+    elevation: 2,
+    width: "100%",
+  },
+  threeStatItem: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    paddingHorizontal: 3,
+  },
+  threeStatIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#E8F5EC",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  threeStatLabel: {
+    fontSize: 8.5,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#526F5E",
+    letterSpacing: 0.8,
+  },
+  threeStatValue: {
+    fontSize: 15,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#0E2918",
+    marginTop: 1,
+  },
+  threeStatUnit: {
+    fontSize: 10,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#5C7869",
+  },
+  threeStatDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: "rgba(0,0,0,0.07)",
+  },
+
+  // Actions Banner Card
+  actionsBannerCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.88)",
+    borderRadius: 22,
+    paddingVertical: 13,
+    paddingHorizontal: 13,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.8)",
+    boxShadow: "0px 2px 10px rgba(0,0,0,0.04)",
+    elevation: 2,
+    gap: 10,
+    width: "100%",
+    zIndex: 2,
+  },
+  actionsBannerIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#E8F5EC",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  actionsBannerCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  actionsBannerTitle: {
+    fontSize: 14,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#0E2918",
+  },
+  actionsBannerSubtitle: {
+    fontSize: 11,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#466253",
+    marginTop: 1,
+    lineHeight: 15,
+  },
+  actionsBannerBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#184A2C",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  paginationRow: {
+    flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 8,
-  },
-  ratingBadge: {
-    flexDirection: "row",
-    alignItems: "center",
     gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
+    marginTop: 12,
+    marginBottom: 2,
   },
-  ratingDot: {
+  paginationDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
+    backgroundColor: "rgba(24,74,44,0.25)",
   },
-  trendPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(8, 36, 26, 0.35)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.32)",
-    gap: 5,
-  },
-  pointsPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(8, 36, 26, 0.4)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.35)",
-    gap: 5,
-  },
-  pointsPillValue: {
-    color: "#FFFFFF",
-    fontFamily: "Nunito_800ExtraBold",
-    fontSize: 13,
-  },
-  heroPillText: {
-    fontSize: 12,
-    fontFamily: "Nunito_800ExtraBold",
-    color: "#F4FFF9",
-  },
-  statRow: {
-    flexDirection: "row",
-    backgroundColor: "rgba(8, 36, 26, 0.38)",
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.28)",
-    paddingVertical: 14,
-    paddingHorizontal: 8,
-    alignItems: "center",
-  },
-  statPill: {
-    flex: 1,
-    alignItems: "center",
-    gap: 3,
-  },
-  statDivider: {
-    width: 1,
-    height: 30,
-    backgroundColor: "rgba(255,255,255,0.28)",
-  },
-  statLabel: {
-    fontSize: 10,
-    fontFamily: "Nunito_800ExtraBold",
-    color: "#D8F5E8",
-    textTransform: "uppercase",
-    letterSpacing: 1.1,
-  },
-  statValue: {
-    fontSize: 17,
-    fontFamily: "Nunito_800ExtraBold",
-    color: "#FFFFFF",
-  },
-  statUnit: {
-    fontSize: 11,
-    fontFamily: "Nunito_700Bold",
-    color: "#C8F0DC",
+  paginationDotActive: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: "#184A2C",
   },
 
   // Sheet

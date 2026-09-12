@@ -848,7 +848,7 @@ export default function HomeScreen() {
                 </View>
                 <View style={styles.commutePointsBadge}>
                   <Text style={styles.commutePointsText}>
-                    +{commuteSummary.data?.todayPoints ?? 0} Karma Coins today
+                    +{commuteSummary.data?.todayPoints ?? 0} coins today
                   </Text>
                 </View>
               </View>
@@ -904,19 +904,24 @@ export default function HomeScreen() {
                   </View>
                 </View>
               ) : (
-                <View style={styles.commuteStatsRow}>
-                  <View>
-                    <Text style={styles.commuteDistanceText}>
-                      {(commuteSummary.data?.todayDistanceKm ?? 0).toFixed(2)} km
-                    </Text>
-                    <Text style={styles.commuteDistanceLabel}>
-                      Clean distance today ({commuteSummary.data?.tripsToday ?? 0} trips)
-                    </Text>
+                <View style={styles.commuteStatsBox}>
+                  <View style={styles.commuteStatsTop}>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={styles.commuteDistanceText}>
+                        {(commuteSummary.data?.todayDistanceKm ?? 0).toFixed(2)} km
+                      </Text>
+                      <Text style={styles.commuteDistanceLabel} numberOfLines={1}>
+                        Clean distance today ({commuteSummary.data?.tripsToday ?? 0} trips)
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.commuteTiersPill}>
-                    <Text style={styles.commuteTiersText}>
-                      Walk: 10 coins/km • Cycle: 5 coins/km
-                    </Text>
+                  <View style={styles.commuteTiersRow}>
+                    <View style={styles.commuteTierChip}>
+                      <Text style={styles.commuteTierText}>🚶 Walk: 10 coins/km</Text>
+                    </View>
+                    <View style={styles.commuteTierChip}>
+                      <Text style={styles.commuteTierText}>🚴 Cycle: 5 coins/km</Text>
+                    </View>
                   </View>
                 </View>
               )}
@@ -1641,23 +1646,32 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(46,168,110,0.1)",
   },
   commutePointsText: { fontSize: 11, fontFamily: "Nunito_700Bold", color: "#2EA86E" },
-  commuteStatsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+  commuteStatsBox: {
     backgroundColor: "#F4FAF6",
     borderRadius: 14,
     padding: 12,
+    gap: 8,
+  },
+  commuteStatsTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   commuteDistanceText: { fontSize: 20, fontFamily: "Nunito_800ExtraBold", color: "#183222" },
   commuteDistanceLabel: { fontSize: 11, fontFamily: "Nunito_600SemiBold", color: "#7A9082", marginTop: 2 },
-  commuteTiersPill: {
+  commuteTiersRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flexWrap: "wrap",
+  },
+  commuteTierChip: {
     backgroundColor: "rgba(46,168,110,0.12)",
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 3.5,
     borderRadius: 8,
   },
-  commuteTiersText: { fontSize: 10, fontFamily: "Nunito_700Bold", color: "#2EA86E" },
+  commuteTierText: { fontSize: 10, fontFamily: "Nunito_700Bold", color: "#2EA86E" },
   liveTelemetryBox: {
     flexDirection: "row",
     alignItems: "center",

@@ -3,16 +3,27 @@ import { Platform, StyleSheet, Text, View, TouchableOpacity } from "react-native
 import { Tabs, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Home, Leaf, ListChecks, ScanLine, Wrench } from "lucide-react-native";
-
+import {
+  TAB_DOCK_BOTTOM_GAP,
+  TAB_DOCK_HEIGHT,
+} from "@/src/theme/layout";
 
 type TabBarProps = {
   state: { routes: { key: string; name: string }[]; index: number };
-  navigation: { emit: (e: { type: string; target: string; canPreventDefault: boolean }) => { defaultPrevented: boolean }; navigate: (name: string) => void };
+  navigation: {
+    emit: (e: {
+      type: string;
+      target: string;
+      canPreventDefault: boolean;
+    }) => { defaultPrevented: boolean };
+    navigate: (name: string) => void;
+  };
 };
 
 function CustomTabBar({ state, navigation }: TabBarProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const bottomInset = Math.max(insets.bottom, 8);
 
   const tabItems = [
     { name: "index", label: "Home", icon: Home },
@@ -25,7 +36,7 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
     <View
       style={[
         styles.container,
-        { paddingBottom: Math.max(insets.bottom, 12) },
+        { paddingBottom: bottomInset + TAB_DOCK_BOTTOM_GAP },
       ]}
       pointerEvents="box-none"
     >
@@ -58,7 +69,9 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
                   color={isFocused ? "#2EA86E" : "rgba(255,255,255,0.45)"}
                   strokeWidth={isFocused ? 2.2 : 1.8}
                 />
-                <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>
+                <Text
+                  style={[styles.tabLabel, isFocused && styles.tabLabelActive]}
+                >
                   {item.label}
                 </Text>
               </TouchableOpacity>
@@ -88,17 +101,17 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     backgroundColor: "transparent",
   },
   dock: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-around",
+    justifyContent: "space-between",
     backgroundColor: "#111D16",
-    borderRadius: 36,
-    height: 64,
-    paddingHorizontal: 12,
+    borderRadius: 32,
+    height: TAB_DOCK_HEIGHT,
+    paddingHorizontal: 10,
     width: "100%",
     ...Platform.select({
       ios: {
@@ -116,7 +129,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    height: 48,
+    height: TAB_DOCK_HEIGHT,
     gap: 2,
     minWidth: 0,
   },
@@ -128,29 +141,21 @@ const styles = StyleSheet.create({
   tabLabelActive: {
     color: "#5EEAD4",
   },
-  activeDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "#2EA86E",
-  },
   scanButton: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: "#2EA86E",
     alignItems: "center",
     justifyContent: "center",
-    marginHorizontal: 2,
-    // Lower the oversized center action slightly so its visual center aligns
-    // with the smaller dock icons and labels.
-    transform: [{ translateY: 4 }],
+    marginHorizontal: 4,
+    flexShrink: 0,
     ...Platform.select({
       ios: {
         shadowColor: "#2EA86E",
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.5,
-        shadowRadius: 12,
+        shadowOpacity: 0.45,
+        shadowRadius: 10,
       },
       android: { elevation: 8 },
     }),

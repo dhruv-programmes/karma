@@ -44,11 +44,11 @@ export function Text({
         {
           fontFamily: className?.includes("font-mono")
             ? bold
-              ? "IBMPlexMono_600SemiBold"
-              : "IBMPlexMono_500Medium"
+              ? "Schoolbell_400Regular"
+              : "Schoolbell_400Regular"
             : bold
-              ? "Nunito_700Bold"
-              : "Nunito_600SemiBold",
+              ? "Schoolbell_400Regular"
+              : "Schoolbell_400Regular",
         },
         style,
       ]}

@@ -33,7 +33,7 @@ export function Heading({
         .join(" ")}
       style={[
         {
-          fontFamily: bold ? "Nunito_700Bold" : "Nunito_600SemiBold",
+          fontFamily: bold ? "Schoolbell_400Regular" : "Schoolbell_400Regular",
         },
         style,
       ]}

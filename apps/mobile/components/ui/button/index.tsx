@@ -54,7 +54,7 @@ export function Button({
       accessibilityRole="button"
       disabled={disabled || loading}
       className={[
-        "items-center justify-center flex-row active:opacity-90",
+        "items-center justify-center flex-row min-w-0 overflow-hidden active:opacity-90",
         variantMap[variant],
         sizeMap[size],
         disabled || loading ? "opacity-45" : "",
@@ -67,7 +67,11 @@ export function Button({
       {loading ? (
         <ActivityIndicator color="rgb(var(--primary-foreground))" />
       ) : typeof children === "string" ? (
-        <Text bold className={textVariantMap[variant]} numberOfLines={1}>
+        <Text
+          bold
+          numberOfLines={1}
+          className={`shrink min-w-0 ${textVariantMap[variant]}`}
+        >
           {children}
         </Text>
       ) : (
@@ -85,7 +89,13 @@ export function ButtonText({
   className?: string;
 }) {
   return (
-    <Text bold className={className || "text-primary-foreground"}>
+    <Text
+      bold
+      numberOfLines={1}
+      className={["shrink min-w-0 text-primary-foreground", className]
+        .filter(Boolean)
+        .join(" ")}
+    >
       {children}
     </Text>
   );

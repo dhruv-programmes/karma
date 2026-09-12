@@ -14,7 +14,7 @@ import {
 } from "lucide-react-native";
 import { DecorativeBackground } from "@/components/custom/decorative-background";
 import { Box } from "@/components/ui/box";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonText } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Heading } from "@/components/ui/heading";
 import { HStack } from "@/components/ui/hstack";
@@ -33,7 +33,7 @@ import {
 const FREQUENCY_OPTIONS: { id: Frequency; label: string }[] = [
   { id: "never", label: "Never" },
   { id: "rarely", label: "Rarely" },
-  { id: "sometimes", label: "Sometimes" },
+  { id: "sometimes", label: "Some" },
   { id: "often", label: "Often" },
 ];
 
@@ -194,14 +194,14 @@ export default function BaselineScreen() {
                   </HStack>
 
                   {/* Frequency Pills */}
-                  <HStack className="gap-1.5 pt-1">
+                  <HStack className="gap-1.5 pt-1 flex-wrap">
                     {FREQUENCY_OPTIONS.map((opt) => {
                       const isSelected = currentFreq === opt.id;
                       return (
                         <Pressable
                           key={opt.id}
                           onPress={() => updateTransport(item.key, opt.id)}
-                          className={`flex-1 py-1.5 rounded-xl items-center justify-center border transition-all ${
+                          className={`flex-1 min-w-[64px] py-1.5 px-1 rounded-xl items-center justify-center border transition-all ${
                             isSelected
                               ? "bg-primary border-primary shadow-xs"
                               : "bg-secondary/70 border-border/70 active:bg-secondary"
@@ -210,6 +210,7 @@ export default function BaselineScreen() {
                           <Text
                             size="2xs"
                             bold={isSelected}
+                            numberOfLines={1}
                             className={`font-body ${
                               isSelected ? "text-primary-foreground font-bold" : "text-muted-foreground"
                             }`}
@@ -257,14 +258,14 @@ export default function BaselineScreen() {
                   </HStack>
 
                   {/* Frequency Pills */}
-                  <HStack className="gap-1.5 pt-1">
+                  <HStack className="gap-1.5 pt-1 flex-wrap">
                     {FREQUENCY_OPTIONS.map((opt) => {
                       const isSelected = currentFreq === opt.id;
                       return (
                         <Pressable
                           key={opt.id}
                           onPress={() => updateShopping(item.key, opt.id)}
-                          className={`flex-1 py-1.5 rounded-xl items-center justify-center border transition-all ${
+                          className={`flex-1 min-w-[64px] py-1.5 px-1 rounded-xl items-center justify-center border transition-all ${
                             isSelected
                               ? "bg-primary border-primary shadow-xs"
                               : "bg-secondary/70 border-border/70 active:bg-secondary"
@@ -273,6 +274,7 @@ export default function BaselineScreen() {
                           <Text
                             size="2xs"
                             bold={isSelected}
+                            numberOfLines={1}
                             className={`font-body ${
                               isSelected ? "text-primary-foreground font-bold" : "text-muted-foreground"
                             }`}
@@ -293,10 +295,10 @@ export default function BaselineScreen() {
       {/* Bottom CTA */}
       <Box className="pt-2">
         <Button onPress={handleContinue} className="w-full h-13 rounded-2xl">
-          <HStack className="items-center justify-center gap-2">
-            <Text bold className="text-primary-foreground text-base font-body">
+          <HStack className="items-center justify-center gap-2 min-w-0 px-2">
+            <ButtonText className="text-primary-foreground text-base font-body">
               Continue
-            </Text>
+            </ButtonText>
             <ArrowRight size={18} color="white" />
           </HStack>
         </Button>

@@ -34,7 +34,7 @@ export function Badge({
   return (
     <View
       className={[
-        "px-3 py-1 rounded-full self-start",
+        "px-3 py-1 rounded-full self-start max-w-full",
         actionMap[action],
         className,
       ]
@@ -43,7 +43,7 @@ export function Badge({
       {...props}
     >
       {label ? (
-        <Text size="xs" bold className={textMap[action]}>
+        <Text size="xs" bold numberOfLines={1} className={`shrink min-w-0 ${textMap[action]}`}>
           {label}
         </Text>
       ) : (

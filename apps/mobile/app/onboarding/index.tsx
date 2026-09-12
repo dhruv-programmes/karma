@@ -11,7 +11,7 @@ import {
 import { Image } from "react-native";
 import { DecorativeBackground } from "@/components/custom/decorative-background";
 import { Box } from "@/components/ui/box";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonText } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Heading } from "@/components/ui/heading";
 import { HStack } from "@/components/ui/hstack";
@@ -114,10 +114,10 @@ export default function WelcomeScreen() {
       {/* Bottom CTA Block */}
       <VStack space="sm" className="w-full">
         <Button onPress={handleGetStarted} className="w-full h-13 rounded-2xl">
-          <HStack className="items-center justify-center gap-2">
-            <Text bold className="text-primary-foreground text-base font-body">
+          <HStack className="items-center justify-center gap-2 min-w-0 px-2">
+            <ButtonText className="text-primary-foreground text-base font-body">
               Get started
-            </Text>
+            </ButtonText>
             <ArrowRight size={18} color="white" />
           </HStack>
         </Button>

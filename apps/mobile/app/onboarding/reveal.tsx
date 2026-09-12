@@ -11,7 +11,7 @@ import {
 } from "lucide-react-native";
 import { DecorativeBackground } from "@/components/custom/decorative-background";
 import { Box } from "@/components/ui/box";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonText } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Heading } from "@/components/ui/heading";
 import { HStack } from "@/components/ui/hstack";
@@ -135,22 +135,22 @@ export default function RevealScreen() {
             <Box style={{ width: `${homePct}%` }} className="h-full bg-emerald-900/30" />
           </Box>
 
-          <HStack className="justify-between items-center pt-1">
-            <HStack className="items-center gap-1.5">
+          <HStack className="justify-between items-center pt-1 flex-wrap gap-y-2 gap-x-3">
+            <HStack className="items-center gap-1.5 shrink min-w-0">
               <Box className="w-2.5 h-2.5 rounded-full bg-primary" />
-              <Text size="xs" className="text-foreground font-mono">
+              <Text size="xs" numberOfLines={1} className="text-foreground font-mono">
                 Transport {transportPct}%
               </Text>
             </HStack>
-            <HStack className="items-center gap-1.5">
+            <HStack className="items-center gap-1.5 shrink min-w-0">
               <Box className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
-              <Text size="xs" className="text-foreground font-mono">
+              <Text size="xs" numberOfLines={1} className="text-foreground font-mono">
                 Shopping {shoppingPct}%
               </Text>
             </HStack>
-            <HStack className="items-center gap-1.5">
+            <HStack className="items-center gap-1.5 shrink min-w-0">
               <Box className="w-2.5 h-2.5 rounded-full bg-emerald-900/30" />
-              <Text size="xs" className="text-foreground font-mono">
+              <Text size="xs" numberOfLines={1} className="text-foreground font-mono">
                 Home {homePct}%*
               </Text>
             </HStack>
@@ -191,12 +191,17 @@ export default function RevealScreen() {
 
         {/* Easiest First Action Recommendation */}
         <Card variant="softPop" className="p-4 gap-3 border border-primary/30">
-          <HStack className="items-center justify-between">
-            <Text size="2xs" bold className="text-primary tracking-widest uppercase font-mono">
+          <HStack className="items-center justify-between gap-2">
+            <Text
+              size="2xs"
+              bold
+              numberOfLines={1}
+              className="flex-1 min-w-0 shrink text-primary tracking-widest uppercase font-mono"
+            >
               Your easiest first action
             </Text>
-            <Box className="px-2 py-0.5 rounded-full bg-primary/15">
-              <Text size="2xs" bold className="text-primary font-mono">
+            <Box className="px-2 py-0.5 rounded-full bg-primary/15 shrink-0">
+              <Text size="2xs" bold numberOfLines={1} className="text-primary font-mono">
                 −4.2 kg CO₂e
               </Text>
             </Box>
@@ -206,11 +211,11 @@ export default function RevealScreen() {
             <Box className="w-10 h-10 rounded-xl bg-primary/15 items-center justify-center">
               <Wrench size={20} color="rgb(46,168,110)" />
             </Box>
-            <VStack className="flex-1">
-              <Text bold size="md" className="text-foreground font-heading">
+            <VStack className="flex-1 min-w-0">
+              <Text bold size="md" numberOfLines={1} className="text-foreground font-heading">
                 Repair before replacing
               </Text>
-              <Text size="xs" className="text-muted-foreground font-body">
+              <Text size="xs" numberOfLines={2} className="text-muted-foreground font-body">
                 Fixing an everyday device keeps ~4.2 to 120 kg CO₂e out of the atmosphere.
               </Text>
             </VStack>
@@ -221,10 +226,10 @@ export default function RevealScreen() {
       {/* Bottom Action */}
       <Box className="pt-2">
         <Button onPress={handleContinue} className="w-full h-13 rounded-2xl">
-          <HStack className="items-center justify-center gap-2">
-            <Text bold className="text-primary-foreground text-base font-body">
+          <HStack className="items-center justify-center gap-2 min-w-0 px-2">
+            <ButtonText className="text-primary-foreground text-base font-body">
               See how
-            </Text>
+            </ButtonText>
             <ArrowRight size={18} color="white" />
           </HStack>
         </Button>

@@ -12,7 +12,7 @@ import {
 } from "lucide-react-native";
 import { DecorativeBackground } from "@/components/custom/decorative-background";
 import { Box } from "@/components/ui/box";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonText } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Heading } from "@/components/ui/heading";
 import { HStack } from "@/components/ui/hstack";
@@ -131,16 +131,16 @@ export default function GoalScreen() {
 
         {/* Hero Goal Card */}
         <Card variant="soft" className="p-5 border border-primary/25 bg-card gap-4">
-          <HStack className="items-center justify-between">
-            <VStack>
-              <Text size="xs" bold className="text-primary tracking-widest uppercase font-mono">
+          <HStack className="items-center justify-between gap-3">
+            <VStack className="flex-1 min-w-0">
+              <Text size="xs" bold numberOfLines={1} className="text-primary tracking-widest uppercase font-mono">
                 Monthly footprint reduction
               </Text>
-              <HStack className="items-baseline gap-2 mt-1">
+              <HStack className="items-baseline gap-2 mt-1 flex-wrap">
                 <Text size="4xl" bold className="text-foreground font-mono">
                   {reductionPct}%
                 </Text>
-                <Text size="sm" className="text-muted-foreground font-body">
+                <Text size="sm" numberOfLines={1} className="shrink text-muted-foreground font-body">
                   Estimated reduction
                 </Text>
               </HStack>
@@ -152,14 +152,14 @@ export default function GoalScreen() {
 
           {/* Stepped Increment Slider Chips */}
           <VStack space="xs" className="mt-1">
-            <HStack className="justify-between items-center gap-2">
+            <HStack className="justify-between items-center gap-1.5 flex-wrap">
               {REDUCTION_STEPS.map((step) => {
                 const isSelected = reductionPct === step;
                 return (
                   <Pressable
                     key={step}
                     onPress={() => setReductionPct(step)}
-                    className={`flex-1 py-2.5 rounded-xl items-center justify-center border transition-all ${
+                    className={`flex-1 min-w-[44px] py-2.5 px-1 rounded-xl items-center justify-center border transition-all ${
                       isSelected
                         ? "bg-primary border-primary shadow-sm"
                         : "bg-secondary/70 border-border/80 active:bg-secondary"
@@ -168,6 +168,7 @@ export default function GoalScreen() {
                     <Text
                       size="xs"
                       bold
+                      numberOfLines={1}
                       className={`font-mono ${
                         isSelected ? "text-primary-foreground" : "text-foreground"
                       }`}
@@ -250,10 +251,10 @@ export default function GoalScreen() {
       {/* Bottom CTA */}
       <Box className="pt-2">
         <Button onPress={handleContinue} className="w-full h-13 rounded-2xl">
-          <HStack className="items-center justify-center gap-2">
-            <Text bold className="text-primary-foreground text-base font-body">
+          <HStack className="items-center justify-center gap-2 min-w-0 px-2">
+            <ButtonText className="text-primary-foreground text-base font-body">
               Reveal starting point
-            </Text>
+            </ButtonText>
             <ArrowRight size={18} color="white" />
           </HStack>
         </Button>

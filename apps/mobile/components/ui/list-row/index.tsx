@@ -22,18 +22,18 @@ export function ListRow({
     <Pressable onPress={onPress} className="py-3 border-b border-border">
       <HStack className="items-center gap-3">
         {leading}
-        <VStack className="flex-1" space="xs">
-          <Text bold size="sm">
+        <VStack className="flex-1 min-w-0" space="xs">
+          <Text bold size="sm" numberOfLines={1}>
             {title}
           </Text>
           {subtitle ? (
-            <Text size="xs" className="text-muted-foreground">
+            <Text size="xs" numberOfLines={2} className="text-muted-foreground">
               {subtitle}
             </Text>
           ) : null}
         </VStack>
         {trailing ? (
-          <Text size="sm" bold className="font-mono text-primary">
+          <Text size="sm" bold numberOfLines={1} className="shrink-0 font-mono text-primary">
             {trailing}
           </Text>
         ) : (

@@ -34,8 +34,8 @@ export function Chip({
               ? "text-success"
               : "text-muted-foreground";
   return (
-    <View className={`px-3 py-1 rounded-full self-start ${bg}`}>
-      <Text size="xs" bold className={fg}>
+    <View className={`px-3 py-1 rounded-full self-start max-w-full ${bg}`}>
+      <Text size="xs" bold numberOfLines={1} className={`shrink min-w-0 ${fg}`}>
         {label}
       </Text>
     </View>

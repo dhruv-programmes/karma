@@ -19,7 +19,7 @@ import { Image } from "react-native";
 import { DecorativeBackground } from "@/components/custom/decorative-background";
 import Svg, { Path } from "react-native-svg";
 import { Box } from "@/components/ui/box";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonText } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Heading } from "@/components/ui/heading";
 import { HStack } from "@/components/ui/hstack";
@@ -191,10 +191,10 @@ export default function AccountScreen() {
           <Pressable
             onPress={handleContinueWithGoogle}
             disabled={loading}
-            className="w-full h-13 rounded-2xl bg-card border border-border flex-row items-center justify-center gap-3 active:bg-secondary/40"
+            className="w-full h-13 rounded-2xl bg-card border border-border flex-row items-center justify-center gap-3 px-3 active:bg-secondary/40"
           >
             <GoogleLogo />
-            <Text bold size="sm" className="text-foreground font-body">
+            <Text bold size="sm" numberOfLines={1} className="shrink min-w-0 text-foreground font-body">
               Continue with Google
             </Text>
           </Pressable>
@@ -203,7 +203,7 @@ export default function AccountScreen() {
         {/* Divider */}
         <HStack className="items-center gap-3 my-1">
           <Box className="flex-1 h-[1px] bg-border" />
-          <Text size="xs" className="text-muted-foreground font-body uppercase tracking-wider">
+          <Text size="xs" numberOfLines={1} className="shrink text-muted-foreground font-body uppercase tracking-wider">
             or
           </Text>
           <Box className="flex-1 h-[1px] bg-border" />
@@ -213,10 +213,10 @@ export default function AccountScreen() {
         {!showEmailForm ? (
           <Pressable
             onPress={() => setShowEmailForm(true)}
-            className="w-full h-13 rounded-2xl bg-secondary/70 border border-border/80 flex-row items-center justify-center gap-2"
+            className="w-full h-13 rounded-2xl bg-secondary/70 border border-border/80 flex-row items-center justify-center gap-2 px-3"
           >
             <Mail size={18} color="rgb(46,168,110)" />
-            <Text bold size="sm" className="text-foreground font-body">
+            <Text bold size="sm" numberOfLines={1} className="shrink min-w-0 text-foreground font-body">
               Continue with phone or email
             </Text>
           </Pressable>
@@ -286,17 +286,17 @@ export default function AccountScreen() {
               className="mt-2 h-12 rounded-xl"
             >
               {loading ? (
-                <HStack className="items-center gap-2">
+                <HStack className="items-center gap-2 min-w-0">
                   <ActivityIndicator color="white" size="small" />
-                  <Text bold className="text-primary-foreground font-body">
+                  <ButtonText className="text-primary-foreground font-body">
                     Creating Account...
-                  </Text>
+                  </ButtonText>
                 </HStack>
               ) : (
-                <HStack className="items-center justify-center gap-2">
-                  <Text bold className="text-primary-foreground font-body">
+                <HStack className="items-center justify-center gap-2 min-w-0 px-2">
+                  <ButtonText className="text-primary-foreground font-body">
                     Continue to Baseline
-                  </Text>
+                  </ButtonText>
                   <ArrowRight size={16} color="white" />
                 </HStack>
               )}

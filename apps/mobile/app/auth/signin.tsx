@@ -22,7 +22,7 @@ import Svg, { Path } from "react-native-svg";
 import { useQueryClient } from "@tanstack/react-query";
 import { Avatar } from "@/components/ui/avatar";
 import { Box } from "@/components/ui/box";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonText } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Heading } from "@/components/ui/heading";
 import { HStack } from "@/components/ui/hstack";
@@ -33,6 +33,11 @@ import { VStack } from "@/components/ui/vstack";
 import { api } from "@/src/lib/api";
 import { useAuthStore } from "@/src/store/auth";
 import type { DemoUserSummary } from "@/src/types/api";
+
+const DEMO_QUICK_SIGNIN = {
+  email: "aisha@example.com",
+  password: "password123",
+};
 
 function GoogleLogo() {
   return (
@@ -202,6 +207,22 @@ export default function SignInScreen() {
     router.replace("/(tabs)");
   }
 
+  async function handleQuickDemoSignIn() {
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await api.signin(DEMO_QUICK_SIGNIN.email, DEMO_QUICK_SIGNIN.password);
+      setAuth(res.user, res.access_token, true);
+      queryClient.invalidateQueries();
+      router.replace("/(tabs)");
+    } catch {
+      const aisha = demoUsers.find((u) => u.email === DEMO_QUICK_SIGNIN.email) ?? FALLBACK_DEMO_USERS[0];
+      launchDemoPersona(aisha);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <Box
       className="flex-1 bg-background"
@@ -256,15 +277,40 @@ export default function SignInScreen() {
           </Box>
         ) : null}
 
+        <Button
+          onPress={handleQuickDemoSignIn}
+          disabled={loading}
+          className="w-full h-13 rounded-2xl bg-primary"
+        >
+          {loading ? (
+            <HStack className="items-center gap-2 min-w-0">
+              <ActivityIndicator color="white" size="small" />
+              <ButtonText className="text-primary-foreground font-body">
+                Signing in...
+              </ButtonText>
+            </HStack>
+          ) : (
+            <HStack className="items-center justify-center gap-2 min-w-0 px-2">
+              <Sparkles size={16} color="white" />
+              <ButtonText className="text-primary-foreground text-base font-body">
+                Continue as Aisha
+              </ButtonText>
+            </HStack>
+          )}
+        </Button>
+        <Text size="xs" className="text-muted-foreground font-body -mt-2">
+          One-tap demo sign-in — no form fill required.
+        </Text>
+
         {/* Social Sign-In Button */}
         <Box>
           <Pressable
             onPress={handleGoogleSignIn}
             disabled={loading}
-            className="w-full h-13 rounded-2xl bg-card border border-border flex-row items-center justify-center gap-3 active:bg-secondary/40"
+            className="w-full h-13 rounded-2xl bg-card border border-border flex-row items-center justify-center gap-3 px-3 active:bg-secondary/40"
           >
             <GoogleLogo />
-            <Text bold size="sm" className="text-foreground font-body">
+            <Text bold size="sm" numberOfLines={1} className="shrink min-w-0 text-foreground font-body">
               Continue with Google
             </Text>
           </Pressable>
@@ -273,7 +319,11 @@ export default function SignInScreen() {
         {/* Divider */}
         <HStack className="items-center gap-3 my-0.5">
           <Box className="flex-1 h-[1px] bg-border" />
-          <Text size="xs" className="text-muted-foreground font-body uppercase tracking-wider">
+          <Text
+            size="xs"
+            numberOfLines={1}
+            className="shrink min-w-0 text-muted-foreground font-body uppercase tracking-wider"
+          >
             or sign in with email
           </Text>
           <Box className="flex-1 h-[1px] bg-border" />
@@ -329,17 +379,17 @@ export default function SignInScreen() {
             className="mt-1 h-12 rounded-xl bg-primary shadow-sm opacity-100"
           >
             {loading ? (
-              <HStack className="items-center gap-2">
+              <HStack className="items-center gap-2 min-w-0">
                 <ActivityIndicator color="white" size="small" />
-                <Text bold className="text-primary-foreground font-body">
+                <ButtonText className="text-primary-foreground font-body">
                   Signing in...
-                </Text>
+                </ButtonText>
               </HStack>
             ) : (
-              <HStack className="items-center justify-center gap-2">
-                <Text bold className="text-primary-foreground font-body">
+              <HStack className="items-center justify-center gap-2 min-w-0">
+                <ButtonText className="text-primary-foreground font-body">
                   Sign In
-                </Text>
+                </ButtonText>
                 <ArrowRight size={16} color="white" />
               </HStack>
             )}
@@ -348,13 +398,16 @@ export default function SignInScreen() {
 
         {/* Separated Demo Evaluator Card */}
         <Card variant="soft" className="p-4 gap-3 border border-primary/20 bg-secondary/60">
-          <HStack className="items-center justify-between">
-            <HStack className="items-center gap-2">
-              <UserCheck size={16} color="rgb(46,168,110)" />
-              <Text size="xs" bold className="text-primary tracking-wider uppercase font-mono">
-                Judge & Hackathon Evaluation
-              </Text>
-            </HStack>
+          <HStack className="items-center gap-2 min-w-0">
+            <UserCheck size={16} color="rgb(46,168,110)" />
+            <Text
+              size="xs"
+              bold
+              numberOfLines={1}
+              className="flex-1 min-w-0 shrink text-primary tracking-wider uppercase font-mono"
+            >
+              Judge & Hackathon Evaluation
+            </Text>
           </HStack>
           <Text size="xs" className="text-muted-foreground font-body">
             One-tap instant preview of pre-seeded user profiles with distinct scores:
@@ -365,12 +418,12 @@ export default function SignInScreen() {
               <Pressable
                 key={persona.id}
                 onPress={() => launchDemoPersona(persona)}
-                className="p-3 rounded-xl bg-card border border-border/70 flex-row items-center justify-between active:bg-secondary"
+                className="p-3 rounded-xl bg-card border border-border/70 flex-row items-center justify-between gap-2 active:bg-secondary"
               >
-                <HStack className="items-center gap-2.5 flex-1">
+                <HStack className="items-center gap-2.5 flex-1 min-w-0">
                   <Avatar name={persona.name} size="sm" />
-                  <VStack className="flex-1">
-                    <Text bold size="sm" className="text-foreground font-body">
+                  <VStack className="flex-1 min-w-0">
+                    <Text bold size="sm" numberOfLines={1} className="text-foreground font-body">
                       {persona.name}
                     </Text>
                     <Text size="xs" numberOfLines={1} className="text-muted-foreground font-body">

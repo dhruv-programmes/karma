@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Stack, useRouter } from "expo-router";
+import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -24,12 +24,7 @@ const queryClient = new QueryClient({
 });
 
 export default function RootLayout() {
-  const router = useRouter();
   const isHydrated = useAuthStore((s) => s.isHydrated);
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const isDemoMode = useAuthStore((s) => s.isDemoMode);
-  const hasCompletedOnboarding = useAuthStore((s) => s.hasCompletedOnboarding);
-  const onboardingStep = useAuthStore((s) => s.onboardingStep);
   const hydrateAuth = useAuthStore((s) => s.hydrateAuth);
 
   const [fontsLoaded] = useFonts({
@@ -43,30 +38,6 @@ export default function RootLayout() {
   useEffect(() => {
     hydrateAuth();
   }, [hydrateAuth]);
-
-  useEffect(() => {
-    if (!fontsLoaded || !isHydrated) return;
-
-    // Path B & D: Completed user or active demo mode -> straight to Home
-    if (hasCompletedOnboarding || isDemoMode) {
-      return;
-    }
-
-    // Path A & C: New user or incomplete sign-up -> resume exact step
-    if (onboardingStep === "account") {
-      router.replace("/onboarding/account");
-    } else if (onboardingStep === "baseline") {
-      router.replace("/onboarding/baseline");
-    } else if (onboardingStep === "goal") {
-      router.replace("/onboarding/goal");
-    } else if (onboardingStep === "reveal") {
-      router.replace("/onboarding/reveal");
-    } else if (onboardingStep === "location") {
-      router.replace("/onboarding/location");
-    } else {
-      router.replace("/onboarding");
-    }
-  }, [fontsLoaded, isHydrated, hasCompletedOnboarding, isDemoMode, onboardingStep, router]);
 
   if (!fontsLoaded || !isHydrated) {
     return <View className="flex-1 bg-background" />;
@@ -83,6 +54,7 @@ export default function RootLayout() {
               contentStyle: { backgroundColor: "rgb(244, 250, 246)" },
             }}
           >
+            <Stack.Screen name="index" />
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="onboarding/index" options={{ animation: "fade" }} />
             <Stack.Screen name="onboarding/account" options={{ animation: "slide_from_right" }} />

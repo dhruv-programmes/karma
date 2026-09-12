@@ -220,8 +220,7 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
       </Modal>
 
       <View
-        style={[styles.container, { paddingBottom: dockLift }]}
-        pointerEvents="box-none"
+        style={[styles.container, { paddingBottom: dockLift, pointerEvents: "box-none" }]}
       >
         <View style={styles.dock}>
           <View style={styles.sideCluster}>
@@ -313,10 +312,7 @@ const styles = StyleSheet.create({
     width: "100%",
     ...Platform.select({
       ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 20,
+        boxShadow: "0px 8px 20px rgba(0,0,0,0.3)",
       },
       android: {
         elevation: 16,
@@ -363,10 +359,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     ...Platform.select({
       ios: {
-        shadowColor: "#2EA86E",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.45,
-        shadowRadius: 10,
+        boxShadow: "0px 4px 10px rgba(46,168,110,0.45)",
       },
       android: { elevation: 8 },
     }),
@@ -391,10 +384,7 @@ const styles = StyleSheet.create({
     gap: 6,
     ...Platform.select({
       ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.35,
-        shadowRadius: 24,
+        boxShadow: "0px 12px 24px rgba(0,0,0,0.35)",
       },
       android: { elevation: 20 },
     }),

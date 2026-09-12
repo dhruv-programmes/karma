@@ -170,7 +170,7 @@ export default function MapScreen() {
                 onPress={() => setSelected(f.id)}
                 className={`px-3 py-2 rounded-2xl flex-row items-center gap-1.5 transition-all ${
                   isSel
-                    ? "bg-primary text-primary-foreground scale-105 shadow-lg"
+                    ? "bg-primary text-primary-foreground scale-105"
                     : "bg-background/80 backdrop-blur border border-border/80"
                 }`}
               >

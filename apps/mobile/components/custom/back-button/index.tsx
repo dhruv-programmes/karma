@@ -78,10 +78,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     borderWidth: 1,
     borderColor: "rgba(46,168,110,0.22)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    boxShadow: "0px 1px 4px rgba(0,0,0,0.05)",
     elevation: 1,
   },
   circleBtn: {
@@ -93,10 +90,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "rgba(46,168,110,0.22)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    boxShadow: "0px 1px 4px rgba(0,0,0,0.05)",
     elevation: 1,
   },
   btnText: {

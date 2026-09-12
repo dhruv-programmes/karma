@@ -99,8 +99,7 @@ export function SolarPanelHero({ data }: { data: SolarImpactResponse }) {
       {/* Viewport Frame */}
       <View style={styles.viewport}>
         <Animated.View
-          pointerEvents="none"
-          style={[styles.glowOrb, glowStyle]}
+          style={[styles.glowOrb, glowStyle, { pointerEvents: "none" }]}
         />
         <Svg width="100%" height="216" viewBox="0 0 360 216">
           <Defs>
@@ -248,10 +247,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: "rgba(46,168,110,0.16)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
+    boxShadow: "0px 2px 8px rgba(0,0,0,0.04)",
     elevation: 2,
     gap: 12,
   },

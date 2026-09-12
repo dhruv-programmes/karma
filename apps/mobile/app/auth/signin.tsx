@@ -339,7 +339,7 @@ export default function SignInScreen() {
           <Button
             onPress={() => handleSignIn()}
             disabled={loading}
-            className="mt-1 h-12 rounded-xl bg-primary shadow-sm opacity-100"
+            className="mt-1 h-12 rounded-xl bg-primary opacity-100"
           >
             {loading ? (
               <HStack className="items-center gap-2 min-w-0">

@@ -90,7 +90,7 @@ export default function RevealScreen() {
         </VStack>
 
         {/* Hero Score Card */}
-        <Card variant="soft" className="p-5 items-center border border-primary/25 bg-card gap-2 shadow-sm">
+        <Card variant="soft" className="p-5 items-center border border-primary/25 bg-card gap-2">
           <Box className="w-12 h-12 rounded-full bg-primary/15 items-center justify-center mb-1">
             <Sparkles size={22} color="rgb(46,168,110)" />
           </Box>

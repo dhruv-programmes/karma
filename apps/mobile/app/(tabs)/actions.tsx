@@ -235,10 +235,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderWidth: 1,
     borderColor: "rgba(245,158,11,0.25)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
+    boxShadow: "0px 2px 6px rgba(0,0,0,0.04)",
     elevation: 1,
   },
   rewardsBarLeft: {

@@ -63,10 +63,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "rgba(46,168,110,0.16)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
+    boxShadow: "0px 2px 10px rgba(0,0,0,0.05)",
     elevation: 2,
   },
   iconBox: {

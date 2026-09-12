@@ -180,8 +180,8 @@ function ScoreRing({
     <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
       {/* Fill disc only — keeps borderRadius from clipping the SVG stroke */}
       <View
-        pointerEvents="none"
         style={{
+          pointerEvents: "none",
           position: "absolute",
           width: disc,
           height: disc,
@@ -220,8 +220,7 @@ function ScoreRing({
           strokeDasharray={`${c} ${c}`}
           animatedProps={animatedProps}
           strokeLinecap="round"
-          rotation="-90"
-          origin={`${cx}, ${cy}`}
+          transform={`rotate(-90 ${cx} ${cy})`}
           opacity={0.45}
         />
 
@@ -235,8 +234,7 @@ function ScoreRing({
           strokeDasharray={`${c} ${c}`}
           animatedProps={animatedProps}
           strokeLinecap="round"
-          rotation="-90"
-          origin={`${cx}, ${cy}`}
+          transform={`rotate(-90 ${cx} ${cy})`}
           opacity={1}
         />
 
@@ -250,8 +248,7 @@ function ScoreRing({
           strokeDasharray={`${c} ${c}`}
           animatedProps={animatedProps}
           strokeLinecap="round"
-          rotation="-90"
-          origin={`${cx}, ${cy}`}
+          transform={`rotate(-90 ${cx} ${cy})`}
           opacity={1}
         />
       </Svg>
@@ -296,10 +293,7 @@ function ScoreRing({
             height: 7,
             borderRadius: 3.5,
             backgroundColor: "#FFFFFF",
-            shadowColor: color,
-            shadowOffset: { width: 0, height: 0 },
-            shadowOpacity: 1,
-            shadowRadius: 6,
+            boxShadow: `0px 0px 6px ${color}`,
             elevation: 4,
           }}
         />
@@ -503,30 +497,26 @@ export default function HomeScreen() {
             locations={[0, 0.45, 1]}
             start={{ x: 0.05, y: 0 }}
             end={{ x: 0.75, y: 1 }}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
+            style={[StyleSheet.absoluteFill, { pointerEvents: "none" }]}
           />
           <LinearGradient
             colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.14)", "rgba(255,255,255,0)"]}
             locations={[0, 0.5, 1]}
             start={{ x: 0.85, y: 0 }}
             end={{ x: 0.15, y: 1 }}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
+            style={[StyleSheet.absoluteFill, { pointerEvents: "none" }]}
           />
           <LinearGradient
             colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.08)"]}
             start={{ x: 0.5, y: 0.45 }}
             end={{ x: 0.5, y: 1 }}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
+            style={[StyleSheet.absoluteFill, { pointerEvents: "none" }]}
           />
           <View
             style={[
               StyleSheet.absoluteFill,
-              { backgroundColor: "rgba(0,0,0,0.06)" },
+              { backgroundColor: "rgba(0,0,0,0.06)", pointerEvents: "none" },
             ]}
-            pointerEvents="none"
           />
 
           {/* Header row */}
@@ -1188,10 +1178,7 @@ const styles = StyleSheet.create({
     gap: 10,
     borderWidth: 1,
     borderColor: "rgba(46,168,110,0.16)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
+    boxShadow: "0px 2px 10px rgba(0,0,0,0.05)",
     elevation: 2,
   },
   walkHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
@@ -1244,10 +1231,7 @@ const styles = StyleSheet.create({
     gap: 12,
     borderWidth: 1,
     borderColor: "rgba(46,168,110,0.16)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
+    boxShadow: "0px 2px 10px rgba(0,0,0,0.05)",
     elevation: 2,
   },
   commuteHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
@@ -1361,10 +1345,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     gap: 14,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
+    boxShadow: "0px 2px 12px rgba(0,0,0,0.06)",
     elevation: 3,
   },
   actionImpactBadge: {
@@ -1429,10 +1410,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 14,
     gap: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    boxShadow: "0px 1px 8px rgba(0,0,0,0.05)",
     elevation: 2,
   },
   tileLabel: {
@@ -1458,10 +1436,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
+    boxShadow: "0px 2px 10px rgba(0,0,0,0.05)",
     elevation: 2,
   },
 
@@ -1472,10 +1447,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 12,
     gap: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    boxShadow: "0px 1px 8px rgba(0,0,0,0.05)",
     elevation: 2,
   },
   closetName: {
@@ -1501,10 +1473,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
+    boxShadow: "0px 2px 10px rgba(0,0,0,0.05)",
     elevation: 2,
   },
   activityRow: {
@@ -1547,10 +1516,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 14,
     gap: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    boxShadow: "0px 1px 8px rgba(0,0,0,0.05)",
     elevation: 2,
   },
   toolIconBox: {

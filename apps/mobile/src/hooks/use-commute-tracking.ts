@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import * as Location from "expo-location";
+import { DeviceMotion } from "expo-sensors";
 import { useLogCommute } from "@/src/hooks/queries";
 import type { CommuteTripResult } from "@/src/types/api";
 
@@ -61,6 +62,9 @@ export function useCommuteTracking() {
   const [lastResult, setLastResult] = useState<CommuteTripResult | null>(null);
 
   const subscriptionRef = useRef<Location.LocationSubscription | null>(null);
+  const motionSubscriptionRef = useRef<{ remove: () => void } | null>(null);
+  const motionSumSquaresRef = useRef(0);
+  const motionSampleCountRef = useRef(0);
   const lastCoordRef = useRef<Coordinate | null>(null);
   const totalDistanceRef = useRef<number>(0);
   const startTimeRef = useRef<number>(0);
@@ -72,6 +76,10 @@ export function useCommuteTracking() {
       if (subscriptionRef.current) {
         subscriptionRef.current.remove();
         subscriptionRef.current = null;
+      }
+      if (motionSubscriptionRef.current) {
+        motionSubscriptionRef.current.remove();
+        motionSubscriptionRef.current = null;
       }
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
@@ -107,6 +115,8 @@ export function useCommuteTracking() {
       // Reset state for new trip
       totalDistanceRef.current = 0;
       lastCoordRef.current = null;
+      motionSumSquaresRef.current = 0;
+      motionSampleCountRef.current = 0;
       startTimeRef.current = Date.now();
       setDistanceKm(0);
       setElapsedSec(0);
@@ -118,6 +128,31 @@ export function useCommuteTracking() {
       timerIntervalRef.current = setInterval(() => {
         setElapsedSec(Math.floor((Date.now() - startTimeRef.current) / 1000));
       }, 1000);
+
+      // Keep raw motion on-device. The API receives only the aggregate RMS
+      // signal when the trip ends, which is enough for the transparent
+      // motorised-travel heuristic and does not expose a sensor trace.
+      try {
+        const motionPermission = await DeviceMotion.requestPermissionsAsync();
+        if (motionPermission.status === "granted") {
+          motionSubscriptionRef.current = DeviceMotion.addListener((measurement) => {
+            const linear = measurement.acceleration;
+            const vector = linear ?? measurement.accelerationIncludingGravity;
+            const magnitude = Math.sqrt(
+              vector.x * vector.x + vector.y * vector.y + vector.z * vector.z
+            );
+            // Web implementations may expose accelerationIncludingGravity as
+            // acceleration; remove the static gravity component in that case.
+            const linearMagnitude = linear
+              ? magnitude
+              : Math.max(0, magnitude - DeviceMotion.Gravity);
+            motionSumSquaresRef.current += linearMagnitude * linearMagnitude;
+            motionSampleCountRef.current += 1;
+          });
+        }
+      } catch {
+        // Motion permission is optional; GPS-only classification remains safe.
+      }
 
       // Start watching position
       subscriptionRef.current = await Location.watchPositionAsync(
@@ -169,6 +204,10 @@ export function useCommuteTracking() {
       subscriptionRef.current.remove();
       subscriptionRef.current = null;
     }
+    if (motionSubscriptionRef.current) {
+      motionSubscriptionRef.current.remove();
+      motionSubscriptionRef.current = null;
+    }
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = null;
@@ -178,6 +217,9 @@ export function useCommuteTracking() {
     const durationMin = Math.max(0.1, (Date.now() - startTimeRef.current) / 60000);
     const avgSpeedKmh =
       durationMin > 0 ? (finalDistanceKm / (durationMin / 60)) : 0;
+    const accelerationRms = motionSampleCountRef.current > 0
+      ? Math.sqrt(motionSumSquaresRef.current / motionSampleCountRef.current)
+      : undefined;
 
     setStatus("syncing");
 
@@ -187,6 +229,9 @@ export function useCommuteTracking() {
         distance_km: Math.round(finalDistanceKm * 1000) / 1000,
         duration_min: Math.round(durationMin * 10) / 10,
         avg_speed_kmh: Math.round(avgSpeedKmh * 10) / 10,
+        ...(accelerationRms === undefined
+          ? {}
+          : { acceleration_rms_mps2: Math.round(accelerationRms * 100) / 100 }),
       });
 
       setLastResult(result);

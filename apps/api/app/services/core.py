@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import hashlib
+import csv
+import io
 import math
 import re
 from datetime import date, datetime, timedelta, timezone
@@ -84,6 +86,158 @@ from app.seed.data import (
 # A1 contract requires this exact string.
 SCORE_NUDGE_COPY = "We need more data to calculate your Carbon Score (Upload electricity, shopping, food + travel bills to improve accuracy)"
 NUDGE_COPY = SCORE_NUDGE_COPY  # alias for A1 convenience
+
+
+# Local document integrity checks deliberately use only metadata and bytes
+# supplied by the client. They are a fraud *signal* for this prototype, not a
+# legal verification service; a provider can replace this seam later.
+DOCUMENT_INTEGRITY_RULES_VERSION = "local-document-integrity-v1"
+DOCUMENT_MAX_BYTES = 10 * 1024 * 1024
+DOCUMENT_MIME_EXTENSIONS: dict[str, set[str]] = {
+    "application/pdf": {"pdf"},
+    "text/csv": {"csv"},
+    "text/plain": {"txt", "text"},
+    "image/jpeg": {"jpg", "jpeg"},
+    "image/png": {"png"},
+}
+_FORGED_DOCUMENT_MARKERS = re.compile(
+    r"\b(?:fake|forged|photoshopped|edited\s+(?:receipt|invoice|bill)|sample\s+receipt)\b",
+    re.IGNORECASE,
+)
+
+
+def inspect_document_integrity(
+    *,
+    filename: str | None = None,
+    mime_type: str | None = None,
+    size_bytes: int | None = None,
+    content: bytes | str | None = None,
+    text: str | None = None,
+    items: list[dict] | None = None,
+    metadata: dict | None = None,
+) -> dict[str, object]:
+    """Return a deterministic local fraud decision for a document payload.
+
+    Rules are intentionally conservative around ordinary receipts: malformed
+    OCR goes to review in the existing pipeline, while only strong integrity
+    signals (bad file signatures, forged markers, duplicate IDs, hash
+    mismatch, or unsafe metadata) block rewards/imports. No external API key
+    or unverifiable issuer claim is involved.
+    """
+    reasons: list[str] = []
+    score = 0
+    metadata = metadata or {}
+    clean_name = str(filename or "").strip()
+    supplied_mime = str(mime_type or "").strip().lower()
+    suffix = clean_name.rsplit(".", 1)[-1].lower() if "." in clean_name else ""
+
+    if clean_name and ("\x00" in clean_name or "/" in clean_name or "\\" in clean_name):
+        reasons.append("unsafe_filename")
+        score += 60
+    if clean_name and re.search(r"\.(?:exe|js|sh|bat|cmd|scr)\.(?:pdf|csv|jpg|jpeg|png)$", clean_name, re.I):
+        reasons.append("disguised_executable_filename")
+        score += 80
+    if supplied_mime and supplied_mime not in DOCUMENT_MIME_EXTENSIONS:
+        reasons.append("unsupported_mime_type")
+        score += 70
+    elif supplied_mime and suffix and suffix not in DOCUMENT_MIME_EXTENSIONS[supplied_mime]:
+        reasons.append("mime_extension_mismatch")
+        score += 70
+
+    if size_bytes is not None:
+        try:
+            size = int(size_bytes)
+        except (TypeError, ValueError):
+            size = 0
+        if size <= 0:
+            reasons.append("empty_document")
+            score += 70
+        elif size > DOCUMENT_MAX_BYTES:
+            reasons.append("document_too_large")
+            score += 70
+
+    raw_bytes: bytes | None = None
+    raw_text = text or ""
+    if isinstance(content, bytes):
+        raw_bytes = content
+        if not raw_text:
+            raw_text = content.decode("utf-8", errors="replace")
+    elif isinstance(content, str):
+        raw_text = raw_text or content
+
+    if supplied_mime == "application/pdf" and raw_bytes is not None:
+        if not raw_bytes.startswith(b"%PDF-") or b"%%EOF" not in raw_bytes[-2048:]:
+            reasons.append("invalid_pdf_signature")
+            score += 80
+    if supplied_mime == "text/csv" and content is not None:
+        try:
+            parsed = list(csv.reader(io.StringIO(raw_text)))
+            if len(parsed) < 2 or max((len(row) for row in parsed), default=0) < 2:
+                reasons.append("malformed_csv")
+                score += 70
+        except (csv.Error, TypeError, ValueError):
+            reasons.append("malformed_csv")
+            score += 70
+
+    expected_hash = metadata.get("sha256") or metadata.get("expected_sha256")
+    if expected_hash and raw_bytes is not None:
+        actual_hash = hashlib.sha256(raw_bytes).hexdigest()
+        if str(expected_hash).strip().lower() != actual_hash:
+            reasons.append("content_hash_mismatch")
+            score += 90
+    created = metadata.get("created_at")
+    modified = metadata.get("modified_at")
+    if created and modified:
+        try:
+            created_at = datetime.fromisoformat(str(created).replace("Z", "+00:00"))
+            modified_at = datetime.fromisoformat(str(modified).replace("Z", "+00:00"))
+            if modified_at < created_at:
+                reasons.append("inconsistent_file_timestamps")
+                score += 45
+        except ValueError:
+            reasons.append("invalid_file_timestamps")
+            score += 45
+
+    if raw_text and _FORGED_DOCUMENT_MARKERS.search(raw_text):
+        reasons.append("forged_document_marker")
+        score += 90
+    if raw_text:
+        control_count = sum(1 for char in raw_text if ord(char) < 32 and char not in "\n\r\t")
+        if control_count > max(4, len(raw_text) // 100):
+            reasons.append("suspicious_control_characters")
+            score += 45
+
+    if items is not None:
+        seen_ids: set[str] = set()
+        for item in items:
+            item_id = str(item.get("id") or "").strip()
+            if not item_id and str(item.get("source_key") or "").startswith("document:"):
+                item_id = str(item.get("source_key")).strip()
+            if item_id and item_id in seen_ids:
+                reasons.append("duplicate_item_id")
+                score += 80
+                break
+            if item_id:
+                seen_ids.add(item_id)
+            try:
+                amount = float(item.get("amount_inr", item.get("amount", 0)) or 0)
+                if not math.isfinite(amount) or amount <= 0 or amount > 10_000_000:
+                    reasons.append("invalid_item_amount")
+                    score += 70
+                    break
+            except (TypeError, ValueError):
+                reasons.append("invalid_item_amount")
+                score += 70
+                break
+
+    score = min(100, score)
+    return {
+        "fraud_detected": bool(reasons and score >= 70),
+        "fraud_score": score,
+        "fraud_reasons": reasons,
+        "verification_status": "rejected" if reasons and score >= 70 else "passed",
+        "integrity_rules_version": DOCUMENT_INTEGRITY_RULES_VERSION,
+    }
 
 
 # Walking rewards are Impact Points only. Do not add them to KCS inputs or its
@@ -302,12 +456,13 @@ def log_commute_trip(
     avg_speed_kmh: float,
     user: UserModel,
     db: Session,
+    acceleration_rms_mps2: float | None = None,
 ) -> dict:
     """Log an individual GPS-detected commute trip, classify mode, award points, and record activity."""
     today = _local_today()
     date_key = today.isoformat()
 
-    mode = classify_commute_mode(avg_speed_kmh)
+    mode = classify_commute_mode(avg_speed_kmh, acceleration_rms_mps2)
 
     # Calculate today's existing commute points to respect daily cap
     todays_trips = (
@@ -1439,6 +1594,18 @@ def import_transactions(
     rows: list[dict], user: UserModel | None = None, db: Session | None = None
 ) -> list[Transaction]:
     user, db = _resolve_user_and_db(user, db)
+    # Validate the complete batch before mutating the session. This protects
+    # the direct CSV/import endpoint as well as the document proxy; callers
+    # must not be able to submit negative, non-finite, or absurd amounts and
+    # still create footprint records or influence reward calculations.
+    for index, row in enumerate(rows):
+        try:
+            amount = float(row.get("amount_inr", row.get("amount", 0)) or 0)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail=f"Invalid amount for import row {index + 1}") from None
+        if not math.isfinite(amount) or amount <= 0 or amount > 10_000_000:
+            raise HTTPException(status_code=400, detail=f"Invalid amount for import row {index + 1}")
+
     created: list[Transaction] = []
     reward_total = 0
     today = date.today().isoformat()
@@ -1593,6 +1760,36 @@ def process_document_example(
     auto_import = [_item_to_schema(i) for i in auto_raw]
     needs_review = [_item_to_schema(i) for i in review_raw]
     requires_review = len(needs_review) > 0
+    integrity = inspect_document_integrity(
+        filename=f"{example_id}.{'pdf' if example['source'] == 'pdf' else 'jpg'}",
+        mime_type="application/pdf" if example["source"] == "pdf" else "image/jpeg",
+        size_bytes=len(str(example["ocr_text"]).encode("utf-8")),
+        text=str(example["ocr_text"]),
+        items=example["extracted_items"],
+    )
+
+    # A rejected document never reaches import_transactions, so it cannot
+    # mint Karma Coins, a badge, or league points through the route hook.
+    if integrity["fraud_detected"]:
+        return {
+            "example_id": example_id,
+            "title": str(example["title"]),
+            "pipeline_steps": list(example["pipeline_steps"]),
+            "ocr_preview": str(example["ocr_text"]).strip()[:280],
+            "auto_import": [],
+            "needs_review": [],
+            "imported": 0,
+            "transactions": [],
+            "message": "Document rejected by local integrity checks; no rewards were issued.",
+            "badges_unlocked": [],
+            "requires_review": False,
+            "is_mock": True,
+            "co2e_kg_added": 0.0,
+            "reward_points_awarded": 0,
+            "duplicate_count": 0,
+            "reward_formula_version": RECEIPT_REWARD_FORMULA_VERSION,
+            **integrity,
+        }
 
     imported = 0
     transactions: list[Transaction] = []
@@ -1647,6 +1844,7 @@ def process_document_example(
         "reward_points_awarded": sum(int(t.reward_points_awarded) for t in transactions),
         "duplicate_count": len(auto_import) - len(transactions),
         "reward_formula_version": RECEIPT_REWARD_FORMULA_VERSION,
+        **integrity,
     }
 
 
@@ -1668,6 +1866,7 @@ def confirm_document_import(
                 continue
             rows.append(
                 {
+                    "id": raw.id or index,
                     "source_key": f"document:{example_id}:line:{raw.id or index}",
                     "merchant": raw.merchant,
                     "amount_inr": raw.amount_inr,
@@ -1681,6 +1880,7 @@ def confirm_document_import(
                 continue
             rows.append(
                 {
+                    "id": raw.get("id") or index,
                     "source_key": f"document:{example_id}:line:{raw.get('id') or index}",
                     "merchant": str(raw.get("merchant", "Unknown")),
                     "amount_inr": float(raw.get("amount_inr", 0) or 0),
@@ -1690,6 +1890,20 @@ def confirm_document_import(
                 }
             )
 
+    integrity = inspect_document_integrity(items=rows)
+    if integrity["fraud_detected"]:
+        return {
+            "imported": 0,
+            "transactions": [],
+            "message": "Document rejected by local integrity checks; no rewards were issued.",
+            "badges_unlocked": [],
+            "is_mock": True,
+            "co2e_kg_added": 0.0,
+            "reward_points_awarded": 0,
+            "duplicate_count": 0,
+            "reward_formula_version": RECEIPT_REWARD_FORMULA_VERSION,
+            **integrity,
+        }
     created = import_transactions(rows, user, db)
     badges = _unlock_receipt_ranger(user, db)
     log_activity_event(
@@ -1712,6 +1926,7 @@ def confirm_document_import(
         "reward_points_awarded": sum(int(t.reward_points_awarded) for t in created),
         "duplicate_count": len(rows) - len(created),
         "reward_formula_version": RECEIPT_REWARD_FORMULA_VERSION,
+        **integrity,
     }
 
 
@@ -1723,16 +1938,22 @@ def parse_receipt_text(
 ) -> dict:
     user, db = _resolve_user_and_db(user, db)
     raw = (text or "").strip()
-    if use_demo or not raw:
+    if use_demo:
         raw = DEMO_RECEIPT_TEXT
+    elif not raw:
+        # A real empty upload is not permission to mint the seeded demo
+        # receipt. Keep the result empty so callers can ask for a valid file.
+        raw = ""
 
     lines = [ln.strip() for ln in raw.splitlines() if ln.strip()]
     merchant = "Receipt Import"
     rows: list[dict] = []
+    receipt_key = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:24]
     amount_re = re.compile(r"(\d+(?:\.\d+)?)\s*$")
 
     for ln in lines:
         upper = ln.upper()
+        matched_merchant = None
         if any(
             k in upper
             for k in (
@@ -1740,15 +1961,15 @@ def parse_receipt_text(
                 "FLIPKART", "BESCOM", "PHILIPS", "BIGBASKET", "BLINKIT",
             )
         ):
-            merchant = ln.title() if len(ln) < 40 else merchant
             for token in (
                 "Swiggy", "Zomato", "Uber", "Croma", "Amazon",
                 "Flipkart", "BESCOM", "Philips", "BigBasket", "Blinkit",
             ):
                 if token.upper() in upper:
-                    merchant = token
+                    matched_merchant = token
                     break
-            continue
+            if matched_merchant:
+                merchant = matched_merchant
         if ln.startswith("---"):
             continue
         m = amount_re.search(ln.replace(",", ""))
@@ -1757,14 +1978,45 @@ def parse_receipt_text(
         amount = float(m.group(1))
         if amount <= 0:
             continue
-        rows.append({"merchant": merchant, "amount_inr": amount, "date": date.today().isoformat()})
+        rows.append({
+            "source_key": f"receipt-text:{receipt_key}:line:{len(rows)}",
+            "merchant": merchant,
+            "amount_inr": amount,
+            "date": date.today().isoformat(),
+        })
+
+    if not rows and use_demo:
+        rows = [
+            {"source_key": f"receipt-text:{receipt_key}:line:0", "merchant": "Croma", "amount_inr": 899, "date": date.today().isoformat()},
+            {"source_key": f"receipt-text:{receipt_key}:line:1", "merchant": "Swiggy", "amount_inr": 320, "date": date.today().isoformat()},
+            {"source_key": f"receipt-text:{receipt_key}:line:2", "merchant": "Uber", "amount_inr": 180, "date": date.today().isoformat()},
+        ]
 
     if not rows:
-        rows = [
-            {"merchant": "Croma", "amount_inr": 899, "date": date.today().isoformat()},
-            {"merchant": "Swiggy", "amount_inr": 320, "date": date.today().isoformat()},
-            {"merchant": "Uber", "amount_inr": 180, "date": date.today().isoformat()},
-        ]
+        return {
+            "imported": 0,
+            "transactions": [],
+            "message": "No receipt line items could be read. Nothing was imported.",
+            "badges_unlocked": [],
+            "co2e_kg_added": 0.0,
+            "reward_points_awarded": 0,
+            "duplicate_count": 0,
+            "reward_formula_version": RECEIPT_REWARD_FORMULA_VERSION,
+        }
+
+    integrity = inspect_document_integrity(mime_type="text/plain", text=raw, items=rows)
+    if integrity["fraud_detected"]:
+        return {
+            "imported": 0,
+            "transactions": [],
+            "message": "Receipt rejected by local integrity checks; no rewards were issued.",
+            "badges_unlocked": [],
+            "co2e_kg_added": 0.0,
+            "reward_points_awarded": 0,
+            "duplicate_count": 0,
+            "reward_formula_version": RECEIPT_REWARD_FORMULA_VERSION,
+            **integrity,
+        }
 
     created = import_transactions(rows, user, db)
     badges: list[str] = []
@@ -1797,6 +2049,7 @@ def parse_receipt_text(
         "reward_points_awarded": sum(int(t.reward_points_awarded) for t in created),
         "duplicate_count": len(rows) - len(created),
         "reward_formula_version": RECEIPT_REWARD_FORMULA_VERSION,
+        **integrity,
     }
 
 

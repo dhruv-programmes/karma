@@ -184,8 +184,10 @@ export default function MapScreen() {
         region={{
           latitude: coords.lat,
           longitude: coords.lng,
-          latitudeDelta: 0.08,
-          longitudeDelta: 0.08,
+          // Start wide enough to show the seeded Bengaluru hubs. Users can
+          // pinch in for a specific neighbourhood on native maps.
+          latitudeDelta: 0.18,
+          longitudeDelta: 0.20,
         }}
       >
         {facilities.map((f) => (

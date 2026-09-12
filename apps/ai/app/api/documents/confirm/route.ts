@@ -9,6 +9,7 @@ export async function OPTIONS(req: Request) {
 }
 
 type ConfirmItem = {
+  id?: string;
   merchant: string;
   amount_inr: number;
   date: string;
@@ -33,6 +34,8 @@ export async function POST(req: Request) {
     const malformedIndex = raw.items.findIndex((item) => {
       if (!isRecord(item)) return true;
       return (
+        (item.id !== undefined &&
+          (typeof item.id !== "string" || item.id.trim().length === 0)) ||
         typeof item.merchant !== "string" ||
         item.merchant.trim().length === 0 ||
         typeof item.amount_inr !== "number" ||
@@ -88,6 +91,12 @@ export async function POST(req: Request) {
   }
 
   const rows = items.map((i) => ({
+    // Keep the extraction line identity through the proxy. Without this,
+    // two identical line items collapse onto one canonical receipt key and
+    // a repeated confirmation can incorrectly lose a legitimate purchase.
+    source_key: i.id
+      ? `document:${docTitle || "uploaded"}:line:${i.id}`
+      : undefined,
     merchant: i.merchant,
     amount_inr: i.amount_inr,
     date: i.date,

@@ -315,6 +315,7 @@ export interface CommuteTripRequest {
   distance_km: number;
   duration_min: number;
   avg_speed_kmh: number;
+  acceleration_rms_mps2?: number;
 }
 
 export interface CommuteTripResult {

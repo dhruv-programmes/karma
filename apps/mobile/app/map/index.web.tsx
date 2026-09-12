@@ -26,6 +26,18 @@ const TITLE: Record<string, string> = {
 
 const BLR = { lat: 12.9716, lng: 77.5946 };
 
+// A restrained, local cartographic layer for the demo. It keeps the map
+// useful when a tile provider is not configured, while pins still come only
+// from the seeded facility coordinates returned by the API.
+const ROAD_STYLES = [
+  { left: "-12%", top: "18%", width: "125%", height: 9, rotate: "18deg", major: true },
+  { left: "-10%", top: "48%", width: "122%", height: 7, rotate: "-12deg", major: true },
+  { left: "-8%", top: "75%", width: "118%", height: 6, rotate: "8deg", major: false },
+  { left: "17%", top: "-18%", width: 7, height: "140%", rotate: "20deg", major: true },
+  { left: "52%", top: "-16%", width: 5, height: "138%", rotate: "-8deg", major: false },
+  { left: "77%", top: "-20%", width: 6, height: "145%", rotate: "26deg", major: true },
+] as const;
+
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{
@@ -194,21 +206,45 @@ export default function MapScreen() {
 
       {/* Deterministic, web-compatible map. Pins are plotted exclusively from
           the seeded facility coordinates returned by the API. */}
-      <Box className="mx-6 h-80 rounded-3xl overflow-hidden border border-border relative" style={{ backgroundColor: "#dce9df" }}>
-        <Box className="absolute inset-0" style={{ backgroundColor: "#dce9df" }} />
-        <Box className="absolute left-[-20%] right-[-20%] top-[42%] h-8 opacity-70" style={{ backgroundColor: "#f8fbf5", transform: [{ rotate: "-14deg" }] }} />
-        <Box className="absolute left-[-20%] right-[-20%] top-[66%] h-5 opacity-60" style={{ backgroundColor: "#f8fbf5", transform: [{ rotate: "22deg" }] }} />
-        <Box className="absolute top-[-30%] bottom-[-30%] left-[48%] w-7 opacity-60" style={{ backgroundColor: "#f8fbf5", transform: [{ rotate: "18deg" }] }} />
-        <Box className="absolute top-[-30%] bottom-[-30%] left-[20%] w-3 opacity-50" style={{ backgroundColor: "#f8fbf5", transform: [{ rotate: "-32deg" }] }} />
-        <Box className="absolute inset-0 opacity-30" style={{ backgroundColor: "transparent", borderWidth: 1, borderColor: "#8eb49d" }} />
+      <Box className="mx-6 h-80 rounded-3xl overflow-hidden border border-border relative" style={{ backgroundColor: "#dbece1" }}>
+        <Box className="absolute inset-0" style={{ backgroundColor: "#dbece1" }} />
+        {/* Parks and water give the seeded Bengaluru view recognizable map
+            structure without pretending that an external tile map is live. */}
+        <Box className="absolute left-[7%] top-[9%] h-20 w-28 rounded-[40px] opacity-80" style={{ backgroundColor: "#bfe2c9", transform: [{ rotate: "-12deg" }] }} />
+        <Box className="absolute right-[9%] bottom-[19%] h-16 w-24 rounded-[36px] opacity-75" style={{ backgroundColor: "#b8dfe1", transform: [{ rotate: "18deg" }] }} />
+        <Box className="absolute left-[42%] top-[38%] h-14 w-20 rounded-[30px] opacity-75" style={{ backgroundColor: "#c2e5c5", transform: [{ rotate: "-22deg" }] }} />
+        <Box className="absolute inset-0" style={{ transform: [{ scale: mapZoom }], transformOrigin: "center" }}>
+          {ROAD_STYLES.map((road, index) => (
+            <Box
+              key={`road-${index}`}
+              className="absolute rounded-full"
+              style={{
+                left: road.left,
+                top: road.top,
+                width: road.width,
+                height: road.height,
+                backgroundColor: road.major ? "#f8fbf5" : "#eef7ef",
+                borderWidth: road.major ? 1 : 0,
+                borderColor: "#c8dccd",
+                opacity: road.major ? 0.95 : 0.82,
+                transform: [{ rotate: road.rotate }],
+              }}
+            />
+          ))}
+          <Text className="absolute left-[8%] top-[27%] text-[10px] font-bold text-[#5a806c]">Malleshwaram</Text>
+          <Text className="absolute left-[53%] top-[25%] text-[10px] font-bold text-[#5a806c]">Indiranagar</Text>
+          <Text className="absolute left-[27%] top-[56%] text-[10px] font-bold text-[#5a806c]">Koramangala</Text>
+          <Text className="absolute left-[59%] top-[72%] text-[10px] font-bold text-[#5a806c]">HSR Layout</Text>
+          <Text className="absolute right-[7%] top-[12%] text-[10px] font-bold text-[#5a806c]">Whitefield</Text>
+        </Box>
 
         <Box className="absolute left-4 right-4 top-4 flex-row justify-between items-center z-10">
           <Badge action="playful" label="Seeded Bengaluru map" />
           <Box className="flex-row gap-1">
-            <Pressable onPress={() => setMapZoom((value) => Math.min(1.8, value + 0.2))} className="h-8 w-8 rounded-full bg-white items-center justify-center border border-border">
+            <Pressable accessibilityLabel="Zoom in map" onPress={() => setMapZoom((value) => Math.min(2.4, value + 0.2))} className="h-8 w-8 rounded-full bg-white items-center justify-center border border-border">
               <Text bold className="text-foreground">+</Text>
             </Pressable>
-            <Pressable onPress={() => setMapZoom((value) => Math.max(0.8, value - 0.2))} className="h-8 w-8 rounded-full bg-white items-center justify-center border border-border">
+            <Pressable accessibilityLabel="Zoom out map" onPress={() => setMapZoom((value) => Math.max(0.55, value - 0.2))} className="h-8 w-8 rounded-full bg-white items-center justify-center border border-border">
               <Text bold className="text-foreground">−</Text>
             </Pressable>
             <Pressable onPress={() => setMapZoom(1)} className="px-3 h-8 rounded-full bg-white items-center justify-center border border-border">
@@ -217,7 +253,7 @@ export default function MapScreen() {
           </Box>
         </Box>
 
-        <Box className="absolute inset-0" style={{ transform: [{ scale: mapZoom }] }}>
+        <Box className="absolute inset-0" style={{ transform: [{ scale: mapZoom }], transformOrigin: "center" }}>
           {mapPoints.map(({ facility, left, top }) => {
             const isSel = selected === facility.id;
             return (

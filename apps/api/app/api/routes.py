@@ -603,6 +603,7 @@ def log_commute(
         distance_km=body.distance_km,
         duration_min=body.duration_min,
         avg_speed_kmh=body.avg_speed_kmh,
+        acceleration_rms_mps2=body.acceleration_rms_mps2,
         user=current_user,
         db=db,
     )
@@ -641,7 +642,27 @@ def verify_sustainable_purchase(
     current_user: UserModel = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Run the mock provider; no document bytes are uploaded or parsed yet."""
+    """Run the local integrity gate before the demo EV verification provider."""
+    integrity = services.inspect_document_integrity(
+        filename=body.filename,
+        mime_type=body.mime_type,
+        size_bytes=body.size_bytes,
+    )
+    if integrity["fraud_detected"]:
+        return {
+            "status": "rejected",
+            "reward_points": 0,
+            "total_points": int(current_user.impact_points or 0),
+            "already_claimed": False,
+            "vehicle_make_model": "Tata Nexon EV",
+            "vehicle_type": "Electric Vehicle",
+            "ownership": "Unverified",
+            "verification": "Rejected",
+            "provider": "LocalDocumentIntegrity",
+            "reward_basis": "No reward issued for a rejected document.",
+            "is_mock": True,
+            **integrity,
+        }
     result = services.verify_sustainable_purchase(
         filename=body.filename,
         mime_type=body.mime_type,
@@ -660,7 +681,7 @@ def verify_sustainable_purchase(
             )
         except Exception:
             db.rollback()
-    return result
+    return {**result, **integrity}
 
 
 @router.post(
@@ -729,6 +750,12 @@ def list_transactions(
 
 class ImportBody(BaseModel):
     rows: list[dict]
+    # Optional upload metadata lets the local integrity gate validate the
+    # original file when the AI proxy has it; old clients may omit these.
+    filename: str | None = None
+    mime_type: str | None = None
+    size_bytes: int | None = None
+    sha256: str | None = None
 
 
 @router.post("/transactions/import")
@@ -737,6 +764,24 @@ def import_transactions(
     current_user: UserModel = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    integrity = services.inspect_document_integrity(
+        filename=body.filename,
+        mime_type=body.mime_type,
+        size_bytes=body.size_bytes,
+        items=body.rows,
+        metadata={"sha256": body.sha256} if body.sha256 else None,
+    )
+    if integrity["fraud_detected"]:
+        return {
+            "imported": 0,
+            "transactions": [],
+            "co2e_kg_added": 0.0,
+            "reward_points_awarded": 0,
+            "duplicate_count": 0,
+            "reward_formula_version": services.RECEIPT_REWARD_FORMULA_VERSION,
+            "message": "Document rejected by local integrity checks; no rewards were issued.",
+            **integrity,
+        }
     created = services.import_transactions(body.rows, current_user, db)
     reward_points_awarded = sum(
         int(getattr(transaction, "reward_points_awarded", 0) or 0)
@@ -744,12 +789,13 @@ def import_transactions(
     )
     if reward_points_awarded:
         try:
-            league_service.record_action(
+            reward_result = league_service.record_action(
                 db, current_user,
                 action_key=f"receipt-import:{datetime.now(timezone.utc).isoformat()}",
                 action_type="receipt", source="receipt", reward_points=reward_points_awarded,
                 evidence={"line_items": len(created), "reward_points": reward_points_awarded},
             )
+            reward_points_awarded = int(reward_result.get("reward_points_total", reward_points_awarded))
         except Exception:
             db.rollback()
     return {
@@ -765,6 +811,7 @@ def import_transactions(
         "reward_points_awarded": reward_points_awarded,
         "duplicate_count": max(0, len(body.rows) - len(created)),
         "reward_formula_version": services.RECEIPT_REWARD_FORMULA_VERSION,
+        **integrity,
     }
 
 
@@ -785,13 +832,14 @@ def parse_receipt(
                     item_id = item.get("id")
                 if item_id is not None:
                     transaction_keys.append(str(item_id))
-            league_service.record_action(
+            reward_result = league_service.record_action(
                 db, current_user,
                 action_key="receipt-parse:" + ":".join(transaction_keys),
                 action_type="receipt", source="receipt",
                 reward_points=result["reward_points_awarded"],
                 evidence={"line_items": result.get("imported", 0), "flow": "receipt_parse"},
             )
+            result["reward_points_awarded"] = int(reward_result.get("reward_points_total", result["reward_points_awarded"]))
         except Exception:
             db.rollback()
     return ReceiptParseResult(**result)
@@ -818,13 +866,14 @@ def process_document(
     result = services.process_document_example(body.example_id, current_user, db)
     if result.get("reward_points_awarded", 0):
         try:
-            league_service.record_action(
+            reward_result = league_service.record_action(
                 db, current_user,
                 action_key=f"document:{body.example_id}:process",
                 action_type="receipt", source="document",
                 reward_points=result["reward_points_awarded"],
                 evidence={"example_id": body.example_id, "flow": "document_process"},
             )
+            result["reward_points_awarded"] = int(reward_result.get("reward_points_total", result["reward_points_awarded"]))
         except Exception:
             db.rollback()
     return DocumentProcessResult(**result)
@@ -843,13 +892,14 @@ def confirm_document(
         try:
             selected = ":".join(str(item.get("id") or index) for index, item in enumerate(body.items))
             digest = hashlib.sha256(selected.encode("utf-8")).hexdigest()[:24]
-            league_service.record_action(
+            reward_result = league_service.record_action(
                 db, current_user,
                 action_key=f"document:{body.example_id}:confirm:{digest}",
                 action_type="receipt", source="document",
                 reward_points=result["reward_points_awarded"],
                 evidence={"example_id": body.example_id, "flow": "document_confirm"},
             )
+            result["reward_points_awarded"] = int(reward_result.get("reward_points_total", result["reward_points_awarded"]))
         except Exception:
             db.rollback()
     return DocumentConfirmResult(**result)

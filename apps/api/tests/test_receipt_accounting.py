@@ -15,7 +15,9 @@ from app.services.core import (
     build_score_response,
     calculate_receipt_reward,
     import_transactions,
+    parse_receipt_text,
 )
+from fastapi import HTTPException
 
 
 def _db():
@@ -126,3 +128,57 @@ def test_imported_carbon_is_visible_to_score_meter_on_next_query():
 
 def test_formula_version_is_stable_for_ui_metadata():
     assert RECEIPT_REWARD_FORMULA_VERSION == "receipt-reward-v1"
+
+
+def test_plain_receipt_parser_uses_stable_line_keys_and_handles_same_lines():
+    db = _db()
+    user = _user(db)
+    text = "CROMA ELECTRONICS\nUSB cable 100.00\nUSB cable 100.00"
+
+    first = parse_receipt_text(text, False, user, db)
+    replay = parse_receipt_text(text, False, user, db)
+
+    assert first["imported"] == 2
+    assert replay["imported"] == 0
+    assert replay["duplicate_count"] == 2
+    assert db.query(TransactionModel).filter(TransactionModel.user_id == user.id).count() == 2
+    db.close()
+
+
+def test_empty_real_receipt_does_not_import_seeded_demo_or_award_badge():
+    db = _db()
+    user = _user(db)
+    db.commit()
+    before = user.impact_points
+
+    result = parse_receipt_text("", False, user, db)
+
+    assert result["imported"] == 0
+    assert result["reward_points_awarded"] == 0
+    assert result["badges_unlocked"] == []
+    assert user.impact_points == before
+    assert db.query(TransactionModel).filter(TransactionModel.user_id == user.id).count() == 0
+    db.close()
+
+
+def test_import_rejects_invalid_amounts_atomically():
+    db = _db()
+    user = _user(db)
+    db.commit()
+    before = user.impact_points
+
+    try:
+        import_transactions([
+            {"source_key": "valid-line", "merchant": "Croma", "amount_inr": 100},
+            {"source_key": "bad-line", "merchant": "Croma", "amount_inr": -1},
+        ], user, db)
+    except HTTPException as exc:
+        assert exc.status_code == 400
+    else:  # pragma: no cover - assertion documents the contract
+        raise AssertionError("invalid import row was accepted")
+
+    db.rollback()
+    db.refresh(user)
+    assert user.impact_points == before
+    assert db.query(TransactionModel).filter(TransactionModel.user_id == user.id).count() == 0
+    db.close()

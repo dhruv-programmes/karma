@@ -24,6 +24,14 @@ def test_classify_commute_mode():
     assert classify_commute_mode(60.0) == "motor"
 
 
+def test_classify_commute_mode_uses_sustained_motion_only_for_ambiguous_speed():
+    # A normal cyclist can briefly accelerate hard; the conservative heuristic
+    # only calls it motorised when the average speed is also high.
+    assert classify_commute_mode(12.0, acceleration_rms_mps2=4.2) == "cycle"
+    assert classify_commute_mode(18.0, acceleration_rms_mps2=4.2) == "motor"
+    assert classify_commute_mode(18.0, acceleration_rms_mps2=1.4) == "cycle"
+
+
 def test_calculate_commute_points_thresholds_and_caps():
     # Below min distance
     pts, msg = calculate_commute_points("walk", 0.2)

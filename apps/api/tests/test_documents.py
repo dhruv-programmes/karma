@@ -49,6 +49,7 @@ def test_list_document_examples(client_and_token):
 
 def test_process_high_confidence_auto_imports(client_and_token):
     client, headers = client_and_token
+    before_points = client.get("/api/v1/auth/me", headers=headers).json()["impact_points"]
     resp = client.post(
         "/api/v1/documents/process",
         headers=headers,
@@ -62,6 +63,8 @@ def test_process_high_confidence_auto_imports(client_and_token):
     assert body["needs_review"] == []
     assert len(body["transactions"]) == 2
     assert "receipt_ranger" in (body.get("badges_unlocked") or []) or body["imported"] == 2
+    after_points = client.get("/api/v1/auth/me", headers=headers).json()["impact_points"]
+    assert after_points - before_points == body["reward_points_awarded"]
 
     # Replaying the same document must remain safe: document/line source keys
     # keep its reward and carbon evidence from being counted twice.
@@ -73,6 +76,7 @@ def test_process_high_confidence_auto_imports(client_and_token):
     assert replay.status_code == 200
     assert replay.json()["imported"] == 0
     assert replay.json()["duplicate_count"] == 2
+    assert replay.json()["reward_points_awarded"] == 0
 
 
 def test_process_bescom_requires_review_no_import(client_and_token):
@@ -191,3 +195,73 @@ def test_process_unknown_example_404(client_and_token):
         json={"example_id": "doc-does-not-exist"},
     )
     assert resp.status_code == 404
+
+
+def test_confirm_rejects_duplicate_line_ids_without_awarding_points(client_and_token):
+    client, headers = client_and_token
+    before_profile = client.get("/api/v1/auth/me", headers=headers).json()
+    response = client.post(
+        "/api/v1/documents/confirm",
+        headers=headers,
+        json={
+            "example_id": "doc-croma-receipt",
+            "items": [
+                {
+                    "id": "same-line",
+                    "merchant": "Croma",
+                    "amount_inr": 899,
+                    "date": "2026-09-10",
+                    "category": "Electronics",
+                },
+                {
+                    "id": "same-line",
+                    "merchant": "Croma",
+                    "amount_inr": 899,
+                    "date": "2026-09-10",
+                    "category": "Electronics",
+                },
+            ],
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["fraud_detected"] is True
+    assert "duplicate_item_id" in body["fraud_reasons"]
+    assert body["imported"] == 0
+    assert body["reward_points_awarded"] == 0
+    after_profile = client.get("/api/v1/auth/me", headers=headers).json()
+    assert after_profile["impact_points"] == before_profile["impact_points"]
+
+
+def test_transactions_import_rejects_duplicate_uploaded_line_keys(client_and_token):
+    client, headers = client_and_token
+    before = client.get("/api/v1/auth/me", headers=headers).json()["impact_points"]
+    response = client.post(
+        "/api/v1/transactions/import",
+        headers=headers,
+        json={
+            "filename": "receipt.csv",
+            "mime_type": "text/csv",
+            "size_bytes": 128,
+            "rows": [
+                {
+                    "source_key": "document:uploaded:line:1",
+                    "merchant": "Croma",
+                    "amount_inr": 899,
+                    "date": "2026-09-10",
+                },
+                {
+                    "source_key": "document:uploaded:line:1",
+                    "merchant": "Croma",
+                    "amount_inr": 899,
+                    "date": "2026-09-10",
+                },
+            ],
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["fraud_detected"] is True
+    assert body["imported"] == 0
+    assert body["reward_points_awarded"] == 0
+    assert client.get("/api/v1/auth/me", headers=headers).json()["impact_points"] == before

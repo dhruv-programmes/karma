@@ -313,6 +313,11 @@ class ReceiptParseResult(BaseModel):
     reward_points_awarded: int = 0
     duplicate_count: int = 0
     reward_formula_version: str = "receipt-reward-v1"
+    fraud_detected: bool = False
+    fraud_score: int = 0
+    fraud_reasons: list[str] = Field(default_factory=list)
+    verification_status: str = "passed"
+    integrity_rules_version: str = "local-document-integrity-v1"
 
 
 class ExtractionConfidence(str, Enum):
@@ -372,6 +377,11 @@ class DocumentProcessResult(BaseModel):
     reward_points_awarded: int = 0
     duplicate_count: int = 0
     reward_formula_version: str = "receipt-reward-v1"
+    fraud_detected: bool = False
+    fraud_score: int = 0
+    fraud_reasons: list[str] = Field(default_factory=list)
+    verification_status: str = "passed"
+    integrity_rules_version: str = "local-document-integrity-v1"
 
 
 class DocumentConfirmItem(BaseModel):
@@ -401,6 +411,11 @@ class DocumentConfirmResult(BaseModel):
     reward_points_awarded: int = 0
     duplicate_count: int = 0
     reward_formula_version: str = "receipt-reward-v1"
+    fraud_detected: bool = False
+    fraud_score: int = 0
+    fraud_reasons: list[str] = Field(default_factory=list)
+    verification_status: str = "passed"
+    integrity_rules_version: str = "local-document-integrity-v1"
 
 
 class BarcodeLookupRequest(BaseModel):
@@ -483,6 +498,9 @@ class CommuteTripRequest(BaseModel):
     distance_km: float = Field(ge=0.0)
     duration_min: float = Field(ge=0.0)
     avg_speed_kmh: float = Field(ge=0.0)
+    # Optional aggregated phone-motion signal. Raw GPS/sensor traces stay on
+    # the device; only this bounded summary is sent for demo classification.
+    acceleration_rms_mps2: float | None = Field(default=None, ge=0.0, le=20.0)
 
 
 class CommuteTripResult(BaseModel):
@@ -538,6 +556,11 @@ class SustainablePurchaseVerifyResponse(BaseModel):
     reward_formula_version: str = "sustainable-purchase-reward-v1"
     reward_basis: str = ""
     is_mock: bool = True
+    fraud_detected: bool = False
+    fraud_score: int = 0
+    fraud_reasons: list[str] = Field(default_factory=list)
+    verification_status: str = "passed"
+    integrity_rules_version: str = "local-document-integrity-v1"
 
 
 # ==========================================

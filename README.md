@@ -17,8 +17,10 @@ python -m venv .venv
 # Windows
 .\.venv\Scripts\activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+Or from the repo root: `pnpm api`
 
 Demo barcode (hero phone): `8901030865822`
 
@@ -32,7 +34,7 @@ pnpm start
 
 UI is **gluestack-ui v5 style** on **UniWind** (Tailwind v4) with a liquid-glass + brutalist circular-eco theme. Skills live in `.agents/skills/gluestack-ui-v5/`.
 
-Set `EXPO_PUBLIC_API_URL` in `apps/mobile/.env` (use your LAN IP for a physical device).
+The app auto-resolves the API host from Expo Metro (LAN IP on devices, `10.0.2.2` on Android emulator). Optional override: set `EXPO_PUBLIC_API_URL` in `apps/mobile/.env`.
 
 ## Hero demo (90s)
 

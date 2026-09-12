@@ -1,3 +1,6 @@
+import Constants from "expo-constants";
+import { Platform } from "react-native";
+
 import { useAuthStore } from "@/src/store/auth";
 import type {
   AuthResponse,
@@ -21,10 +24,41 @@ import type {
   UserProfile,
 } from "@/src/types/api";
 
-const DEFAULT_API = "http://localhost:8000";
+const API_PORT = 8000;
+
+function resolveDevHost(): string | null {
+  const hostUri =
+    Constants.expoConfig?.hostUri ??
+    Constants.experienceUrl?.replace(/^[a-z]+:\/\//, "") ??
+    null;
+  if (!hostUri) return null;
+  const host = hostUri.split(":")[0]?.trim();
+  if (!host || host === "localhost" || host === "127.0.0.1") return null;
+  return host;
+}
 
 function getBaseUrl() {
-  return process.env.EXPO_PUBLIC_API_URL ?? DEFAULT_API;
+  const configured = process.env.EXPO_PUBLIC_API_URL?.trim();
+  const isLoopback =
+    !configured ||
+    /^(https?:\/\/)?(localhost|127\.0\.0\.1)(:|\/|$)/i.test(configured);
+
+  // Physical device / LAN: reuse Metro's host IP so the phone can reach the API.
+  const lanHost = resolveDevHost();
+  if (lanHost) {
+    if (!configured || isLoopback) {
+      return `http://${lanHost}:${API_PORT}`;
+    }
+    return configured.replace(/\/$/, "");
+  }
+
+  // Android emulator: localhost on the device is not the host machine.
+  if (Platform.OS === "android" && isLoopback) {
+    return `http://10.0.2.2:${API_PORT}`;
+  }
+
+  if (configured) return configured.replace(/\/$/, "");
+  return `http://localhost:${API_PORT}`;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {

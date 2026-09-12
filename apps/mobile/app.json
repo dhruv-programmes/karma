@@ -34,11 +34,12 @@
     },
     "android": {
       "adaptiveIcon": {
-                "backgroundColor": "#F4FAF6",
+        "backgroundColor": "#F4FAF6",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
+      "usesCleartextTraffic": true,
       "permissions": [
         "CAMERA",
         "ACCESS_COARSE_LOCATION",

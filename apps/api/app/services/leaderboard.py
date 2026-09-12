@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from uuid import UUID
 
 from sqlalchemy import or_
@@ -11,10 +11,69 @@ from sqlalchemy.orm import Session
 from app.db.models import (
     ChallengeModel,
     FriendConnectionModel,
+    UserCompletedActionModel,
+    UserCommuteTripModel,
+    UserDailyStepsModel,
     UserChallengeProgressModel,
     UserModel,
 )
 from app.services.core import log_activity_event
+
+
+class ChallengeNotReadyError(ValueError):
+    """Raised when a user tries to claim a challenge without evidence."""
+
+
+def _period_start(cadence: str, today: date | None = None) -> date:
+    current = today or date.today()
+    if cadence == "daily":
+        return current
+    if cadence == "weekly":
+        return current - timedelta(days=current.weekday())
+    if cadence == "monthly":
+        return current.replace(day=1)
+    raise ValueError(f"Unsupported challenge cadence: {cadence}")
+
+
+def _measured_progress(db: Session, user: UserModel, challenge: ChallengeModel) -> int:
+    """Read challenge progress only from persisted, verifiable app evidence.
+
+    The client may request a progress update, but it can never supply the
+    value used for completion. Unknown challenge types intentionally report
+    zero rather than accepting a fabricated claim.
+    """
+    start = _period_start(challenge.cadence).isoformat()
+    end = date.today().isoformat()
+    if challenge.goal_kind == "steps":
+        total = db.query(UserDailyStepsModel).filter(
+            UserDailyStepsModel.user_id == user.id,
+            UserDailyStepsModel.date >= start,
+            UserDailyStepsModel.date <= end,
+        ).with_entities(UserDailyStepsModel.steps).all()
+        return sum(int(row[0] or 0) for row in total)
+    if challenge.goal_kind == "repair_action":
+        return db.query(UserCompletedActionModel).filter(
+            UserCompletedActionModel.user_id == user.id,
+            UserCompletedActionModel.completed_at >= datetime.combine(_period_start(challenge.cadence), datetime.min.time()),
+            UserCompletedActionModel.action_type.in_(("repair", "refurbish", "donate", "resell")),
+        ).count()
+    if challenge.goal_kind == "green_actions":
+        return db.query(UserCompletedActionModel).filter(
+            UserCompletedActionModel.user_id == user.id,
+            UserCompletedActionModel.completed_at >= datetime.combine(_period_start(challenge.cadence), datetime.min.time()),
+        ).count()
+    if challenge.goal_kind in {"commute", "walking", "cycling"}:
+        query = db.query(UserCommuteTripModel).filter(
+            UserCommuteTripModel.user_id == user.id,
+            UserCommuteTripModel.date >= start,
+            UserCommuteTripModel.date <= end,
+        )
+        if challenge.goal_kind == "walking":
+            query = query.filter(UserCommuteTripModel.mode == "walk")
+        elif challenge.goal_kind == "cycling":
+            query = query.filter(UserCommuteTripModel.mode == "cycle")
+        return query.count()
+    return 0
 
 
 def _period_key(cadence: str, today: date | None = None) -> str:
@@ -157,6 +216,9 @@ def list_challenges(db: Session, user: UserModel, cadence: str | None = None) ->
     result = []
     for challenge in challenges:
         row = _progress_row(db, user, challenge)
+        # Keep the displayed progress tied to current-period evidence. This
+        # also prevents an old client-side value from surviving a refresh.
+        row.progress = min(_measured_progress(db, user, challenge), challenge.goal_value)
         result.append(_challenge_payload(challenge, row))
     db.commit()
     return result
@@ -182,17 +244,36 @@ def _challenge_payload(challenge: ChallengeModel, row: UserChallengeProgressMode
     }
 
 
-def update_challenge_progress(db: Session, user: UserModel, challenge_id: UUID, progress: int) -> dict:
+def update_challenge_progress(
+    db: Session,
+    user: UserModel,
+    challenge_id: UUID,
+    progress: int,
+    *,
+    require_completion: bool = False,
+) -> dict:
     challenge = db.query(ChallengeModel).filter(ChallengeModel.id == str(challenge_id), ChallengeModel.active.is_(True)).first()
     if challenge is None:
         raise ValueError("Challenge not found")
     row = _progress_row(db, user, challenge)
-    row.progress = max(row.progress, min(progress, challenge.goal_value))
+    measured = min(_measured_progress(db, user, challenge), challenge.goal_value)
+    # ``progress`` is retained in the signature for API compatibility only;
+    # accepting it as evidence would let a caller mint challenge rewards.
+    del progress
+    row.progress = measured
+    if require_completion and measured < challenge.goal_value:
+        db.commit()
+        raise ChallengeNotReadyError(
+            f"Challenge requires {challenge.goal_value} {challenge.goal_kind}; "
+            f"verified progress is {measured}."
+        )
     if row.progress >= challenge.goal_value and row.completed_at is None:
         row.completed_at = datetime.now(timezone.utc)
+    points_awarded = 0
     if row.completed_at is not None and not row.reward_awarded:
         user.impact_points = int(user.impact_points or 0) + challenge.reward_points
         row.reward_awarded = True
+        points_awarded = challenge.reward_points
         log_activity_event(
             user, db, "challenge", f"Completed: {challenge.title}",
             f"+{challenge.reward_points} Impact Points · {challenge.cadence.title()} challenge",
@@ -216,6 +297,7 @@ def update_challenge_progress(db: Session, user: UserModel, challenge_id: UUID, 
         league = None
     db.commit()
     payload = _challenge_payload(challenge, row)
+    payload["points_awarded"] = points_awarded
     if league is not None:
         payload["league_points_awarded"] = int(league.get("awarded_points", 0))
         payload["league"] = league

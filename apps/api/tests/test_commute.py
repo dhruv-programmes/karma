@@ -35,22 +35,22 @@ def test_calculate_commute_points_thresholds_and_caps():
     assert pts == 0
     assert "Motorized" in msg
 
-    # Walk 2.0 km -> 20 points
+    # Walk 2.0 km -> 8 points (modest frequent-activity reward)
     pts, msg = calculate_commute_points("walk", 2.0)
-    assert pts == 20
+    assert pts == 8
     assert "Walking" in msg
 
-    # Cycle 4.0 km -> 20 points
+    # Cycle 4.0 km -> 8 points
     pts, msg = calculate_commute_points("cycle", 4.0)
-    assert pts == 20
+    assert pts == 8
     assert "Cycling" in msg
 
-    # Reaching daily cap (cap = 150)
+    # Reaching daily cap (cap = 40)
     pts, msg = calculate_commute_points("walk", 20.0, current_daily_points=140)
-    assert pts == 10  # Only 10 points left till 150 cap
+    assert pts == 0  # The cap is already reached by other green travel
 
     # Cap exhausted
-    pts, msg = calculate_commute_points("walk", 2.0, current_daily_points=150)
+    pts, msg = calculate_commute_points("walk", 2.0, current_daily_points=40)
     assert pts == 0
     assert "limit" in msg
 
@@ -93,9 +93,9 @@ def test_log_commute_trip_and_summary(in_memory_db):
     )
 
     assert res["mode"] == "walk"
-    assert res["points_awarded"] == 15  # 1.5 * 10
-    assert res["daily_total_points"] == 15
-    assert user.impact_points == 65
+    assert res["points_awarded"] == 6  # 1.5 * 4
+    assert res["daily_total_points"] == 6
+    assert user.impact_points == 56
 
     # Check activity event was logged
     event = db.query(ActivityEventModel).filter(ActivityEventModel.user_id == user.id).first()
@@ -106,6 +106,6 @@ def test_log_commute_trip_and_summary(in_memory_db):
     # Summary
     summary = build_commute_summary(user, db)
     assert summary["today_distance_km"] == 1.5
-    assert summary["today_points"] == 15
+    assert summary["today_points"] == 6
     assert summary["trips_today"] == 1
     assert len(summary["series"]) == 7

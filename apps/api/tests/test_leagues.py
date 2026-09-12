@@ -5,8 +5,9 @@ from uuid import uuid4
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
 
-from app.db.models import Base, LeagueDefinitionModel, UserLeagueStateModel, UserModel
+from app.db.models import Base, LeagueDefinitionModel, UserLeagueStateModel, UserModel, ensure_league_columns
 from app.services.leagues import (
     calculate_league_bonus,
     calculate_streak_bonus,
@@ -34,6 +35,19 @@ def _user(db, username="aisha"):
     db.add(user)
     db.flush()
     return user
+
+
+def test_legacy_league_action_log_gets_evidence_column():
+    """Old local DBs must be able to record actions after startup migration."""
+    engine = create_engine("sqlite:///:memory:")
+    with engine.begin() as conn:
+        conn.execute(text("CREATE TABLE user_league_states (id VARCHAR(36) PRIMARY KEY)"))
+        conn.execute(text("CREATE TABLE league_action_logs (id VARCHAR(36) PRIMARY KEY)"))
+
+    ensure_league_columns(engine)
+    with engine.connect() as conn:
+        columns = {row[1] for row in conn.execute(text("PRAGMA table_info(league_action_logs)"))}
+    assert "evidence_json" in columns
 
 
 def test_seeded_thresholds_and_status_are_config_driven():

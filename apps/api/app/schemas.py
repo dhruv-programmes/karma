@@ -466,7 +466,7 @@ class StepsMetricResponse(BaseModel):
     # Increment earned by the latest sync; ``points_awarded`` remains the
     # cumulative total for the current day for backwards compatibility.
     points_delta: int = 0
-    daily_reward_cap: int = 100
+    daily_reward_cap: int = 40
     next_threshold: int | None = None
     next_points: int = 0
     status: str

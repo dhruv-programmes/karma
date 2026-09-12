@@ -689,9 +689,17 @@ LEAGUE_MIGRATION_COLUMNS: dict[str, str] = {
     "updated_at": "DATETIME",
 }
 
+# League action logs were introduced before their evidence payload was added.
+# Keep this migration beside the state migration: without it SQLAlchemy tries
+# to select ``evidence_json`` from older SQLite files and every verified
+# action silently falls back at the route layer, leaving league progress at 0.
+LEAGUE_ACTION_LOG_MIGRATION_COLUMNS: dict[str, str] = {
+    "evidence_json": "TEXT DEFAULT '{}'",
+}
+
 
 def ensure_league_columns(engine_or_conn) -> None:
-    """Backfill columns added to league state on already-created SQLite DBs."""
+    """Backfill league state and action-log columns on legacy SQLite DBs."""
     from sqlalchemy import text
 
     conn = None
@@ -708,15 +716,26 @@ def ensure_league_columns(engine_or_conn) -> None:
         table_exists = conn.execute(text(
             "SELECT 1 FROM sqlite_master WHERE type='table' AND name='user_league_states'"
         )).fetchone()
-        if not table_exists:
-            return
-        existing = {row[1] for row in conn.execute(text("PRAGMA table_info(user_league_states)"))}
-        for col, coltype in LEAGUE_MIGRATION_COLUMNS.items():
-            if col not in existing:
-                try:
-                    conn.execute(text(f"ALTER TABLE user_league_states ADD COLUMN {col} {coltype}"))
-                except Exception:
-                    pass
+        if table_exists:
+            existing = {row[1] for row in conn.execute(text("PRAGMA table_info(user_league_states)"))}
+            for col, coltype in LEAGUE_MIGRATION_COLUMNS.items():
+                if col not in existing:
+                    try:
+                        conn.execute(text(f"ALTER TABLE user_league_states ADD COLUMN {col} {coltype}"))
+                    except Exception:
+                        pass
+
+        action_log_exists = conn.execute(text(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='league_action_logs'"
+        )).fetchone()
+        if action_log_exists:
+            existing = {row[1] for row in conn.execute(text("PRAGMA table_info(league_action_logs)"))}
+            for col, coltype in LEAGUE_ACTION_LOG_MIGRATION_COLUMNS.items():
+                if col not in existing:
+                    try:
+                        conn.execute(text(f"ALTER TABLE league_action_logs ADD COLUMN {col} {coltype}"))
+                    except Exception:
+                        pass
         try:
             conn.commit()
         except Exception:

@@ -75,6 +75,7 @@ from app.seed.data import PHONE_ID
 from app.services import core as services
 from app.services import solar as solar_service
 from app.services import leaderboard as leaderboard_service
+from app.services.leaderboard import ChallengeNotReadyError
 from app.services import leagues as league_service
 
 router = APIRouter(prefix="/api/v1")
@@ -381,7 +382,11 @@ def complete_challenge(
         challenge = db.query(ChallengeModel).filter(ChallengeModel.id == str(challenge_id)).first()
         if challenge is None:
             raise ValueError("Challenge not found")
-        return leaderboard_service.update_challenge_progress(db, current_user, challenge_id, challenge.goal_value)
+        return leaderboard_service.update_challenge_progress(
+            db, current_user, challenge_id, challenge.goal_value, require_completion=True
+        )
+    except ChallengeNotReadyError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

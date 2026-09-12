@@ -6,7 +6,7 @@ from uuid import uuid4
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.db.models import ChallengeModel, UserModel
+from app.db.models import ChallengeModel, UserDailyStepsModel, UserModel
 from app.db.session import Base
 from app.services.leaderboard import leaderboard, update_challenge_progress
 
@@ -49,6 +49,7 @@ def test_challenge_completion_awards_once_and_uses_period():
         cadence="daily", goal_kind="steps", goal_value=2000, reward_points=25,
     )
     db.add(challenge)
+    db.add(UserDailyStepsModel(user_id=user.id, date=date.today().isoformat(), steps=2_000))
     db.flush()
     result = update_challenge_progress(db, user, challenge.id, 2000)
     assert result["progress"]["completed"] is True
@@ -59,4 +60,21 @@ def test_challenge_completion_awards_once_and_uses_period():
     assert user.impact_points == 126
     update_challenge_progress(db, user, challenge.id, 2000)
     assert user.impact_points == 126
+    db.close()
+
+
+def test_challenge_claim_cannot_complete_without_measured_steps():
+    db = _db()
+    user = _user(db, "aisha", 100, 700)
+    challenge = ChallengeModel(
+        id=str(uuid4()), slug="daily-walk", title="Walk", description="Walk",
+        cadence="daily", goal_kind="steps", goal_value=2000, reward_points=25,
+    )
+    db.add(challenge)
+    db.flush()
+
+    result = update_challenge_progress(db, user, challenge.id, 2000)
+    assert result["progress"]["completed"] is False
+    assert result["progress"]["progress"] == 0
+    assert user.impact_points == 100
     db.close()

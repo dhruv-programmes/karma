@@ -10,7 +10,7 @@ import type { Challenge, ChallengePeriod } from "@/src/types/api";
 const green = "#0E2A1E";
 const mint = "#2EA86E";
 const fallback: Record<ChallengePeriod, Challenge[]> = {
-  daily: [{ id: "daily-walk", title: "Walk the short trip", description: "Choose walking or cycling for one local journey.", action_label: "Complete challenge", period: "daily", progress: 1, target: 1, reward_points: 25, completed: false }],
+  daily: [{ id: "daily-walk", title: "Walk 2,000 steps", description: "Your phone step data must reach the target before this can be claimed.", action_label: "Sync your steps", period: "daily", progress: 0, target: 2000, reward_points: 25, completed: false }],
   weekly: [{ id: "weekly-repair", title: "Choose repair first", description: "Complete one repair, donation, resale, or refurbishment action this week.", action_label: "Complete challenge", period: "weekly", progress: 0, target: 1, reward_points: 100, completed: false }],
   monthly: [{ id: "monthly-circular-actions", title: "A month of circular choices", description: "Complete five verified green actions this month.", action_label: "Complete challenge", period: "monthly", progress: 2, target: 5, reward_points: 300, completed: false }],
 };
@@ -36,8 +36,13 @@ export default function ChallengesScreen() {
 
   async function complete(item: Challenge) {
     if (item.completed) return;
-    try { await api.claimChallenge(item.id); } catch { /* demo fallback */ }
-    setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, completed: true, progress: entry.target, claimed: true } : entry));
+    try {
+      const updated = await api.claimChallenge(item.id);
+      setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, ...updated } : entry));
+    } catch {
+      // The API rejects claims until persisted evidence reaches the goal.
+      await load(period);
+    }
   }
 
   return (

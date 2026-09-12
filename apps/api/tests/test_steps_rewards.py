@@ -50,16 +50,16 @@ def test_tier_progression_awards_only_new_tier_difference(monkeypatch):
     assert sync_steps(1_999, user, db)["points_awarded"] == 0
     assert user.impact_points == 200
 
-    assert sync_steps(2_000, user, db)["points_awarded"] == 10
-    assert user.impact_points == 210
+    assert sync_steps(2_000, user, db)["points_awarded"] == 4
+    assert user.impact_points == 204
 
-    assert sync_steps(5_000, user, db)["points_awarded"] == 30
-    assert user.impact_points == 230
+    assert sync_steps(5_000, user, db)["points_awarded"] == 12
+    assert user.impact_points == 212
 
     result = sync_steps(10_000, user, db)
-    assert result["points_awarded"] == 100
+    assert result["points_awarded"] == 40
     assert result["next_threshold"] is None
-    assert user.impact_points == 300
+    assert user.impact_points == 240
     db.close()
 
 
@@ -69,10 +69,10 @@ def test_same_or_lower_sync_is_idempotent_and_never_reverses_points(monkeypatch)
     monkeypatch.setattr("app.services.core._local_today", lambda: date(2026, 9, 12))
 
     sync_steps(8_000, user, db)
-    assert user.impact_points == 260
-    assert sync_steps(8_000, user, db)["points_awarded"] == 60
+    assert user.impact_points == 224
+    assert sync_steps(8_000, user, db)["points_awarded"] == 24
     assert sync_steps(3_000, user, db)["steps"] == 8_000
-    assert user.impact_points == 260
+    assert user.impact_points == 224
 
     events = db.query(ActivityEventModel).filter(ActivityEventModel.user_id == user.id).all()
     assert len(events) == 1
@@ -90,7 +90,7 @@ def test_steps_are_isolated_per_user_and_series_is_honest(monkeypatch):
     sync_steps(5_000, first, db)
     second_metric = build_steps_metric(second, db, today)
 
-    assert first.impact_points == 230
+    assert first.impact_points == 212
     assert second.impact_points == 200
     assert second_metric["steps"] == 0
     assert len(second_metric["series"]) == 7
@@ -109,5 +109,5 @@ def test_steps_do_not_change_kcs_or_its_data_meter(monkeypatch):
     after = build_score_response(user, db)
 
     assert after == before
-    assert user.impact_points == 300
+    assert user.impact_points == 240
     db.close()

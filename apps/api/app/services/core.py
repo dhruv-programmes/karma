@@ -89,10 +89,13 @@ NUDGE_COPY = SCORE_NUDGE_COPY  # alias for A1 convenience
 # Walking rewards are Impact Points only. Do not add them to KCS inputs or its
 # data meter: walking is a healthy incentive, not evidence of carbon footprint.
 STEP_REWARD_TIERS: tuple[tuple[int, int, str, str], ...] = (
-    (10_000, 100, "Daily goal reached", "Excellent"),
-    (8_000, 60, "Strong day", "Strong"),
-    (5_000, 30, "Active day", "Active"),
-    (2_000, 10, "Getting started", "Steady"),
+    # Walking is frequent behavior, so the daily ceiling is intentionally
+    # modest. Challenges and verified circular actions remain the larger
+    # earning opportunities.
+    (10_000, 40, "Daily goal reached", "Excellent"),
+    (8_000, 24, "Strong day", "Strong"),
+    (5_000, 12, "Active day", "Active"),
+    (2_000, 4, "Getting started", "Steady"),
     (0, 0, "Start walking", "Starting"),
 )
 
@@ -240,7 +243,7 @@ def build_steps_metric(user: UserModel, db: Session, today: date | None = None) 
         "steps": steps,
         "points_awarded": earned_points,
         "points_delta": 0,
-        "daily_reward_cap": 100,
+        "daily_reward_cap": 40,
         "next_threshold": next_threshold,
         "next_points": next_points,
         "status": status,

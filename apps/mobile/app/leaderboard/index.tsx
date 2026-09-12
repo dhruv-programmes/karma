@@ -28,12 +28,12 @@ const fallbackPeople: LeaderboardEntry[] = [
 const fallbackFriends = fallbackPeople.filter((person) => person.id === "aisha" || person.id === "rohan");
 const fallbackChallenges: Record<ChallengePeriod, Challenge[]> = {
   daily: [
-    { id: "daily-walk", title: "Walk the short trip", description: "Choose walking or cycling for one local journey.", action_label: "Log a low-carbon trip", period: "daily", progress: 1, target: 1, reward_points: 25, completed: false },
+    { id: "daily-walk", title: "Walk 2,000 steps", description: "Reach the target with verified phone step data.", action_label: "Sync your steps", period: "daily", progress: 0, target: 2000, reward_points: 25, completed: false },
     { id: "daily-refill", title: "Refill, don’t replace", description: "Use a refill or reusable option today.", action_label: "Record a refill", period: "daily", progress: 0, target: 1, reward_points: 35, completed: false },
   ],
   weekly: [
     { id: "weekly-repair", title: "Keep one thing in use", description: "Repair, donate, resell or refurbish one item this week.", action_label: "Complete one circular action", period: "weekly", progress: 0, target: 1, reward_points: 150, completed: false },
-    { id: "weekly-steps", title: "Take 35,000 green steps", description: "Build a walking habit and earn more for every active day.", action_label: "Sync your steps", period: "weekly", progress: 23400, target: 35000, reward_points: 220, completed: false },
+    { id: "weekly-steps", title: "Take 35,000 green steps", description: "Build a walking habit from verified phone step data.", action_label: "Sync your steps", period: "weekly", progress: 0, target: 35000, reward_points: 220, completed: false },
   ],
   monthly: [
     { id: "monthly-circular", title: "Complete five circular actions", description: "Make five verified choices that extend product life or avoid waste.", action_label: "Explore your actions", period: "monthly", progress: 2, target: 5, reward_points: 650, completed: false },
@@ -120,10 +120,14 @@ export default function LeaderboardScreen() {
 
   async function complete(challenge: Challenge) {
     if (challenge.completed) return;
-    let updated = { ...challenge, completed: true, progress: challenge.target };
-    try { updated = { ...updated, ...(await api.claimChallenge(challenge.id)), claimed: true }; } catch { /* local demo mode */ }
-    setChallenges((current) => current.map((item) => item.id === challenge.id ? updated : item));
-    setNotice(`Challenge complete · +${challenge.reward_points} Karma Coins earned.`);
+    try {
+      const updated = { ...challenge, ...(await api.claimChallenge(challenge.id)), claimed: true };
+      setChallenges((current) => current.map((item) => item.id === challenge.id ? updated : item));
+      setNotice(`Challenge complete · +${challenge.reward_points} Karma Coins earned.`);
+    } catch {
+      await loadChallenges(period);
+      setNotice("Not ready yet — complete the measured action before claiming this challenge.");
+    }
   }
 
   return (

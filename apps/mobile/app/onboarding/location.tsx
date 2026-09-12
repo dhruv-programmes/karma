@@ -43,10 +43,22 @@ export default function LocationPermissionScreen() {
     }
   }
 
-  function handleManualOrSkip() {
+  function handleSkip() {
     setLocationPreference("manual");
     completeOnboarding();
     router.replace("/(tabs)");
+  }
+
+  function handleManualSelection() {
+    router.push("/onboarding/manual-location" as import("expo-router").Href);
+  }
+
+  function handleBack() {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/onboarding");
+    }
   }
 
   return (
@@ -63,14 +75,14 @@ export default function LocationPermissionScreen() {
       {/* Top Navigation */}
       <HStack className="items-center justify-between mb-2">
         <Pressable
-          onPress={() => router.back()}
+          onPress={handleBack}
           className="w-10 h-10 rounded-full bg-card items-center justify-center border border-border"
           hitSlop={8}
         >
           <ArrowLeft size={18} color="rgb(28,42,36)" />
         </Pressable>
 
-        <Pressable onPress={handleManualOrSkip} hitSlop={8}>
+        <Pressable onPress={handleSkip} hitSlop={8}>
           <Text size="xs" bold className="text-muted-foreground font-body">
             Not now
           </Text>
@@ -153,7 +165,7 @@ export default function LocationPermissionScreen() {
         </Button>
 
         <Pressable
-          onPress={handleManualOrSkip}
+          onPress={handleManualSelection}
           className="w-full h-12 rounded-2xl items-center justify-center"
         >
           <Text size="sm" bold className="text-muted-foreground font-body">

@@ -191,6 +191,7 @@ interface AuthState {
   baseline: BaselineAnswers | null;
   goal: GoalSettings;
   locationPreference: "granted" | "denied" | "manual" | "skipped" | null;
+  manualLocation: string | null;
   startingScore: number;
   startingFootprintKg: number;
   scoreState: ScoreState;
@@ -204,6 +205,7 @@ interface AuthState {
   setDataMeter: (meter: DataMeter | null) => void;
   setGoal: (goal: GoalSettings) => void;
   setLocationPreference: (pref: "granted" | "denied" | "manual" | "skipped") => void;
+  setManualLocation: (location: string) => void;
   completeOnboarding: () => void;
   startDemo: (customUser?: Partial<UserProfile>) => void;
   logout: () => void;
@@ -220,6 +222,7 @@ function persistState(state: {
   baseline: BaselineAnswers | null;
   goal: GoalSettings;
   locationPreference: string | null;
+  manualLocation?: string | null;
   startingScore: number;
   startingFootprintKg: number;
   scoreState?: ScoreState;
@@ -249,6 +252,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   baseline: DEFAULT_BASELINE,
   goal: { reductionPct: 15, priorities: ["emissions"] },
   locationPreference: null,
+  manualLocation: null,
   startingScore: 642,
   startingFootprintKg: 74,
   scoreState: "provisional",
@@ -356,6 +360,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     });
   },
 
+  setManualLocation: (location) => {
+    set((state) => {
+      const next = { ...state, manualLocation: location, locationPreference: "manual" as const };
+      persistState(next);
+      return next;
+    });
+  },
+
   completeOnboarding: () => {
     set((state) => {
       const next = {
@@ -407,6 +419,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       onboardingStep: "welcome",
       baseline: DEFAULT_BASELINE,
       goal: { reductionPct: 15, priorities: ["emissions"] },
+      locationPreference: null,
+      manualLocation: null,
       scoreState: "provisional",
       scoreConfidence: 0.4,
       scoreConfidenceLabel: "Low",
@@ -430,6 +444,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         hasCompletedOnboarding: false,
         onboardingStep: "welcome" as OnboardingStep,
         baseline: DEFAULT_BASELINE,
+        manualLocation: null,
       };
       persistState(next);
       return next;
@@ -457,6 +472,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               baseline,
               goal: data.goal || { reductionPct: 15, priorities: ["emissions"] },
               locationPreference: data.locationPreference || null,
+              manualLocation: typeof data.manualLocation === "string" ? data.manualLocation : null,
               startingScore: data.startingScore || 642,
               startingFootprintKg: data.startingFootprintKg || 74,
               scoreState: data.scoreState === "verified" ? "verified" : "provisional",

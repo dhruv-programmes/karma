@@ -26,6 +26,12 @@ export default function LeagueScreen() {
   const leagueQuery = useLeague();
   const league = leagueQuery.data;
   const refreshing = leagueQuery.isFetching;
+  // Keep hook order stable while the server-backed league query transitions
+  // from loading to loaded. Sorting here must not be conditional on `league`.
+  const standings = useMemo(
+    () => (league ? [...league.standings].sort((a, b) => a.rank - b.rank) : []),
+    [league],
+  );
 
   if (!league) {
     return (
@@ -61,8 +67,6 @@ export default function LeagueScreen() {
     : league.promotion_status === "at_risk"
       ? "A few more actions to stay up"
       : "In the promotion race";
-
-  const standings = useMemo(() => [...league.standings].sort((a, b) => a.rank - b.rank), [league.standings]);
 
   return (
     <ScrollView

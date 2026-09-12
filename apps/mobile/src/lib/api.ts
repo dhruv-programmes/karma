@@ -486,13 +486,23 @@ export const api = {  // Authentication
       progress: Number(item.progress?.progress ?? item.progress ?? 0), target: Number(item.progress?.goal_value ?? item.target ?? item.goal_value ?? 1),
       reward_points: Number(item.reward_points ?? 0), completed: Boolean(item.progress?.completed ?? item.completed), claimed: Boolean(item.progress?.reward_awarded ?? item.claimed),
     } as Challenge))),
-  claimChallenge: async (id: string) => {
-    try {
-      return await request<Challenge & { points_awarded: number }>(`/api/v1/challenges/${encodeURIComponent(id)}/claim`, { method: "POST" });
-    } catch {
-      return request<Challenge & { points_awarded: number }>(`/api/v1/challenges/${encodeURIComponent(id)}/complete`, { method: "POST" });
-    }
-  },
+  claimChallenge: (id: string) =>
+    request<any>(
+      `/api/v1/challenges/${encodeURIComponent(id)}/complete`,
+      { method: "POST" },
+    ).then((item) => ({
+      id: String(item.id),
+      title: String(item.title ?? ""),
+      description: String(item.description ?? ""),
+      action_label: String(item.action_label ?? "Complete challenge"),
+      period: (item.period ?? item.cadence) as ChallengePeriod,
+      progress: Number(item.progress?.progress ?? item.progress ?? 0),
+      target: Number(item.progress?.goal_value ?? item.target ?? item.goal_value ?? 1),
+      reward_points: Number(item.reward_points ?? 0),
+      completed: Boolean(item.progress?.completed ?? item.completed),
+      claimed: Boolean(item.progress?.reward_awarded ?? item.claimed),
+      points_awarded: Number(item.points_awarded ?? 0),
+    } as Challenge & { points_awarded: number })),
 
   /** League state is intentionally not replaced with a fabricated tier offline. */
   getLeague: async (): Promise<LeagueSummary> => {

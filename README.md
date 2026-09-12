@@ -1,33 +1,55 @@
-<p align="center">
-  <img src="assets/app-icon.png" width="140" alt="Karma Full App Icon"/>
-</p>
-
-<h1 align="center">Karma</h1>
-<p align="center"><strong>The Personal Circularity Decision Engine</strong></p>
-<p align="center"><em>Make what you own count for more. Scan, compare, repair, and turn everyday consumption into verifiable carbon credit scores and real-world rewards.</em></p>
+<div align="center">
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Platform-iOS%20%7C%20Android-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Platform"/>
-  <img src="https://img.shields.io/badge/Engine-React%20Native%20%7C%20Expo%2057-000000?style=for-the-badge&logo=expo&logoColor=white" alt="Mobile Stack"/>
-  <img src="https://img.shields.io/badge/Backend-FastAPI%20%7C%20Python%203.12-2EA86E?style=for-the-badge&logo=fastapi&logoColor=white" alt="Backend"/>
-  <img src="https://img.shields.io/badge/AI-Google%20Gemini%20Vision-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="AI Engine"/>
-  <img src="https://img.shields.io/badge/Scoring-KCS%20480--820%20Index-111D16?style=for-the-badge" alt="KCS Index"/>
-  <img src="https://img.shields.io/badge/License-Proprietary%20%26%20Confidential-critical?style=for-the-badge" alt="Proprietary License"/>
+  <img src="assets/app-icon.png" width="130" alt="Karma Full App Icon"/>
 </p>
 
-<br>
+# Karma
 
-<p align="center">
-  <a href="#hackathon-problem-statement">Problem Statement</a> &bull;
-  <a href="#why-karma">Why Karma?</a> &bull;
-  <a href="#the-story">The Story</a> &bull;
-  <a href="#core-capabilities">Core Capabilities</a> &bull;
-  <a href="#the-karma-credit-score-kcs">KCS Index</a> &bull;
-  <a href="#architecture">Architecture</a> &bull;
-  <a href="#demo-sandbox">Demo Sandbox</a>
-</p>
+**The Personal Circularity Decision Engine**
 
----
+Make what you own count for more. Scan, compare, repair, and turn everyday consumption into verifiable carbon credit scores and real-world rewards.
+
+Built with Expo 57 &bull; React Native 0.79 &bull; FastAPI &bull; Python 3.12 &bull; Google Gemini Vision &bull; UniWind (Tailwind CSS v4)
+
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen?logo=github-actions&logoColor=white)
+![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20Android-black?logo=apple&logoColor=white)
+![Scoring](https://img.shields.io/badge/scoring-KCS%20480--820-2EA86E)
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![License](https://img.shields.io/badge/license-Proprietary-red)
+
+[![React Native](https://img.shields.io/badge/React_Native-0.79-61DAFB?logo=react&logoColor=black)](https://reactnative.dev/)
+[![Expo](https://img.shields.io/badge/Expo-57-000000?logo=expo&logoColor=white)](https://expo.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Gemini](https://img.shields.io/badge/AI-Google_Gemini_Vision-4285F4?logo=google&logoColor=white)](https://ai.google.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![pnpm](https://img.shields.io/badge/pnpm-9-F69220?logo=pnpm&logoColor=white)](https://pnpm.io/)
+
+</div>
+
+***
+
+## Table of Contents
+
+* [Hackathon Problem Statement](#hackathon-problem-statement)
+* [Why Karma?](#why-karma)
+* [App Experience](#app-experience)
+* [Overview](#overview)
+* [Features](#features)
+* [The Carbon Credit Score (KCS)](#the-karma-credit-score-kcs)
+* [Tech Stack](#tech-stack)
+* [Architecture](#architecture)
+* [Getting Started](#getting-started)
+* [Environment Variables](#environment-variables)
+* [Database & Domain Models](#database--domain-models)
+* [Project Structure](#project-structure)
+* [App Routes](#app-routes)
+* [Demo Sandbox (Evaluator Quickstart)](#demo-sandbox-evaluator-quickstart)
+* [Deployment](#deployment)
+
+***
 
 ## Hackathon Problem Statement
 
@@ -51,7 +73,7 @@
 > &bull; Location-based APIs (recycling points)  
 > &bull; Gamification engines  
 
----
+***
 
 ## Why Karma?
 
@@ -62,190 +84,400 @@ For decades, digital environmental tools have treated this dynamic as an inescap
 **Karma alters this dynamic fundamentally.**
 
 Within this ecosystem:
-* **Conscious Action Generates Direct Value**: Every beneficial circular decision &mdash; restoring a broken phone screen, keeping garments in active circulation, choosing public transit, or depositing e-waste at a certified hub &mdash; is quantified, validated, and rewarded.
-* **Circularity as an Earned Asset**: Instead of treating individuals as net-negative carbon liabilities, Karma conceptualizes circular living through the lens of creditworthiness. Members build an authoritative **Karma Credit Score (KCS)**, accumulate liquid **Karma Coins**, and unlock substantial economic benefits including verified government environmental subsidies and partner merchant incentives.
+* **Conscious Action Generates Direct Value**: Every beneficial circular decision &mdash; restoring a broken phone screen, keeping garments in active circulation, commuting on public transit, or depositing e-waste at a certified hub &mdash; is quantified, validated, and rewarded.
+* **Circularity as an Earned Asset**: Instead of treating individuals as net-negative carbon liabilities, Karma conceptualizes circular living through the lens of creditworthiness. Members build an authoritative **Carbon Credit Score (KCS)**, accumulate liquid **Karma Coins**, and unlock substantial economic benefits including verified government environmental subsidies and partner merchant incentives.
 * **Closing the Economic Loop**: Constructive deeds yield tangible returns. Possessions that would otherwise enter landfills are transformed into financial utility, positioning consumers as empowered participants within a high-value circular economy.
 
 *"Make what you own count for more."*
 
----
+***
 
 ## App Experience
 
 <table align="center" width="100%">
   <tr>
     <td align="center" width="25%">
-      <img src="assets/screenshots/home.png" width="100%" alt="Karma Home & Score Ring"/><br>
-      <strong>Dynamic KCS Ring & Habits</strong>
+      <img src="assets/screenshots/01_welcome.png" width="100%" alt="Welcome Screen"/>
     </td>
     <td align="center" width="25%">
-      <img src="assets/screenshots/tools.png" width="100%" alt="Circularity Tools"/><br>
-      <strong>Circularity Decision Tools</strong>
+      <img src="assets/screenshots/02_baseline.png" width="100%" alt="Baseline Calibration"/>
     </td>
     <td align="center" width="25%">
-      <img src="assets/screenshots/actions.png" width="100%" alt="Concrete Next Moves"/><br>
-      <strong>High-Impact Circular Actions</strong>
+      <img src="assets/screenshots/03_home.png" width="100%" alt="Karma Home"/>
     </td>
     <td align="center" width="25%">
-      <img src="assets/screenshots/offers.png" width="100%" alt="Offers & Rewards"/><br>
-      <strong>Govt Subsidies & Offsets</strong>
+      <img src="assets/screenshots/04_tools.png" width="100%" alt="Circularity Tools"/>
     </td>
+  </tr>
+  <tr>
+    <td align="center" valign="top"><strong>1. Onboarding</strong></td>
+    <td align="center" valign="top"><strong>2. Baseline</strong></td>
+    <td align="center" valign="top"><strong>3. Home Dashboard</strong></td>
+    <td align="center" valign="top"><strong>4. Decision Tools</strong></td>
+  </tr>
+  <tr>
+    <td align="center" width="25%">
+      <img src="assets/screenshots/05_receipt.png" width="100%" alt="AI Receipt Intelligence"/>
+    </td>
+    <td align="center" width="25%">
+      <img src="assets/screenshots/06_actions.png" width="100%" alt="Action Recommendations"/>
+    </td>
+    <td align="center" width="25%">
+      <img src="assets/screenshots/07_impact.png" width="100%" alt="Footprint Analytics"/>
+    </td>
+    <td align="center" width="25%">
+      <img src="assets/screenshots/08_offers.png" width="100%" alt="Coupons & Offsets"/>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" valign="top"><strong>5. AI Receipt Engine</strong></td>
+    <td align="center" valign="top"><strong>6. Concrete Actions</strong></td>
+    <td align="center" valign="top"><strong>7. Footprint Pulse</strong></td>
+    <td align="center" valign="top"><strong>8. Coupons & Offsets</strong></td>
   </tr>
 </table>
 
----
+<br>
 
-## The Story
+| Screen | Focus Area | Key Capabilities |
+| :--- | :--- | :--- |
+| **1. Onboarding** | Product Introduction | Core circular living value proposition and guided profile setup |
+| **2. Baseline** | Routine Calibration | Commute modes, shopping frequency, and household consumption baseline |
+| **3. Home Dashboard** | Daily Tracking | Dynamic KCS 681 progress ring, habit streaks, and Walk & Earn tracking |
+| **4. Decision Tools** | Utility Hub | Barcode scanner, receipt OCR, recycling drop points, and offset portals |
+| **5. AI Receipt Engine** | Document Ingestion | Google Gemini Vision multi-modal invoice, receipt, and utility bill parsing |
+| **6. Concrete Actions** | Circular Pathways | Repair vs replace decision matrix, resale estimates, and kg CO2e savings |
+| **7. Footprint Pulse** | Impact Analytics | Spend-based emissions breakdown and interactive weekly footprint pulse chart |
+| **8. Coupons & Offsets** | Value Realization | Karma Coin redemption for govt green subsidies, partner coupons, and offsets |
 
-### The Problem: The Modern Consumption Trap
-The modern consumer landscape is engineered around planned obsolescence and low-friction replacement. When a smartphone battery degrades, a garment seam splits, or a small appliance malfunctions, consumers encounter an asymmetric dilemma:
+***
 
-* Spend hours locating an unvetted local technician, or press **"Buy Now"** for next-morning doorstep delivery.
+## Overview
 
-Historically, environmental messaging has relied on **guilt and deprivation** &mdash; instructing populations to purchase less, travel less, and sacrifice modern convenience. However, guilt fails to scale across diverse demographics. Consumers do not suffer from a lack of environmental goodwill; they lack **frictionless decision intelligence and tangible economic incentives**.
+Karma is a full-stack personal circularity decision platform designed to convert passive consumer awareness into active, economically rewarding climate habits.
 
-### The Solution: An Economic Engine for Circular Living
-**Karma** is an AI-powered personal circularity decision engine. It replaces the mindset of deprivation with an asset-building framework:
+The modern consumer landscape is engineered around planned obsolescence and low-friction replacement. When a smartphone battery degrades, a garment seam splits, or a small appliance malfunctions, consumers face an asymmetric dilemma: spend hours hunting for a local technician, or press "Buy Now" for next-morning doorstep delivery.
 
-> **"What if circularity was treated like creditworthiness &mdash; where every repaired device, salvaged garment, and conscious choice built a tangible score that unlocked verifiable economic value?"**
+Karma bridges this friction. By scanning physical barcodes, ingesting utility bills via multi-modal AI, and passively tracking green commutes, the platform calculates exact lifecycle emissions across six circular pathways, calculates immediate financial savings, and turns verified actions into liquid Karma Coins and an authoritative Carbon Credit Score (KCS).
 
-Karma connects everyday consumer possessions directly to the circular economy. By scanning any physical item, importing a purchase invoice, or tracking a daily transit route, Karma rapidly computes the full lifecycle equation across six distinct circular pathways &mdash; calculating precise financial savings, emissions avoided, and awarding liquid **Karma Coins** redeemable for verified government subsidies and partner merchant rewards.
+The mobile client is engineered with React Native 0.79 and Expo 57, featuring a custom glass floating dock, tactile haptic feedback, dark/light ambient tokens via UniWind, and hardware sensor integration.
 
----
+***
 
-## Core Capabilities
+## Features
 
-### 1. Six-Pathway Circularity Decision Engine
-Scan any product or barcode. Karma's lifecycle engine cross-references material databases, supply-chain benchmarks, and certified local repair hubs to evaluate six parallel pathways:
-* **Repair**: Precise cost estimates, vetted repair technicians in close proximity, and avoided manufacturing footprint.
-* **Refurbish**: Modular component renewal options to extend operating longevity.
-* **Resell**: Secondary market valuation modeling across verified circular marketplaces.
-* **Donate**: Direct routing to verified local non-profit centers, shelters, and textile banks.
-* **Recycle**: Geolocation navigation to certified e-waste and recycling facilities.
-* **Replace**: Direct carbon and financial cost benchmarking of purchasing an equivalent new item.
+### Circularity Decision Engine (6 Pathways)
 
-### 2. Multi-Modal AI Bill and Invoice Intelligence
-Using Google Gemini Vision AI and the Vercel AI SDK, Karma performs granular item extraction from physical receipts, digital tax invoices, and utility statements:
-* **Itemized Carbon Attribution**: Calculates the embodied carbon footprint of individual line items from food staples to consumer electronics.
-* **Warranty and Circularity Indexing**: Automatically catalogs products into a personal digital inventory, identifying repair eligibility and warranty timelines.
+* **Multi-Pathway Comparison**: Instant comparative analysis of all six lifecycle routes: **Repair**, **Refurbish**, **Resell**, **Recycle**, **Donate**, and **Landfill**.
+* **Precise Financial ROI**: Real-time monetary comparison showing repair cost vs replacement purchase cost.
+* **Emissions Avoidance Accounting**: Quantifies embodied emissions preserved (e.g. ~120 kg CO2e saved by repairing an existing smartphone).
+* **Vetted Service Directory**: Direct routing to verified local repair technicians, e-waste centers, and donation drop-offs.
 
-### 3. The Karma Credit Score (KCS &bull; 480 &ndash; 820 Index)
-Modeled with the mathematical rigor of consumer credit indices, **KCS quantifies circular sustainability**:
-* **Standardized Urban Baseline**: Calibrated against median urban resource consumption benchmarks (110 kg CO₂e/month) utilizing a continuous slope equation:
-  $$\text{Score} = 650 + (110 - \text{TotalKg}) \times 2.2$$
-* **Provisional-to-Verified Pipeline**: Incorporates anti-gaming safeguards requiring verified multi-week signal density, distinct merchant verification, and diverse category validation before unlocking scores above 680.
+### Multi-Modal AI Document Extraction
 
-### 4. Real-World Government Subsidies and Brand Offers
-Points in Karma function as liquid utility rewards backed by real-world environmental economic programs:
-* **Government Environmental Subsidies**: Direct application vouchers for national rooftop solar installations, public electric vehicle charging credits, municipal composting equipment rebates, and urban mass transit passes.
-* **Sustainable Partner Brands**: Tiered vouchers with verified circular partners, zero-waste refill networks, certified organic apparel, and diagnostic service centers.
+* **Bill & Invoice Parsing**: Camera capture, photo library upload, or PDF document ingestion powered by Google Gemini Vision.
+* **Automatic Spend Classification**: Extracts line items and categorizes transactions into Electricity, Electronics, Groceries, Delivery, and Transit.
+* **Emission Factor Mapping**: Translates raw currency spend into estimated kilograms of CO2e using regional conversion factors.
+* **Fast Ingestion Microservice**: Next.js 15 microservice on port 8001 providing rapid streaming extraction to the mobile client.
 
-### 5. Direct In-App Carbon Offsets (Zero Middlemen)
-Users can allocate earned points directly toward certified environmental initiatives without leaving the application:
-* **Western Ghats Rainforest Corridor**: Native species biodiversity corridor reforestation.
-* **Sundarbans Coastal Mangrove Protection**: High-permanence coastal blue carbon restoration.
-* **Community Solar Grids and Rural Biogas**: Decentralized clean energy infrastructure development.
-* *Instant digital impact certification logged securely to the member's profile.*
+### Carbon Credit Score (KCS) & Gamification
 
-### 6. Automated Pedestrian Step Offsets
-Passive background pedometer synchronization measures zero-emission pedestrian travel, automatically computing emissions avoided compared to vehicular transit and awarding continuous impact progress.
+* **Dynamic Progress Ring**: Visual indicator scaling from 480 to 820 points based on validated circular choices.
+* **Habit Streaks**: Weekly and monthly consistency tracking that accelerates point accumulation.
+* **Live Footprint Pulse**: Interactive gradient area chart charting transaction-level emissions week over week.
+* **Category Budgets**: Monthly carbon targets across purchases, transit, and household energy.
 
----
+### Government Subsidies & Brand Rewards
 
-## System Architecture
+* **Government Clean Energy Subsidies**: Direct access to verified public incentives (PM Surya Ghar Solar rooftop subsidies, FAME-II EV incentives, Star-rated appliance rebates).
+* **Brand Eco Vouchers**: Redeemable points for discounts on sustainable retail brands, zero-waste products, and repair services.
+* **Real-Time Point Ledger**: Complete ledger transparency tracking points awarded, spent, and balances.
 
-Karma is built as a modular monorepo structured for enterprise reliability, high-throughput analytical computation, and responsive mobile interfaces.
+### Direct In-App Carbon Offsets
 
-```mermaid
-graph TD
-    User([Consumer Client]) -->|Touch & Vision| Mobile[apps/mobile: React Native & Expo 57]
-    Mobile -->|Dynamic Routing| Dock[Custom Glass Floating Dock: 6 Core Modules]
-    
-    Mobile -->|Async REST Client| API[apps/api: Python 3.12 & FastAPI]
-    Mobile -->|Document Ingestion| AI[apps/ai: Next.js & Vercel AI SDK]
-    
-    AI -->|Multi-Modal Processing| Gemini[Google Gemini 1.5/2.0 Vision Engine]
-    Gemini -->|Extracted Structured Records| API
-    
-    API -->|Lifecycle Analysis| DB[(Circularity & Carbon Lifecycle DB)]
-    API -->|Algorithmic Evaluation| KCS[KCS Engine: 480-820 Index Validation]
-    API -->|Incentive Reconciliation| PartnerHub[Government Subsidy & Brand Offers Engine]
+* **Zero-Middleman Project Funding**: Direct point allocation toward verified climate projects:
+  * **Western Ghats Rainforest Revival**: High-biodiversity native species reforestation.
+  * **Sundarbans Coastal Mangrove Protection**: High-permanence coastal blue carbon restoration.
+  * **Community Solar Grids**: Decentralized rural clean energy infrastructure.
+* **Digital Certificates**: Instant verifiable certificate generated in the user's profile.
+
+### Automated Commute & Pedestrian Offsets
+
+* **Passive Transit Detection**: CoreLocation GPS speed and distance tracking automatically distinguishes walking, cycling, and motorized travel.
+* **Step Pedometer Sync**: CoreMotion step counting measures zero-emission pedestrian travel, computing avoided vehicular emissions and awarding points daily.
+
+***
+
+## The Carbon Credit Score (KCS)
+
+The Karma Credit Score is an index ranging from **480 to 820**, modeled on standard financial creditworthiness metrics. It evaluates how effectively an individual extends product lifecycles and minimizes avoidable emissions.
+
+```text
++-----------------------------------------------------------------------+
+|  KCS Range  |  Tier Name           |  Perks & Subsidies Unlocked      |
++-----------------------------------------------------------------------+
+|  480 - 579  |  Developing Tier     |  Standard merchant coupons       |
+|  580 - 669  |  Emerging Circular   |  5% bonus on repair point grants |
+|  670 - 749  |  Active Guardian     |  Access to municipal subsidies   |
+|  750 - 820  |  Pinnacle Circular   |  Priority grants & top subsidies |
++-----------------------------------------------------------------------+
 ```
 
-### Technical Stack
-* **Mobile Client (`apps/mobile`)**: Expo SDK 57, React Native 0.79, UniWind (Tailwind CSS v4 engine), gluestack-ui v5 primitives, Shopify FlashList, lucide-react-native.
-* **Core API (`apps/api`)**: Python 3.12, FastAPI, Pydantic v2, asynchronous lifecycle decision models, KCS algorithmic pipeline.
-* **AI Extraction Microservice (`apps/ai`)**: Next.js 15, Vercel AI SDK, Google Gemini Vision API for document analysis.
+### Mathematical Formula
 
----
+$$\text{KCS} = \text{Baseline} + (\Delta_{\text{action}} \times \alpha) - (\text{Excess Footprint} \times \beta) + (\text{Streak Bonus})$$
 
-## Demo Sandbox (Evaluator Quickstart)
+* $\Delta_{\text{action}}$: Verified kg CO2e saved through repairs, resales, recycling, and green transit.
+* $\alpha$: Category multiplier weighting high-impact decisions (electronics repair = 1.4x, textile resale = 1.1x).
+* $\text{Excess Footprint}$: Emissions recorded above the personalized monthly carbon budget.
+* $\text{Streak Bonus}$: Tiered reward for maintaining consecutive circular habit check-ins.
 
-Document upload needs **API + AI + Mobile** at once. Prerequisites: Node.js 20+, [pnpm](https://pnpm.io/), Python 3.11+, and a [Google AI Studio](https://aistudio.google.com/apikey) API key.
+***
 
-### 1. Prerequisites
-Ensure `node >= 20`, `pnpm >= 9`, and `python >= 3.11` are installed on your workstation.
+## Tech Stack
 
-### 2. Launch Services
+| Layer | Technology | Specification |
+| :--- | :--- | :--- |
+| **Mobile Client** | React Native 0.79 / Expo SDK 57 | Cross-platform iOS & Android mobile application |
+| **Styling & Theme** | UniWind (Tailwind CSS v4) | Glassmorphism, fluid tokens, dark & light palette |
+| **Component Primitives** | gluestack-ui v5 | Accessible native primitives and motion layouts |
+| **Iconography** | Lucide React Native | Lightweight, clean stroke icons |
+| **Core API** | Python 3.12 / FastAPI | High-performance asynchronous REST backend |
+| **Data Validation** | Pydantic v2 | Strict typed request/response contracts |
+| **AI Vision Engine** | Google Gemini Vision API | Multi-modal document and receipt intelligence |
+| **AI Microservice** | Next.js 15 / Vercel AI SDK | Extraction microservice on port 8001 |
+| **Hardware & Sensors** | CoreLocation & CoreMotion | GPS commute tracking and pedometer step sync |
+| **Workspace & Tooling** | pnpm 9 / Turborepo | High-efficiency monorepo orchestrator |
 
-#### Terminal 1: Core API Service
+***
+
+## Architecture
+
+```text
+Client (React Native 0.79 / Expo 57)
+    |
+    |-- Native Sensors (CoreMotion / GPS) ---> Pedometer & commute detection
+    |
+    |-- REST API Client ---------------------> FastAPI (apps/api :8000)
+    |                                              |
+    |                                              +-- Circularity Engine (6 Pathways)
+    |                                              +-- KCS Scoring Model (480-820)
+    |                                              +-- Domain Lifecycle Database
+    |                                              +-- Partner Subsidies & Offsets Hub
+    |
+    +-- Document Upload (Multi-Modal) -------> Next.js AI Service (apps/ai :8001)
+                                                   |
+                                                   v
+                                               Google Gemini Vision API
+```
+
+### Key Architectural Decisions
+
+* **Edge-First Sensor Aggregation**: GPS commute distances and step intervals are filtered on-device to eliminate sensor drift before batch syncing, preserving battery life and user privacy.
+* **Decoupled AI Extraction Microservice**: Multi-modal vision processing runs on an independent Next.js microservice (`apps/ai`), isolating GPU-intensive inference calls from core REST API availability.
+* **Deterministic KCS Index**: The scoring algorithm uses fixed mathematical bounds (480-820) rather than probabilistic guesses, guaranteeing repeatable audits and fair reward redemption.
+* **Offline-Resilient Mobile Client**: React Native client incorporates fallbacks and local caches for all essential product circularity records, allowing barcode lookups even with intermittent connectivity.
+* **Custom Glass Floating Dock**: Engineered custom floating dock tab bar (`_layout.tsx`) utilizing native safe-area insets, backdrop blur, and haptic feedback.
+
+***
+
+## Getting Started
+
+### Prerequisites
+
+* **Node.js** >= 20.x
+* **pnpm** >= 9.x
+* **Python** >= 3.11
+* **Google AI Studio API Key** (for multi-modal receipt extraction)
+* **iOS Simulator** (Xcode) or **Android Emulator** (Android Studio), or physical device with **Expo Go**
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/dhruv-programmes/karma.git
+cd karma
+
+# Install monorepo dependencies
+pnpm install
+```
+
+### Launch Services
+
+#### 1. Core API Service (FastAPI)
+
 ```bash
 cd apps/api
-python -m venv .venv
-# Windows: .\.venv\Scripts\activate
-# macOS / Linux: source .venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 *Or from workspace root:* `pnpm api`
 
-Demo barcode (hero phone): `8901030865822`
+#### 2. Multi-Modal AI Document Service (Next.js)
 
-### Terminal 2: AI Document Service — port `8001`
 ```bash
 cd apps/ai
 pnpm install
-cp .env.example .env.local  # Configure GOOGLE_GENERATIVE_AI_API_KEY
+cp .env.example .env.local
+# Add your GOOGLE_GENERATIVE_AI_API_KEY to .env.local
 pnpm dev
 ```
-*Or from workspace root:* `pnpm ai`
+*Or from workspace root:* `pnpm ai` *(runs on port 8001)*
 
-Model notes:
-- Default / recommended: **`gemini-3.8-flash`**
-- Override anytime with `AI_MODEL` in `.env.local`
-- See [Gemini model docs](https://ai.google.dev/gemini-api/docs/models)
+#### 3. Mobile Client (Expo)
 
-### Terminal 3: Mobile Client
 ```bash
 cd apps/mobile
 pnpm install
-npx expo start
+npx expo start --ios  # Or: npx expo start --android
 ```
 *Or from workspace root:* `pnpm mobile`
 
-### 3. The 90-Second Hero Experience
-1. **Launch App**: View your initial **Karma Credit Score (KCS)** on the dynamic progress ring.
-2. **Scan Item**: Tap the center **Scan** button and input or scan demo barcode `8901030865822` (Smartphone).
-3. **Compare Pathways**: Review the comparative analysis across all six circular pathways with precise cost versus emissions data.
-4. **Initiate Repair**: Select **"Find Local Repair"** and register a completed action to earn **+100 Impact Points**.
-5. **Redeem Offers**: Open the **Offers** tab to apply points toward a **Government Green Energy Voucher** or direct offset contribution.
+***
 
----
+## Environment Variables
 
-## Proprietary and Commercial Rights
+Create the respective `.env` files in each service:
 
-**CONFIDENTIAL AND PROPRIETARY**
+| Variable | Service | Description | Required |
+| :--- | :--- | :--- | :---: |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | `apps/ai` | Google AI Studio API key for Gemini Vision receipt extraction | Yes |
+| `FASTAPI_BASE_URL` | `apps/ai` | Upstream FastAPI backend URL (default: `http://localhost:8000`) | Yes |
+| `AI_MODEL` | `apps/ai` | Gemini model name (default: `gemini-3.8-flash` or `gemini-2.0-flash`) | No |
+| `EXPO_PUBLIC_API_URL` | `apps/mobile` | FastAPI backend URL (auto-resolves to LAN IP / `10.0.2.2` if omitted) | No |
+| `EXPO_PUBLIC_AI_URL` | `apps/mobile` | AI extraction service URL (default: `http://localhost:8001`) | No |
+| `PORT` | `apps/api` | Port to bind FastAPI server (default: `8000`) | No |
+| `HOST` | `apps/api` | Host to bind FastAPI server (default: `0.0.0.0`) | No |
 
-Copyright &copy; 2026 Karma Technologies Inc. / Carbon Loop. All rights reserved.
+***
 
-This software, its system architecture, algorithms, user interfaces, scoring methodologies (including the Karma Credit Score / KCS equation), and documentation contain proprietary intellectual property and trade secrets.
+## Database & Domain Models
 
-* Unauthorized copying, reverse engineering, redistribution, decompilation, public dissemination, or commercial exploitation is strictly prohibited without prior written authorization.
-* **Commercial and Institutional Partnerships**: For municipal climate program integrations, brand voucher onboarding, or institutional pilot inquiries, please contact: `partnerships@carbonloop.app`.
+### Schema Overview
 
----
+```text
+User
+ +-- BaselineProfile (transit routines, diet, shopping frequency)
+ +-- CarbonFootprint (monthly budget, live kg CO2e, category split)
+ +-- KarmaScore (KCS 480-820, trend delta, streak count)
+ +-- CompletedActions (repairs, resales, recycling drop-offs)
+ +-- CommuteTrips (GPS distance, duration, speed, awarded points)
+ +-- Wallet (Karma Coins, claimed vouchers, offset certificates)
 
-<p align="center">
-  <img src="assets/wordmark.png" width="160" alt="Karma Wordmark"/><br>
-  <sub><em>Accelerating the transition to a high-value circular economy.</em></sub>
-</p>
+ProductCircularity
+ +-- BarcodeIndex (EAN-13, UPC)
+ +-- LifecycleEmissions (manufacturing, transit, packaging, disposal)
+ +-- SixPathways (Repair, Resell, Refurbish, Recycle, Donate, Landfill)
+
+OfferCatalog
+ +-- GovernmentSubsidies (PM Surya Ghar, FAME-II EV, BEE Star)
+ +-- BrandVouchers (eco merchants, thrift platforms, repair hubs)
+ +-- VerifiedOffsets (Western Ghats, Mangrove protection, Solar)
+```
+
+***
+
+## Project Structure
+
+```text
+carbon-loop-app/
++-- apps/
+|   +-- mobile/                 # React Native & Expo 57 mobile application
+|   |   +-- app/                # File-based router screens
+|   |   |   +-- (tabs)/         # Home, tools, actions, impact, offers
+|   |   |   +-- onboarding/     # Baseline routine, goal calibration, reveal
+|   |   |   +-- receipt/        # Camera, photo, and PDF invoice scanning
+|   |   |   +-- scan/           # Barcode & product circularity breakdown
+|   |   |   +-- auth/           # Account creation and sign-in
+|   |   +-- src/
+|   |       +-- components/     # Score ring, glass dock, habit cards
+|   |       +-- hooks/          # Commute GPS tracking, pedometer hooks
+|   |       +-- lib/            # API client, normalizers, fallbacks
+|   |       +-- theme/          # UniWind tokens, typography, layout
+|   +-- api/                    # FastAPI core backend service
+|   |   +-- app/
+|   |       +-- main.py         # App factory, CORS, router mounts
+|   |       +-- routers/        # Auth, products, actions, commute, KCS scoring
+|   |       +-- services/       # Lifecycle calculator, baseline engine
+|   |       +-- models/         # Pydantic schemas and domain entities
+|   +-- ai/                     # Next.js 15 AI extraction microservice
+|       +-- app/api/extract/    # Gemini multi-modal receipt extraction route
+|       +-- lib/                # Vercel AI SDK client and prompt templates
++-- assets/
+|   +-- screenshots/            # 8 showcase captures (01 through 08)
+|   +-- app-icon.png            # Official Karma app icon
++-- package.json                # Turborepo / pnpm workspace root
++-- README.md                   # Enterprise technical documentation
+```
+
+***
+
+## App Routes
+
+| Path | Screen | Description |
+| :--- | :--- | :--- |
+| `/(tabs)` | Home | Carbon Credit Score (KCS 681) ring, habit tracker, and Walk & Earn card |
+| `/(tabs)/tools` | Decision Tools | Hub for barcode scanner, bill import, recycling hubs, and offsets |
+| `/(tabs)/actions` | Concrete Actions | Prioritized circular moves (repair vs replace, resale value, CO2e savings) |
+| `/(tabs)/impact` | Impact Analytics | Spend-based emissions breakdown and weekly footprint pulse area chart |
+| `/(tabs)/offers` | Coupons & Offsets | Karma Coin redemption, govt green subsidies, and certified climate offsets |
+| `/onboarding` | Welcome | Core circular living value proposition and guided account creation |
+| `/onboarding/baseline` | Routine Calibration | Commute modes, shopping frequency, and household consumption baseline |
+| `/receipt` | Bill & Receipt Scanner | Multi-modal invoice ingestion via camera, photo gallery, or PDF |
+| `/scan` | Barcode Scanner | Instant circular pathway evaluation for physical consumer products |
+
+***
+
+## Demo Sandbox (Evaluator Quickstart)
+
+For authorized evaluators, judges, and enterprise partners testing the build:
+
+### The 90-Second Hero Experience
+
+1. **Launch App**: View your initial **Carbon Credit Score (KCS)** on the dynamic progress ring.
+2. **Scan Item**: Tap the center **Scan** button and input or scan demo barcode `8901030865822` (Hero Smartphone).
+3. **Compare Pathways**: Review the comparative analysis across all six circular pathways with precise financial savings versus emissions avoided.
+4. **Initiate Repair**: Select **"Find Local Repair"** and complete a diagnostic action to earn **+100 Karma Coins**.
+5. **Redeem Offers**: Open the **Coupons & Offsets** tab to apply points toward a **Government Green Energy Voucher** or direct offset contribution.
+
+***
+
+## Deployment
+
+### Mobile Client (Production Build)
+
+```bash
+cd apps/mobile
+# Production build via EAS
+npx eas build --platform ios --profile production
+npx eas build --platform android --profile production
+```
+
+### Core API Service
+
+The FastAPI service is production-ready with standard ASGI servers:
+
+```bash
+cd apps/api
+gunicorn -w 4 -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:8000
+```
+*Can be deployed to AWS ECS, Google Cloud Run, Railway, or Render.*
+
+### AI Extraction Service
+
+The Next.js microservice deploys natively to Vercel:
+
+```bash
+cd apps/ai
+vercel --prod
+```
+
+***
+
+<div align="center">
+
+**Karma** &mdash; Make what you own count for more.
+
+</div>

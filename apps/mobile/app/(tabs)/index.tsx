@@ -35,7 +35,6 @@ import {
   useCloset,
   useImpact,
   useImpactTimeseries,
-  useLeaderboard,
   useMe,
   useRecommendations,
   useScore,
@@ -502,7 +501,7 @@ export default function HomeScreen() {
             locations={[0, 0.45, 1]}
             start={{ x: 0.05, y: 0 }}
             end={{ x: 0.75, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
           <LinearGradient
@@ -510,14 +509,14 @@ export default function HomeScreen() {
             locations={[0, 0.5, 1]}
             start={{ x: 0.85, y: 0 }}
             end={{ x: 0.15, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
           <LinearGradient
             colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.08)"]}
             start={{ x: 0.5, y: 0.45 }}
             end={{ x: 0.5, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
           <View

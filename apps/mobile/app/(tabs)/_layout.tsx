@@ -2,7 +2,14 @@ import React from "react";
 import { Platform, StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import { Tabs, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Home, Leaf, ListChecks, ScanLine, Wrench } from "lucide-react-native";
+import {
+  Home,
+  Leaf,
+  ListChecks,
+  ScanLine,
+  TicketPercent,
+  Wrench,
+} from "lucide-react-native";
 import {
   TAB_DOCK_BOTTOM_GAP,
   TAB_DOCK_HEIGHT,
@@ -30,6 +37,7 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
     { name: "tools", label: "Tools", icon: Wrench },
     { name: "impact", label: "Impact", icon: Leaf },
     { name: "actions", label: "Actions", icon: ListChecks },
+    { name: "offers", label: "Offers", icon: TicketPercent },
   ];
 
   return (
@@ -65,11 +73,12 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
                 activeOpacity={0.7}
               >
                 <Icon
-                  size={20}
+                  size={19}
                   color={isFocused ? "#2EA86E" : "rgba(255,255,255,0.45)"}
                   strokeWidth={isFocused ? 2.2 : 1.8}
                 />
                 <Text
+                  numberOfLines={1}
                   style={[styles.tabLabel, isFocused && styles.tabLabelActive]}
                 >
                   {item.label}
@@ -101,7 +110,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     backgroundColor: "transparent",
   },
   dock: {
@@ -111,7 +120,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#111D16",
     borderRadius: 32,
     height: TAB_DOCK_HEIGHT,
-    paddingHorizontal: 10,
+    paddingHorizontal: 6,
     width: "100%",
     ...Platform.select({
       ios: {
@@ -132,11 +141,13 @@ const styles = StyleSheet.create({
     height: TAB_DOCK_HEIGHT,
     gap: 2,
     minWidth: 0,
+    paddingHorizontal: 2,
   },
   tabLabel: {
     color: "rgba(255,255,255,0.45)",
     fontFamily: "Nunito_600SemiBold",
-    fontSize: 10,
+    fontSize: 9.5,
+    textAlign: "center",
   },
   tabLabelActive: {
     color: "#5EEAD4",
@@ -148,7 +159,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#2EA86E",
     alignItems: "center",
     justifyContent: "center",
-    marginHorizontal: 4,
+    marginHorizontal: 2,
     flexShrink: 0,
     ...Platform.select({
       ios: {
@@ -174,6 +185,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="tools" options={{ title: "Tools" }} />
       <Tabs.Screen name="impact" options={{ title: "Impact" }} />
       <Tabs.Screen name="actions" options={{ title: "Actions" }} />
+      <Tabs.Screen name="offers" options={{ title: "Offers" }} />
       <Tabs.Screen name="profile" options={{ title: "Profile", href: null }} />
     </Tabs>
   );

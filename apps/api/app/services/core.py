@@ -1303,17 +1303,14 @@ def list_points_ledger(
     Activity events are the existing append-only points ledger. Balances are
     reconstructed from the current account balance backwards so they remain
     meaningful even for seeded accounts whose initial balance predates events.
-    Entries with zero points are intentionally omitted: this endpoint is for
-    earned/spent coins, while ``/users/me/activity`` remains the full feed.
+    Zero-point activity is retained as ``event`` entries so purchases, scans,
+    and other account changes are visible beside earned and spent coins.
     """
     user, db = _resolve_user_and_db(user, db)
     safe_limit = max(1, min(int(limit), 250))
     rows = (
         db.query(ActivityEventModel)
-        .filter(
-            ActivityEventModel.user_id == user.id,
-            ActivityEventModel.points_delta != 0,
-        )
+        .filter(ActivityEventModel.user_id == user.id)
         .order_by(ActivityEventModel.created_at.asc(), ActivityEventModel.id.asc())
         .all()
     )
@@ -1335,7 +1332,7 @@ def list_points_ledger(
         entries.append(
             {
                 "id": row.id,
-                "type": "earned" if delta > 0 else "spent",
+                "type": "earned" if delta > 0 else "spent" if delta < 0 else "event",
                 "source": source,
                 "title": row.title,
                 "subtitle": row.subtitle,
@@ -1862,6 +1859,7 @@ def complete_action(
 
     return {
         "action_id": action_id,
+        "action_type": inferred.value,
         "points_awarded": points,
         "previous_score": previous,
         "new_score": user.circularity_score,
@@ -2001,14 +1999,14 @@ def purchase_offset(
         raise ValueError("Offset not found")
 
     user.offset_kg_total = round(user.offset_kg_total + project.co2e_kg, 1)
-    db.add(
-        UserOffsetPurchaseModel(
-            user_id=user.id,
-            offset_id=str(offset_id),
-            co2e_kg=project.co2e_kg,
-            amount_inr=project.price_inr,
-        )
+    purchase = UserOffsetPurchaseModel(
+        user_id=user.id,
+        offset_id=str(offset_id),
+        co2e_kg=project.co2e_kg,
+        amount_inr=project.price_inr,
     )
+    db.add(purchase)
+    db.flush()
 
     badges: list[str] = []
     b = db.query(UserBadgeModel).filter(UserBadgeModel.user_id == user.id, UserBadgeModel.badge_id == "offset_starter").first()
@@ -2023,6 +2021,13 @@ def purchase_offset(
         "offset",
         f"Offset +{int(project.co2e_kg)} kg",
         project.name,
+        meta={
+            "purchase_id": purchase.id,
+            "offset_id": str(offset_id),
+            "co2e_kg": float(project.co2e_kg),
+            "amount_inr": float(project.price_inr),
+            "status": "purchased",
+        },
     )
     db.commit()
 

@@ -519,7 +519,17 @@ def sync_users_me_steps(
     current_user: UserModel = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return services.sync_steps(body.steps, current_user, db)
+    result = services.sync_steps(body.steps, current_user, db)
+    if result.get("points_awarded", 0):
+        try:
+            league_service.record_action(
+                db, current_user,
+                action_key=f"steps:{result['date']}:{result['steps']}",
+                action_type="steps", source="steps", evidence={"steps": result["steps"]},
+            )
+        except Exception:
+            db.rollback()
+    return result
 
 
 # ==========================================
@@ -560,7 +570,17 @@ def complete_solar_recommendation(
     current_user: UserModel = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return solar_service.complete_recommendation(current_user, db, recommendation_id)
+    result = solar_service.complete_recommendation(current_user, db, recommendation_id)
+    if result.get("points_awarded", 0):
+        try:
+            league_service.record_action(
+                db, current_user,
+                action_key=f"solar:{recommendation_id}",
+                action_type="solar", source="solar", evidence={"recommendation_id": recommendation_id},
+            )
+        except Exception:
+            db.rollback()
+    return result
 # ==========================================
 # GPS COMMUTE REWARDS
 # ==========================================
@@ -572,13 +592,24 @@ def log_commute(
     current_user: UserModel = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return services.log_commute_trip(
+    result = services.log_commute_trip(
         distance_km=body.distance_km,
         duration_min=body.duration_min,
         avg_speed_kmh=body.avg_speed_kmh,
         user=current_user,
         db=db,
     )
+    if result.get("points_awarded", 0):
+        try:
+            league_service.record_action(
+                db, current_user,
+                action_key=f"commute:{result['trip_id']}",
+                action_type="commute", source="commute",
+                evidence={"trip_id": result["trip_id"], "mode": result["mode"]},
+            )
+        except Exception:
+            db.rollback()
+    return result
 
 
 @router.get("/commute/summary", response_model=CommuteSummaryResponse)
@@ -604,13 +635,24 @@ def verify_sustainable_purchase(
     db: Session = Depends(get_db),
 ):
     """Run the mock provider; no document bytes are uploaded or parsed yet."""
-    return services.verify_sustainable_purchase(
+    result = services.verify_sustainable_purchase(
         filename=body.filename,
         mime_type=body.mime_type,
         size_bytes=body.size_bytes,
         user=current_user,
         db=db,
     )
+    if result.get("reward_points", 0):
+        try:
+            league_service.record_action(
+                db, current_user,
+                action_key=f"sustainable-purchase:{body.filename.strip().lower()}",
+                action_type="sustainable_purchase", source="sustainable_purchase",
+                evidence={"filename": body.filename, "provider": result.get("provider")},
+            )
+        except Exception:
+            db.rollback()
+    return result
 
 
 @router.post(
@@ -688,6 +730,20 @@ def import_transactions(
     db: Session = Depends(get_db),
 ):
     created = services.import_transactions(body.rows, current_user, db)
+    reward_points_awarded = sum(
+        int(getattr(transaction, "reward_points_awarded", 0) or 0)
+        for transaction in created
+    )
+    if reward_points_awarded:
+        try:
+            league_service.record_action(
+                db, current_user,
+                action_key=f"receipt-import:{datetime.now(timezone.utc).isoformat()}",
+                action_type="receipt", source="receipt",
+                evidence={"line_items": len(created), "reward_points": reward_points_awarded},
+            )
+        except Exception:
+            db.rollback()
     return {
         "imported": len(created),
         "transactions": created,
@@ -698,10 +754,7 @@ def import_transactions(
             sum(float(getattr(transaction, "co2e_kg", 0) or 0) for transaction in created),
             3,
         ),
-        "reward_points_awarded": sum(
-            int(getattr(transaction, "reward_points_awarded", 0) or 0)
-            for transaction in created
-        ),
+        "reward_points_awarded": reward_points_awarded,
         "duplicate_count": max(0, len(body.rows) - len(created)),
         "reward_formula_version": services.RECEIPT_REWARD_FORMULA_VERSION,
     }
@@ -822,6 +875,16 @@ def complete_action_endpoint(
 ):
     action_type = body.action_type if body else None
     result = services.complete_action(action_id, action_type, current_user, db)
+    if result.get("points_awarded", 0):
+        try:
+            league_service.record_action(
+                db, current_user,
+                action_key=f"action:{action_id}",
+                action_type=str(result.get("action_type") or (action_type.value if action_type else "repair")).lower(),
+                source="action", evidence={"action_id": str(action_id)},
+            )
+        except Exception:
+            db.rollback()
     return CompletedActionResult(**result)
 
 

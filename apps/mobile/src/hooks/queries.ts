@@ -133,6 +133,8 @@ export function useSyncSteps() {
       // The backend awards Impact Points, so refresh the existing point source.
       qc.invalidateQueries({ queryKey: ["me"] });
       qc.invalidateQueries({ queryKey: ["activity"] });
+      qc.invalidateQueries({ queryKey: ["points-ledger"] });
+      qc.invalidateQueries({ queryKey: ["league"] });
     },
   });
 }
@@ -154,6 +156,8 @@ export function useLogCommute() {
       qc.invalidateQueries({ queryKey: ["commute-summary"] });
       qc.invalidateQueries({ queryKey: ["me"] });
       qc.invalidateQueries({ queryKey: ["activity"] });
+      qc.invalidateQueries({ queryKey: ["points-ledger"] });
+      qc.invalidateQueries({ queryKey: ["league"] });
     },
   });
 }
@@ -209,6 +213,8 @@ export function useSolarRecommendationActions() {
       qc.invalidateQueries({ queryKey: ["solar-impact"] });
       qc.invalidateQueries({ queryKey: ["me"] });
       qc.invalidateQueries({ queryKey: ["activity"] });
+      qc.invalidateQueries({ queryKey: ["points-ledger"] });
+      qc.invalidateQueries({ queryKey: ["league"] });
     },
   });
   return { accept, complete };
@@ -398,6 +404,8 @@ export function useCompleteAction() {
       qc.invalidateQueries({ queryKey: ["recommendations"] });
       qc.invalidateQueries({ queryKey: ["badges"] });
       qc.invalidateQueries({ queryKey: ["activity"] });
+      qc.invalidateQueries({ queryKey: ["points-ledger"] });
+      qc.invalidateQueries({ queryKey: ["league"] });
     },
   });
 }
@@ -428,6 +436,8 @@ export function useRedeemReward() {
       qc.invalidateQueries({ queryKey: ["badges"] });
       qc.invalidateQueries({ queryKey: ["rewards"] });
       qc.invalidateQueries({ queryKey: ["activity"] });
+      qc.invalidateQueries({ queryKey: ["points-ledger"] });
+      qc.invalidateQueries({ queryKey: ["league"] });
     },
   });
 }
@@ -460,6 +470,8 @@ export function usePurchaseOffset() {
       qc.invalidateQueries({ queryKey: ["impact"] });
       qc.invalidateQueries({ queryKey: ["badges"] });
       qc.invalidateQueries({ queryKey: ["activity"] });
+      qc.invalidateQueries({ queryKey: ["points-ledger"] });
+      qc.invalidateQueries({ queryKey: ["league"] });
     },
   });
 }
@@ -475,6 +487,8 @@ export function useParseReceipt() {
       qc.invalidateQueries({ queryKey: ["me"] });
       qc.invalidateQueries({ queryKey: ["activity"] });
       qc.invalidateQueries({ queryKey: ["impact-timeseries"] });
+      qc.invalidateQueries({ queryKey: ["points-ledger"] });
+      qc.invalidateQueries({ queryKey: ["league"] });
     },
   });
 }
@@ -485,6 +499,8 @@ function invalidateDocumentQueries(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ["badges"] });
   qc.invalidateQueries({ queryKey: ["me"] });
   qc.invalidateQueries({ queryKey: ["activity"] });
+  qc.invalidateQueries({ queryKey: ["points-ledger"] });
+  qc.invalidateQueries({ queryKey: ["league"] });
   qc.invalidateQueries({ queryKey: ["impact-timeseries"] });
   qc.invalidateQueries({ queryKey: ["score"] });
   qc.invalidateQueries({ queryKey: ["rewards"] });

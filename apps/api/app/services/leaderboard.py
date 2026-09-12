@@ -198,5 +198,24 @@ def update_challenge_progress(db: Session, user: UserModel, challenge_id: UUID, 
             f"+{challenge.reward_points} Impact Points · {challenge.cadence.title()} challenge",
             challenge.reward_points, {"challenge_id": challenge.id, "period_key": row.period_key},
         )
+        # Challenge rewards also count as one verified league action. League
+        # points remain separate from Karma Coins and are idempotent by period.
+        from app.services import leagues as league_service
+
+        league = league_service.record_action(
+            db,
+            user,
+            action_key=f"challenge:{challenge.id}:{row.period_key}",
+            action_type="challenge",
+            source="challenge",
+            evidence={"challenge_id": challenge.id, "cadence": challenge.cadence},
+            _commit=False,
+        )
+    else:
+        league = None
     db.commit()
-    return _challenge_payload(challenge, row)
+    payload = _challenge_payload(challenge, row)
+    if league is not None:
+        payload["league_points_awarded"] = int(league.get("awarded_points", 0))
+        payload["league"] = league
+    return payload

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -223,7 +223,7 @@ class ActivityEvent(BaseModel):
 
 class PointsLedgerEntry(BaseModel):
     id: str
-    type: str
+    type: Literal["earned", "spent", "event"]
     source: str
     title: str
     subtitle: str

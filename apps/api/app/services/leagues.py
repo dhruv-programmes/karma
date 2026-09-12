@@ -66,6 +66,9 @@ ACTION_POINT_VALUES: dict[str, int] = {
     "solar": 100,
     "solar_optimization": 100,
     "sustainable_purchase": 150,
+    "challenge": 40,
+    "receipt": 30,
+    "reduce": 50,
 }
 DAILY_CATEGORY_CAP = 200
 MONTHLY_POINTS_CAP = 2500

@@ -111,6 +111,8 @@ export default function VerifySustainablePurchaseScreen() {
       queryClient.invalidateQueries({ queryKey: ["me"] });
       queryClient.invalidateQueries({ queryKey: ["activity"] });
       queryClient.invalidateQueries({ queryKey: ["score"] });
+      queryClient.invalidateQueries({ queryKey: ["points-ledger"] });
+      queryClient.invalidateQueries({ queryKey: ["league"] });
 
       if (result.already_claimed || result.reward_points <= 0) {
         // An idempotent retry is verified, but it does not mint a second
@@ -153,6 +155,8 @@ export default function VerifySustainablePurchaseScreen() {
         queryClient.invalidateQueries({ queryKey: ["me"] });
         queryClient.invalidateQueries({ queryKey: ["activity"] });
         queryClient.invalidateQueries({ queryKey: ["score"] });
+        queryClient.invalidateQueries({ queryKey: ["points-ledger"] });
+        queryClient.invalidateQueries({ queryKey: ["league"] });
       }
     };
 

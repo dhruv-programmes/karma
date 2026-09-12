@@ -53,6 +53,8 @@ def test_challenge_completion_awards_once_and_uses_period():
     result = update_challenge_progress(db, user, challenge.id, 2000)
     assert result["progress"]["completed"] is True
     assert result["progress"]["reward_awarded"] is True
+    assert result["league_points_awarded"] == 40
+    assert result["league"]["current_league"]["slug"] == "bronze"
     assert user.impact_points == 125
     update_challenge_progress(db, user, challenge.id, 2000)
     assert user.impact_points == 125

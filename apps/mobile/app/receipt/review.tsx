@@ -209,6 +209,8 @@ export default function ReceiptReviewScreen() {
         qc.invalidateQueries({ queryKey: ["activity"] }),
         qc.invalidateQueries({ queryKey: ["rewards"] }),
         qc.invalidateQueries({ queryKey: ["leaderboard"] }),
+        qc.invalidateQueries({ queryKey: ["points-ledger"] }),
+        qc.invalidateQueries({ queryKey: ["league"] }),
       ]);
 
       leavingRef.current = true;

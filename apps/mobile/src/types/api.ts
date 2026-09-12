@@ -186,7 +186,7 @@ export interface ActivityEvent {
 
 export interface PointsLedgerEntry {
   id: string;
-  type: "earned" | "spent" | string;
+  type: "earned" | "spent" | "event" | string;
   source: string;
   title: string;
   subtitle: string;

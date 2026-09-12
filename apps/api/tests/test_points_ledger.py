@@ -59,7 +59,7 @@ def test_ledger_is_typed_and_reconstructs_balance_after_each_event():
     db.close()
 
 
-def test_ledger_excludes_non_point_activity_and_honors_limit():
+def test_ledger_includes_account_activity_and_honors_limit():
     db = _db()
     user = _user(db)
     db.add(ActivityEventModel(user_id=user.id, kind="scan", title="Scanned phone", subtitle="No points", points_delta=0, created_at="2026-01-01T09:00:00Z", meta_json="{}"))
@@ -68,11 +68,13 @@ def test_ledger_excludes_non_point_activity_and_honors_limit():
     user.impact_points = 120
     db.commit()
 
-    result = list_points_ledger(user, db, limit=1)
+    result = list_points_ledger(user, db, limit=3)
     assert result["balance"] == 120
-    assert len(result["entries"]) == 1
+    assert len(result["entries"]) == 3
     assert result["entries"][0]["source"] == "commute"
     assert result["entries"][0]["points_delta"] == 8
+    assert result["entries"][-1]["source"] == "scan"
+    assert result["entries"][-1]["type"] == "event"
     db.close()
 
 

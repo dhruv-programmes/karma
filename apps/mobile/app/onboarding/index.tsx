@@ -1,13 +1,7 @@
 import React from "react";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  Activity,
-  ArrowRight,
-  Award,
-  Leaf,
-  RotateCcw,
-} from "lucide-react-native";
+import { ArrowRight } from "lucide-react-native";
 import { Image } from "react-native";
 import { DecorativeBackground } from "@/components/custom/decorative-background";
 import { Box } from "@/components/ui/box";
@@ -68,9 +62,11 @@ export default function WelcomeScreen() {
         {/* Three Value Propositions */}
         <VStack space="sm" className="mt-4">
           <Card variant="soft" className="flex-row items-center gap-3.5 p-4 border border-border/50">
-            <Box className="w-10 h-10 rounded-xl bg-primary/10 items-center justify-center">
-              <Activity size={20} color="rgb(46,168,110)" />
-            </Box>
+            <Image
+              source={require("@/assets/onboarding/icon-impact.png")}
+              style={{ width: 44, height: 44 }}
+              resizeMode="contain"
+            />
             <VStack className="flex-1">
               <Text bold size="sm" className="text-foreground">
                 Track your impact
@@ -82,9 +78,11 @@ export default function WelcomeScreen() {
           </Card>
 
           <Card variant="soft" className="flex-row items-center gap-3.5 p-4 border border-border/50">
-            <Box className="w-10 h-10 rounded-xl bg-primary/10 items-center justify-center">
-              <RotateCcw size={20} color="rgb(46,168,110)" />
-            </Box>
+            <Image
+              source={require("@/assets/onboarding/icon-circular.png")}
+              style={{ width: 44, height: 44 }}
+              resizeMode="contain"
+            />
             <VStack className="flex-1">
               <Text bold size="sm" className="text-foreground">
                 Take circular action
@@ -96,9 +94,11 @@ export default function WelcomeScreen() {
           </Card>
 
           <Card variant="soft" className="flex-row items-center gap-3.5 p-4 border border-border/50">
-            <Box className="w-10 h-10 rounded-xl bg-primary/10 items-center justify-center">
-              <Award size={20} color="rgb(46,168,110)" />
-            </Box>
+            <Image
+              source={require("@/assets/onboarding/icon-rewards.png")}
+              style={{ width: 44, height: 44 }}
+              resizeMode="contain"
+            />
             <VStack className="flex-1">
               <Text bold size="sm" className="text-foreground">
                 Earn as you improve

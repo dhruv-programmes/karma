@@ -97,49 +97,58 @@ Within this ecosystem:
 <table align="center" width="100%">
   <tr>
     <td align="center" width="25%">
-      <img src="assets/screenshots/01_welcome.png" width="100%" alt="Welcome Screen"/><br>
-      <strong>1. Welcome & Onboarding</strong><br>
-      <sub>Core mission & circular value proposition</sub>
+      <img src="assets/screenshots/01_welcome.png" width="100%" alt="Welcome Screen"/>
     </td>
     <td align="center" width="25%">
-      <img src="assets/screenshots/02_baseline.png" width="100%" alt="Baseline Calibration"/><br>
-      <strong>2. Baseline Calibration</strong><br>
-      <sub>Granular transit & shopping routines</sub>
+      <img src="assets/screenshots/02_baseline.png" width="100%" alt="Baseline Calibration"/>
     </td>
     <td align="center" width="25%">
-      <img src="assets/screenshots/03_home.png" width="100%" alt="Karma Home"/><br>
-      <strong>3. Home & KCS Ring</strong><br>
-      <sub>Dynamic score ring, streak & habits</sub>
+      <img src="assets/screenshots/03_home.png" width="100%" alt="Karma Home"/>
     </td>
     <td align="center" width="25%">
-      <img src="assets/screenshots/04_tools.png" width="100%" alt="Circularity Tools"/><br>
-      <strong>4. Decision Tools</strong><br>
-      <sub>Scanner, receipt, hubs & offset portals</sub>
+      <img src="assets/screenshots/04_tools.png" width="100%" alt="Circularity Tools"/>
     </td>
   </tr>
   <tr>
+    <td align="center" valign="top"><strong>1. Onboarding</strong></td>
+    <td align="center" valign="top"><strong>2. Baseline</strong></td>
+    <td align="center" valign="top"><strong>3. Home Dashboard</strong></td>
+    <td align="center" valign="top"><strong>4. Decision Tools</strong></td>
+  </tr>
+  <tr>
     <td align="center" width="25%">
-      <img src="assets/screenshots/05_receipt.png" width="100%" alt="AI Receipt Intelligence"/><br>
-      <strong>5. AI Receipt Engine</strong><br>
-      <sub>Gemini Vision document extraction</sub>
+      <img src="assets/screenshots/05_receipt.png" width="100%" alt="AI Receipt Intelligence"/>
     </td>
     <td align="center" width="25%">
-      <img src="assets/screenshots/06_actions.png" width="100%" alt="Action Recommendations"/><br>
-      <strong>6. Concrete Actions</strong><br>
-      <sub>Repair vs replace ROI & verified next moves</sub>
+      <img src="assets/screenshots/06_actions.png" width="100%" alt="Action Recommendations"/>
     </td>
     <td align="center" width="25%">
-      <img src="assets/screenshots/07_impact.png" width="100%" alt="Footprint Analytics"/><br>
-      <strong>7. Footprint Analytics</strong><br>
-      <sub>Weekly footprint pulse & category breakdown</sub>
+      <img src="assets/screenshots/07_impact.png" width="100%" alt="Footprint Analytics"/>
     </td>
     <td align="center" width="25%">
-      <img src="assets/screenshots/08_offers.png" width="100%" alt="Coupons & Offsets"/><br>
-      <strong>8. Coupons & Offsets</strong><br>
-      <sub>Govt eco subsidies & in-app point donations</sub>
+      <img src="assets/screenshots/08_offers.png" width="100%" alt="Coupons & Offsets"/>
     </td>
   </tr>
+  <tr>
+    <td align="center" valign="top"><strong>5. AI Receipt Engine</strong></td>
+    <td align="center" valign="top"><strong>6. Concrete Actions</strong></td>
+    <td align="center" valign="top"><strong>7. Footprint Pulse</strong></td>
+    <td align="center" valign="top"><strong>8. Coupons & Offsets</strong></td>
+  </tr>
 </table>
+
+<br>
+
+| Screen | Focus Area | Key Capabilities |
+| :--- | :--- | :--- |
+| **1. Onboarding** | Product Introduction | Core circular living value proposition and guided profile setup |
+| **2. Baseline** | Routine Calibration | Commute modes, shopping frequency, and household consumption baseline |
+| **3. Home Dashboard** | Daily Tracking | Dynamic KCS 681 progress ring, habit streaks, and Walk & Earn tracking |
+| **4. Decision Tools** | Utility Hub | Barcode scanner, receipt OCR, recycling drop points, and offset portals |
+| **5. AI Receipt Engine** | Document Ingestion | Google Gemini Vision multi-modal invoice, receipt, and utility bill parsing |
+| **6. Concrete Actions** | Circular Pathways | Repair vs replace decision matrix, resale estimates, and kg CO2e savings |
+| **7. Footprint Pulse** | Impact Analytics | Spend-based emissions breakdown and interactive weekly footprint pulse chart |
+| **8. Coupons & Offsets** | Value Realization | Karma Coin redemption for govt green subsidies, partner coupons, and offsets |
 
 ***
 

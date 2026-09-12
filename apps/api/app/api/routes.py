@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import json
+from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
@@ -30,7 +32,9 @@ from app.schemas import (
     AskResponse,
     AuthResponse,
     BarcodeLookupRequest,
+    BaselineRequest,
     CompletedActionResult,
+    DataMeterResponse,
     DemoUserSummary,
     OffsetProject,
     OffsetPurchaseResult,
@@ -39,6 +43,7 @@ from app.schemas import (
     ReceiptParseResult,
     RedeemResult,
     Reward,
+    ScoreResponse,
     SignInRequest,
     SignUpRequest,
     UserPreferences,
@@ -70,6 +75,7 @@ def signup(body: SignUpRequest, db: Session = Depends(get_db)):
         )
 
     user_id = str(uuid4())
+    _now_iso = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
     user = UserModel(
         id=user_id,
         name=body.name.strip(),
@@ -83,6 +89,11 @@ def signup(body: SignUpRequest, db: Session = Depends(get_db)):
         offset_kg_total=0.0,
         monthly_budget_kg=body.monthly_budget_kg,
         preferences_json=json.dumps({"persona": body.persona or "custom", "budget_goal": "on_track"}),
+        provisional_score=650,
+        verified_score=None,
+        score_confidence=0.4,
+        score_state="provisional",
+        baseline_created_at=_now_iso,
     )
     db.add(user)
     db.flush()
@@ -234,6 +245,62 @@ def circularity_score(
         "loop_level": current_user.loop_level,
         "offset_kg_total": current_user.offset_kg_total,
     }
+
+
+# ==========================================
+# KCS SCORE & ONBOARDING BASELINE
+# ==========================================
+
+
+@router.post("/onboarding/baseline", response_model=ScoreResponse)
+def onboarding_baseline(
+    body: BaselineRequest,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    canonical = json.dumps(
+        {"shopping": body.shopping, "transport": body.transport},
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    baseline_hash = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    now_iso = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    target = round(float(body.totalKg) * (1 - float(body.reductionPct) / 100))
+
+    # Enforce provisional cap server-side (QA 2026-09-12: client value untrusted,
+    # ScoreResponse.provisional must never exceed 680 while provisional).
+    try:
+        _prov = int(body.provisional)
+    except Exception:
+        _prov = 650
+    current_user.provisional_score = min(_prov, 680)
+    current_user.baseline_total_kg = float(body.totalKg)
+    current_user.baseline_hash = baseline_hash
+    current_user.baseline_created_at = now_iso
+    current_user.monthly_budget_kg = float(target)
+    current_user.score_confidence = 0.4
+    # Keep verified state if already verified
+    if getattr(current_user, "score_state", None) != "verified":
+        current_user.score_state = "provisional"
+    db.commit()
+    db.refresh(current_user)
+    return services.build_score_response(current_user, db)
+
+
+@router.get("/users/me/score", response_model=ScoreResponse)
+def users_me_score(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return services.build_score_response(current_user, db)
+
+
+@router.get("/users/me/data-meter", response_model=DataMeterResponse)
+def users_me_data_meter(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return services.build_score_response(current_user, db)
 
 
 # ==========================================

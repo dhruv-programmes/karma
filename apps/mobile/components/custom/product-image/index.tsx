@@ -1,5 +1,5 @@
 import React from "react";
-import { Image } from "expo-image";
+import { Image } from "react-native";
 import { View } from "react-native";
 
 export function ProductImage({
@@ -22,8 +22,7 @@ export function ProductImage({
     <Image
       source={{ uri }}
       style={style}
-      contentFit="cover"
-      transition={200}
+      resizeMode="cover"
     />
   );
 }

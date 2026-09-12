@@ -1,8 +1,19 @@
 import { create } from "zustand";
 import * as FileSystem from "expo-file-system";
-import type { UserProfile } from "@/src/types/api";
+import type { DataMeter, ScoreState, UserProfile } from "@/src/types/api";
 
-const AUTH_FILE = `${FileSystem.documentDirectory ?? ""}/carbon_loop_auth_v2.json`;
+function getAuthFilePath(): string | null {
+  try {
+    const fs = FileSystem as any;
+    const dir = fs?.documentDirectory;
+    if (typeof dir === "string" && dir.length > 0) {
+      return `${dir}/carbon_loop_auth_v2.json`;
+    }
+  } catch {
+    // Ignored
+  }
+  return null;
+}
 
 export type OnboardingStep =
   | "welcome"
@@ -104,39 +115,71 @@ export function computeBaselineFootprint(rawAnswers: any): {
     transFreqMap[t.walk]?.walk;
   const transportKg = Math.max(8, rawTransport);
 
-  // Shopping factors by frequency
-  const shopFreqMap: Record<Frequency, { repair: number; selective: number; frequent: number }> = {
-    never: { repair: 0, selective: 0, frequent: 0 },
-    rarely: { repair: 4, selective: 6, frequent: 10 },
-    sometimes: { repair: 8, selective: 14, frequent: 22 },
-    often: { repair: 12, selective: 20, frequent: 40 },
+  // Shopping (REVERSED logic — savers subtract, mirrored from backend Karma formula):
+  // | answer    | frequent (driver, +) | selective_rev (saver, reversed) | repair_credit (saver, subtract) |
+  // |-----------|----------------------|---------------------------------|-----------------------------------|
+  // | never     | 0                    | 16                              | 0                                 |
+  // | rarely    | 10                   | 10                              | 4                                 |
+  // | sometimes | 22                   | 6                               | 8                                 |
+  // | often     | 40                   | 0                               | 12                                |
+  // shoppingKg = max(12, frequent + selective_rev - repair_credit)
+  const frequentKg: Record<Frequency, number> = {
+    never: 0,
+    rarely: 10,
+    sometimes: 22,
+    often: 40,
+  };
+  const selectiveRevKg: Record<Frequency, number> = {
+    never: 16,
+    rarely: 10,
+    sometimes: 6,
+    often: 0,
+  };
+  const repairCreditKg: Record<Frequency, number> = {
+    never: 0,
+    rarely: 4,
+    sometimes: 8,
+    often: 12,
   };
 
   const s = answers.shopping;
   const rawShopping =
-    shopFreqMap[s.repair]?.repair +
-    shopFreqMap[s.selective]?.selective +
-    shopFreqMap[s.frequent]?.frequent;
+    (frequentKg[s.frequent] ?? 0) +
+    (selectiveRevKg[s.selective] ?? 0) -
+    (repairCreditKg[s.repair] ?? 0);
   const shoppingKg = Math.max(12, rawShopping);
 
   const totalKg = transportKg + shoppingKg + homeKg;
 
-  // Base circularity score calculation
-  let score = 642;
-  if (t.public === "often") score += 14;
-  if (t.walk === "often") score += 18;
-  if (t.car === "often") score -= 28;
-  else if (t.car === "never") score += 12;
-
-  if (s.repair === "often") score += 28;
-  else if (s.repair === "sometimes") score += 12;
-  if (s.frequent === "often") score -= 32;
-  else if (s.frequent === "never") score += 16;
-  if (s.selective === "often") score += 10;
-
-  score = Math.min(820, Math.max(480, score));
+  // Karma Credit Score (provisional shown): raw=round(650+(110-totalKg)*2.2),
+  // clamped to [480,820], provisional display capped at 680.
+  const score = provisionalKcs(totalKg);
 
   return { totalKg, transportKg, shoppingKg, homeKg, score };
+}
+
+// --- Karma Credit Score scale (mirrors backend A2 engine) ---
+export const KCS_REF = 110;
+export const KCS_BASE = 650;
+export const KCS_SLOPE = 2.2;
+export const KCS_MIN = 480;
+export const KCS_MAX = 820;
+export const KCS_PROVISIONAL_CAP = 680;
+
+/** Unclamped Karma Credit Score for a monthly footprint. */
+export function rawKcs(totalKg: number): number {
+  return Math.round(KCS_BASE + (KCS_REF - totalKg) * KCS_SLOPE);
+}
+
+/** Provisional KCS shown in UI: clamped to [480,820], display-capped at 680. */
+export function provisionalKcs(totalKg: number): number {
+  const clamped = Math.min(KCS_MAX, Math.max(KCS_MIN, rawKcs(totalKg)));
+  return Math.min(clamped, KCS_PROVISIONAL_CAP);
+}
+
+/** Alias for UI teammate convenience: provisional KCS from monthly kg. */
+export function kcsFromKg(kg: number): number {
+  return provisionalKcs(kg);
 }
 
 interface AuthState {
@@ -152,10 +195,15 @@ interface AuthState {
   locationPreference: "granted" | "denied" | "manual" | "skipped" | null;
   startingScore: number;
   startingFootprintKg: number;
+  scoreState: ScoreState;
+  scoreConfidence: number;
+  scoreConfidenceLabel: string;
+  dataMeter: DataMeter | null;
 
   setAuth: (user: UserProfile, token: string, isComplete?: boolean) => void;
   setOnboardingStep: (step: OnboardingStep) => void;
   setBaseline: (baseline: BaselineAnswers) => void;
+  setDataMeter: (meter: DataMeter | null) => void;
   setGoal: (goal: GoalSettings) => void;
   setLocationPreference: (pref: "granted" | "denied" | "manual" | "skipped") => void;
   completeOnboarding: () => void;
@@ -176,10 +224,16 @@ function persistState(state: {
   locationPreference: string | null;
   startingScore: number;
   startingFootprintKg: number;
+  scoreState?: ScoreState;
+  scoreConfidence?: number;
+  scoreConfidenceLabel?: string;
+  dataMeter?: DataMeter | null;
 }) {
   try {
-    if (FileSystem.documentDirectory) {
-      FileSystem.writeAsStringAsync(AUTH_FILE, JSON.stringify(state)).catch(() => {});
+    const filePath = getAuthFilePath();
+    const fs = FileSystem as any;
+    if (filePath && typeof fs?.writeAsStringAsync === "function") {
+      fs.writeAsStringAsync(filePath, JSON.stringify(state)).catch(() => {});
     }
   } catch {
     // Ignored
@@ -199,6 +253,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   locationPreference: null,
   startingScore: 642,
   startingFootprintKg: 74,
+  scoreState: "provisional",
+  scoreConfidence: 0.4,
+  scoreConfidenceLabel: "Low",
+  dataMeter: null,
 
   setAuth: (user, token, isComplete = true) => {
     set((state) => {
@@ -227,13 +285,58 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setBaseline: (rawBaseline) => {
     const baseline = normalizeBaseline(rawBaseline);
     const computed = computeBaselineFootprint(baseline);
+    const reductionPct = get().goal?.reductionPct ?? 15;
     set((state) => {
       const next = {
         ...state,
         baseline,
         startingScore: computed.score,
         startingFootprintKg: computed.totalKg,
+        scoreState: "provisional" as ScoreState,
+        scoreConfidence: 0.4,
+        scoreConfidenceLabel: "Low",
       };
+      persistState(next);
+      return next;
+    });
+    // Fire-and-forget backend sync (dynamic import avoids a store<->api
+    // import cycle). Offline-tolerant: never throws to UI.
+    try {
+      import("@/src/lib/api")
+        .then(({ api }) =>
+          api
+            .syncBaseline({
+              transport: { ...baseline.transport },
+              shopping: { ...baseline.shopping },
+              reductionPct,
+              totalKg: computed.totalKg,
+              provisional: computed.score,
+            })
+            .then((res) => {
+              try {
+                if (res) get().setDataMeter(res);
+              } catch {
+                // Ignored
+              }
+            })
+            .catch(() => {})
+        )
+        .catch(() => {});
+    } catch {
+      // Offline — ignored
+    }
+  },
+
+  setDataMeter: (meter) => {
+    const prev = get().dataMeter;
+    // Guard against infinite loops from query sync: skip when unchanged.
+    try {
+      if (JSON.stringify(prev) === JSON.stringify(meter)) return;
+    } catch {
+      // Fall through and set
+    }
+    set((state) => {
+      const next = { ...state, dataMeter: meter };
       persistState(next);
       return next;
     });
@@ -306,10 +409,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       onboardingStep: "welcome",
       baseline: DEFAULT_BASELINE,
       goal: { reductionPct: 15, priorities: ["emissions"] },
+      scoreState: "provisional",
+      scoreConfidence: 0.4,
+      scoreConfidenceLabel: "Low",
+      dataMeter: null,
     });
     try {
-      if (FileSystem.documentDirectory) {
-        FileSystem.deleteAsync(AUTH_FILE, { idempotent: true }).catch(() => {});
+      const filePath = getAuthFilePath();
+      const fs = FileSystem as any;
+      if (filePath && typeof fs?.deleteAsync === "function") {
+        fs.deleteAsync(filePath, { idempotent: true }).catch(() => {});
       }
     } catch {
       // Ignored
@@ -331,10 +440,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   hydrateAuth: async () => {
     try {
-      if (FileSystem.documentDirectory) {
-        const info = await FileSystem.getInfoAsync(AUTH_FILE);
+      const filePath = getAuthFilePath();
+      const fs = FileSystem as any;
+      if (filePath && typeof fs?.getInfoAsync === "function" && typeof fs?.readAsStringAsync === "function") {
+        const info = await fs.getInfoAsync(filePath);
         if (info.exists) {
-          const content = await FileSystem.readAsStringAsync(AUTH_FILE);
+          const content = await fs.readAsStringAsync(filePath);
           const data = JSON.parse(content);
           if (data) {
             const baseline = normalizeBaseline(data.baseline);
@@ -350,6 +461,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               locationPreference: data.locationPreference || null,
               startingScore: data.startingScore || 642,
               startingFootprintKg: data.startingFootprintKg || 74,
+              scoreState: data.scoreState === "verified" ? "verified" : "provisional",
+              scoreConfidence:
+                typeof data.scoreConfidence === "number" ? data.scoreConfidence : 0.4,
+              scoreConfidenceLabel: data.scoreConfidenceLabel || "Low",
+              dataMeter: (data.dataMeter as DataMeter | null) ?? null,
               isHydrated: true,
             });
             return;

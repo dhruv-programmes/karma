@@ -5,10 +5,10 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   ArrowRight,
@@ -467,7 +467,7 @@ export default function HomeScreen() {
               <Image
                 source={require("@/assets/karma-text.png")}
                 style={{ width: 72, height: 20 }}
-                contentFit="contain"
+                resizeMode="contain"
                 tintColor="rgba(255,255,255,0.95)"
               />
               <Text

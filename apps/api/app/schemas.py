@@ -127,6 +127,13 @@ class UserProfile(BaseModel):
     owned_product_ids: list[UUID] = Field(default_factory=list)
     unlocked_badge_ids: list[str] = Field(default_factory=list)
     monthly_budget_kg: float = 90.0
+    # --- KCS provisional->verified (optional, backwards compatible) ---
+    provisional_score: int | None = 650
+    verified_score: int | None = None
+    score_state: str = "provisional"
+    score_confidence: float = 0.4
+    baseline_total_kg: float | None = None
+    baseline_created_at: str | None = None
 
 
 class ImpactBreakdown(BaseModel):
@@ -319,3 +326,39 @@ class DemoUserSummary(BaseModel):
     impact_points: int
     streak_days: int
     monthly_budget_kg: float
+
+
+# ==========================================
+# KCS provisional->verified contract
+# ==========================================
+
+
+class BaselineRequest(BaseModel):
+    transport: dict[str, Any] = Field(default_factory=dict)
+    shopping: dict[str, Any] = Field(default_factory=dict)
+    reductionPct: int = Field(ge=5, le=30)
+    totalKg: float
+    provisional: int
+
+
+class ScoreResponse(BaseModel):
+    provisional: int
+    verified: int | None = None
+    state: str = "provisional"
+    confidence: float = 0.4
+    confidence_label: str = "low"
+    signals: int = 0
+    signals_needed: int = 12
+    categories_covered: list[str] = Field(default_factory=list)
+    categories_needed: int = 4
+    merchants: int = 0
+    merchants_needed: int = 5
+    missing: list[str] = Field(default_factory=list)
+    nudge: bool = False
+    nudge_copy: str | None = None
+    baseline_total_kg: float | None = None
+    target_kg: float | None = None
+
+
+# DataMeterResponse is intentionally the same shape (alias OK)
+DataMeterResponse = ScoreResponse

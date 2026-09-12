@@ -7,6 +7,7 @@ from datetime import date, datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 import httpx
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -27,7 +28,15 @@ from app.db.models import (
 )
 from app.db.session import SessionLocal
 from app.engines.carbon import estimate_from_spend
-from app.engines.scoring import ACTION_POINTS, ACTION_SCORE_BUMP
+from app.engines.scoring import (
+    ACTION_POINTS,
+    ACTION_SCORE_BUMP,
+    BASE_SCORE,
+    REF_KG,
+    compute_data_meter,
+    provisional_kcs,
+    verified_kcs,
+)
 from app.schemas import (
     ActionType,
     CircularityBreakdown,
@@ -56,6 +65,11 @@ from app.seed.data import (
     get_product_by_barcode as seed_get_product_by_barcode,
     unlock_badge,
 )
+
+# Copy shown when the data-meter nudge fires (A1 routes import via build_score_response).
+# A1 contract requires this exact string.
+SCORE_NUDGE_COPY = "We need more data to calculate your Carbon Score (Upload electricity, shopping, food + travel bills to improve accuracy)"
+NUDGE_COPY = SCORE_NUDGE_COPY  # alias for A1 convenience
 
 
 def haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
@@ -152,6 +166,38 @@ def user_model_to_profile(user: UserModel, db: Session | None = None) -> UserPro
         city=pref_data.get("city", "Bengaluru"),
     )
 
+    # --- KCS fields (nullable-safe for pre-KCS rows) ---
+    _prov = getattr(user, "provisional_score", None)
+    if _prov is None:
+        _prov = 650
+    try:
+        _prov = int(_prov)
+    except Exception:
+        _prov = 650
+    _ver = getattr(user, "verified_score", None)
+    if _ver is not None:
+        try:
+            _ver = int(_ver)
+        except Exception:
+            _ver = None
+    _state = getattr(user, "score_state", None) or "provisional"
+    if _state not in ("provisional", "verified"):
+        _state = "provisional"
+    _conf = getattr(user, "score_confidence", None)
+    if _conf is None:
+        _conf = 0.4
+    try:
+        _conf = float(_conf)
+    except Exception:
+        _conf = 0.4
+    _btotal = getattr(user, "baseline_total_kg", None)
+    if _btotal is not None:
+        try:
+            _btotal = float(_btotal)
+        except Exception:
+            _btotal = None
+    _bcreated = getattr(user, "baseline_created_at", None)
+
     return UserProfile(
         id=UUID(user.id),
         name=user.name,
@@ -166,7 +212,209 @@ def user_model_to_profile(user: UserModel, db: Session | None = None) -> UserPro
         owned_product_ids=owned_ids,
         unlocked_badge_ids=badge_ids,
         monthly_budget_kg=user.monthly_budget_kg,
+        provisional_score=_prov,
+        verified_score=_ver,
+        score_state=_state,
+        score_confidence=_conf,
+        baseline_total_kg=_btotal,
+        baseline_created_at=_bcreated,
     )
+
+
+# ==========================================
+# KCS provisional->verified shared helper (A1)
+# A2 engine hooks: app.engines.scoring.compute_data_meter,
+#                  app.engines.scoring.confidence_for_meter
+# ==========================================
+
+NUDGE_COPY = (
+    "We need more data to calculate your Carbon Score "
+    "(Upload electricity, shopping, food + travel bills to improve accuracy)"
+)
+
+_FALLBACK_MISSING: list[str] = ["electricity", "shopping", "food delivery", "travel"]
+
+
+def _confidence_label(confidence: float) -> str:
+    try:
+        c = float(confidence)
+    except Exception:
+        return "low"
+    if c < 0.5:
+        return "low"
+    if c < 0.8:
+        return "medium"
+    return "high"
+
+
+def build_score_response(user: UserModel, db: Session | None = None) -> dict:
+    """Shared helper for GET /users/me/score and GET /users/me/data-meter.
+
+    Calls into A2 engine functions if they exist, else inline fallback
+    that A2 will replace. Always returns a ScoreResponse-compatible dict.
+    """
+    # --- null-safe KCS fields (pre-KCS rows may have NULL) ---
+    provisional = getattr(user, "provisional_score", None)
+    if provisional is None:
+        provisional = 650
+    try:
+        provisional = int(provisional)
+    except Exception:
+        provisional = 650
+
+    verified = getattr(user, "verified_score", None)
+    if verified is not None:
+        try:
+            verified = int(verified)
+        except Exception:
+            verified = None
+
+    state = getattr(user, "score_state", None) or "provisional"
+    if state not in ("provisional", "verified"):
+        state = "provisional"
+
+    confidence = getattr(user, "score_confidence", None)
+    if confidence is None:
+        confidence = 0.4
+    try:
+        confidence = float(confidence)
+    except Exception:
+        confidence = 0.4
+
+    baseline_total = getattr(user, "baseline_total_kg", None)
+    if baseline_total is not None:
+        try:
+            baseline_total = float(baseline_total)
+        except Exception:
+            baseline_total = None
+
+    target = None
+    if baseline_total is not None:
+        try:
+            target = float(user.monthly_budget_kg)
+        except Exception:
+            target = None
+
+    # --- inline fallback (A2 will replace) ---
+    signals = 0
+    signals_needed = 12
+    categories_covered: list[str] = []
+    categories_needed = 4
+    merchants = 0
+    merchants_needed = 5
+    missing: list[str] = list(_FALLBACK_MISSING)
+    nudge = False
+    nudge_copy: str | None = None
+
+    # --- try A2 engine if present ---
+    try:
+        from app.engines.scoring import (  # type: ignore
+            compute_data_meter as _cdm,
+            confidence_for_meter as _cfm,
+        )
+
+        meter = None
+        for _args in ((user, db), (user,), (db,)):
+            try:
+                meter = _cdm(*_args)  # type: ignore
+                break
+            except TypeError:
+                continue
+            except Exception:
+                meter = None
+                break
+        if isinstance(meter, dict):
+            try:
+                signals = int(meter.get("signals", signals))
+            except Exception:
+                pass
+            try:
+                signals_needed = int(meter.get("signals_needed", signals_needed))
+            except Exception:
+                pass
+            try:
+                categories_covered = list(meter.get("categories_covered", categories_covered))
+            except Exception:
+                pass
+            try:
+                categories_needed = int(meter.get("categories_needed", categories_needed))
+            except Exception:
+                pass
+            try:
+                merchants = int(meter.get("merchants", merchants))
+            except Exception:
+                pass
+            try:
+                merchants_needed = int(meter.get("merchants_needed", merchants_needed))
+            except Exception:
+                pass
+            try:
+                missing = list(meter.get("missing", missing))
+            except Exception:
+                pass
+            try:
+                nudge = bool(meter.get("nudge", nudge))
+            except Exception:
+                pass
+            if "confidence" in meter:
+                try:
+                    confidence = float(meter["confidence"])
+                except Exception:
+                    pass
+            if meter.get("nudge_copy"):
+                try:
+                    nudge_copy = str(meter.get("nudge_copy"))
+                except Exception:
+                    pass
+
+        try:
+            conf_res = None
+            _got_conf = False
+            for _args in ((user, db), (meter,), (user,), ()):
+                try:
+                    conf_res = _cfm(*_args)  # type: ignore
+                    _got_conf = True
+                    break
+                except TypeError:
+                    continue
+                except Exception:
+                    break
+            if _got_conf:
+                if isinstance(conf_res, dict) and "confidence" in conf_res:
+                    confidence = float(conf_res["confidence"])
+                elif isinstance(conf_res, (int, float)):
+                    confidence = float(conf_res)
+        except Exception:
+            pass
+    except Exception:
+        # A2 not done yet — keep inline fallback
+        pass
+
+    confidence_label = _confidence_label(confidence)
+
+    if nudge and not nudge_copy:
+        nudge_copy = NUDGE_COPY
+    if not nudge and nudge_copy is None:
+        nudge_copy = None
+
+    return {
+        "provisional": provisional,
+        "verified": verified,
+        "state": state,
+        "confidence": confidence,
+        "confidence_label": confidence_label,
+        "signals": signals,
+        "signals_needed": signals_needed,
+        "categories_covered": categories_covered,
+        "categories_needed": categories_needed,
+        "merchants": merchants,
+        "merchants_needed": merchants_needed,
+        "missing": missing,
+        "nudge": nudge,
+        "nudge_copy": nudge_copy,
+        "baseline_total_kg": baseline_total,
+        "target_kg": target,
+    }
 
 
 def get_product(product_id: UUID, db: Session | None = None) -> Product | None:
@@ -652,6 +900,10 @@ def complete_action(
     user: UserModel | None = None,
     db: Session | None = None,
 ) -> dict:
+    # ANTI-GAMING (verified 2026-09-12): this is the ONLY points-awarding path
+    # for circular actions. There is no baseline-edit path that awards points —
+    # baseline/onboarding writes must never call this function and never mint
+    # impact_points. Do not add points for profile/baseline edits here.
     user, db = _resolve_user_and_db(user, db)
     existing = (
         db.query(UserCompletedActionModel)
@@ -747,6 +999,23 @@ def redeem_reward(
     reward = db.query(RewardModel).filter(RewardModel.id == str(reward_id)).first()
     if not reward:
         raise ValueError("Reward not found")
+
+    # ANTI-GAMING: rewards over 300pts require a verified score.
+    # A1 owns the score_state/verified_score columns; use getattr so this
+    # module does not crash when A1 columns are not yet merged.
+    try:
+        score_state = getattr(user, "score_state", None)
+    except Exception:
+        score_state = None
+    try:
+        cost = int(reward.points_required)
+    except Exception:
+        cost = 0
+    if cost > 300 and score_state != "verified":
+        raise HTTPException(
+            status_code=403,
+            detail="Verified score required for rewards over 300pts (upload bills to unlock)",
+        )
 
     existing = (
         db.query(UserRewardRedemptionModel)
@@ -862,3 +1131,185 @@ def list_badges(user: UserModel | None = None, db: Session | None = None) -> lis
     )
     unlocked_set = {r[0] for r in unlocked_rows}
     return [{**b, "unlocked": b["id"] in unlocked_set} for b in BADGE_CATALOG]
+
+
+def build_score_response(user: UserModel | None = None, db: Session | None = None) -> dict:
+    """Combine provisional + verified KCS with the data meter. For A1 routes.
+
+    - provisional: getattr(user, "provisional_score", None) or
+      provisional_kcs(actual_monthly_kg) fallback (BASE_SCORE when no data).
+      Also exposes provisional_raw = kcs_from_kg(actual) for cap transparency.
+    - verified: getattr(user, "verified_score", None), recomputed as
+      verified_kcs(actual) when the meter gate passes AND actual is not None.
+      On gate pass, sets user.verified_score / score_state="verified" /
+      confidence=0.85 via setattr (never crashes if A1 columns missing) and
+      flushes (caller commits).
+    - meter: compute_data_meter(user, db) dict.
+    - nudge / nudge_copy: meter nudge flag + SCORE_NUDGE_COPY constant
+      (nudge_copy is None when no nudge).
+    Never raises on missing A1 columns or empty data (defensive getattr).
+    """
+    user, db = _resolve_user_and_db(user, db)
+    try:
+        meter = compute_data_meter(user, db)
+    except Exception:
+        meter = {
+            "signals": 0,
+            "categories_covered": [],
+            "cats_covered": [],
+            "categories_count": 0,
+            "cats_count": 0,
+            "merchants": 0,
+            "merchants_count": 0,
+            "merchant_list": [],
+            "variety_ok": False,
+            "distinct_weeks": 0,
+            "distinct_days": 0,
+            "verified_gate": False,
+            "verified": False,
+            "missing": [],
+            "nudge": False,
+            "actual_monthly_kg": None,
+            "confidence": 0.4,
+            "confidence_label": "Low",
+        }
+
+    actual = meter.get("actual_monthly_kg")
+    gate = bool(meter.get("verified", meter.get("verified_gate", False)))
+
+    # Provisional (stored or KCS fallback).
+    try:
+        provisional_stored = getattr(user, "provisional_score", None)
+    except Exception:
+        provisional_stored = None
+    try:
+        if provisional_stored is not None:
+            provisional = int(provisional_stored)
+        elif actual is not None:
+            provisional = int(provisional_kcs(float(actual)))
+        else:
+            provisional = int(BASE_SCORE)
+    except Exception:
+        provisional = int(BASE_SCORE)
+    try:
+        provisional_raw = (
+            int(verified_kcs(float(actual)))
+            if actual is not None
+            else int(verified_kcs(float(REF_KG)))
+        )
+    except Exception:
+        provisional_raw = int(BASE_SCORE)
+
+    # Verified (stored, or computed+persisted when gate passes).
+    try:
+        verified_stored = getattr(user, "verified_score", None)
+    except Exception:
+        verified_stored = None
+    verified: int | None = None
+    try:
+        if verified_stored is not None and not gate:
+            verified = int(verified_stored)
+        elif gate and actual is not None:
+            computed = int(verified_kcs(float(actual)))
+            verified = computed
+            # Persist verified state; never crash if A1 columns missing.
+            # Caller owns commit; flush here only.
+            # NOTE: A1 column is `score_confidence` (not `confidence`).
+            try:
+                user.verified_score = computed  # type: ignore[attr-defined]
+            except Exception:
+                pass
+            try:
+                user.score_state = "verified"  # type: ignore[attr-defined]
+            except Exception:
+                pass
+            try:
+                user.score_confidence = 0.85  # type: ignore[attr-defined]
+            except Exception:
+                pass
+            try:
+                db.flush()
+            except Exception:
+                pass
+        elif verified_stored is not None:
+            verified = int(verified_stored)
+        else:
+            verified = None
+    except Exception:
+        verified = None
+
+    try:
+        score_state = getattr(user, "score_state", None)
+    except Exception:
+        score_state = None
+    if not score_state:
+        score_state = "verified" if gate else "provisional"
+
+    try:
+        confidence = float(meter.get("confidence", 0.4))
+    except Exception:
+        confidence = 0.4
+    try:
+        confidence_label = str(meter.get("confidence_label", "Low"))
+    except Exception:
+        confidence_label = "Low"
+    if gate:
+        confidence, confidence_label = 0.85, "High"
+
+    try:
+        nudge = bool(meter.get("nudge", False))
+    except Exception:
+        nudge = False
+
+    # A1 ScoreResponse/DataMeterResponse flat contract (routes import this).
+    # Keep nested `meter` + `score_state` aliases too for backward compat.
+    try:
+        signals = int(meter.get("signals", 0))
+    except Exception:
+        signals = 0
+    try:
+        cats = list(meter.get("categories_covered", []) or [])
+    except Exception:
+        cats = []
+    try:
+        n_merchants = int(meter.get("merchants", meter.get("merchants_count", 0)))
+    except Exception:
+        n_merchants = 0
+    try:
+        missing = list(meter.get("missing", []) or [])
+    except Exception:
+        missing = []
+    try:
+        baseline_total = getattr(user, "baseline_total_kg", None)
+        baseline_total = float(baseline_total) if baseline_total is not None else None
+    except Exception:
+        baseline_total = None
+    try:
+        target_kg = getattr(user, "monthly_budget_kg", None)
+        target_kg = float(target_kg) if target_kg is not None else None
+    except Exception:
+        target_kg = None
+
+    return {
+        "provisional": int(provisional),
+        "provisional_raw": int(provisional_raw),
+        "verified": verified,
+        "score": verified if (gate and verified is not None) else int(provisional),
+        "state": str(score_state),
+        "score_state": str(score_state),
+        "confidence": float(confidence),
+        "confidence_label": str(confidence_label),
+        "signals": int(signals),
+        "signals_needed": 12,
+        "categories_covered": cats,
+        "cats_covered": cats,
+        "categories_needed": 4,
+        "merchants": int(n_merchants),
+        "merchants_needed": 5,
+        "missing": missing,
+        "meter": meter,
+        "nudge": bool(nudge),
+        "nudge_copy": str(SCORE_NUDGE_COPY) if nudge else None,
+        "baseline_total_kg": baseline_total,
+        "target_kg": target_kg,
+    }

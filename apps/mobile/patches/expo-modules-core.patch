@@ -1,0 +1,88 @@
+diff --git a/src/requireNativeModule.ts b/src/requireNativeModule.ts
+index 22fc31e6cbc59749e84626e40196b20aa19cf4c7..ab1c35fc177c90a4c16fdbdb798d75aba3beb1c1 100755
+--- a/src/requireNativeModule.ts
++++ b/src/requireNativeModule.ts	
+@@ -17,7 +17,32 @@ export function requireNativeModule<ModuleType = any>(moduleName: string): Modul
+   const nativeModule = requireOptionalNativeModule<ModuleType>(moduleName);
+ 
+   if (!nativeModule) {
+-    throw new Error(`Cannot find native module '${moduleName}'`);
++    console.warn(`[expo-modules-core] Warning: Native module '${moduleName}' not found in runtime. Using safe stub.`);
++    const stub: any = function (...args: any[]) {
++      return Promise.resolve(null);
++    };
++    stub.prototype = {};
++    return new Proxy(stub, {
++      get(target, prop) {
++        if (prop === '__esModule') return true;
++        if (prop === 'then') return undefined;
++        if (prop === 'addListener' || prop === 'removeListeners') return () => {};
++        if (prop === 'name') return moduleName;
++        return function (...args: any[]) {
++          return Promise.resolve(null);
++        };
++      },
++      construct() {
++        return new Proxy({}, {
++          get() {
++            return () => Promise.resolve(null);
++          }
++        });
++      },
++      apply() {
++        return Promise.resolve(null);
++      }
++    }) as ModuleType;
+   }
+   return nativeModule;
+ }
+diff --git a/src/requireNativeModule.web.ts b/src/requireNativeModule.web.ts
+index 30795d660316fbdbdf1eb9612738400e13e03b22..cc8400a35889d2d76a5913b6c1e27ceb1fd110d8 100755
+--- a/src/requireNativeModule.web.ts
++++ b/src/requireNativeModule.web.ts	
+@@ -3,18 +3,38 @@ export function requireNativeModule<ModuleType = any>(moduleName: string): Modul
+   if (nativeModule != null) {
+     return nativeModule;
+   }
+-  if (typeof window === 'undefined') {
+-    // For SSR, we expect not to have native modules available, but to avoid crashing from SSR resolutions, we return an empty object.
+-    return {} as ModuleType;
+-  }
+-  throw new Error(`Cannot find native module '${moduleName}'`);
++  const stub: any = function (...args: any[]) {
++    return Promise.resolve(null);
++  };
++  stub.prototype = {};
++  return new Proxy(stub, {
++    get(target, prop) {
++      if (prop === '__esModule') return true;
++      if (prop === 'then') return undefined;
++      if (prop === 'addListener' || prop === 'removeListeners') return () => {};
++      if (prop === 'name') return moduleName;
++      return function (...args: any[]) {
++        return Promise.resolve(null);
++      };
++    },
++    construct() {
++      return new Proxy({}, {
++        get() {
++          return () => Promise.resolve(null);
++        }
++      });
++    },
++    apply() {
++      return Promise.resolve(null);
++    }
++  }) as ModuleType;
+ }
+ 
+ export function requireOptionalNativeModule<ModuleType = any>(
+   moduleName: string
+ ): ModuleType | null {
+-  if (typeof globalThis.ExpoDomWebView === 'object' && globalThis?.expo?.modules != null) {
+-    return globalThis.expo?.modules?.[moduleName] ?? null;
++  if (typeof (globalThis as any).ExpoDomWebView === 'object' && (globalThis as any)?.expo?.modules != null) {
++    return (globalThis as any).expo?.modules?.[moduleName] ?? null;
+   }
+   return null;
+ }

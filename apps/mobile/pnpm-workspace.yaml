@@ -1,0 +1,4 @@
+patchedDependencies:
+  expo-asset: patches/expo-asset.patch
+  expo-modules-core: patches/expo-modules-core.patch
+  expo@57.0.22: patches/expo@57.0.22.patch

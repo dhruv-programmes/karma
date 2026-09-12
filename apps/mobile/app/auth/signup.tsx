@@ -7,7 +7,7 @@ import {
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Check, Eye, EyeOff, Leaf, Lock, Mail, Target, User } from "lucide-react-native";
-import { Image } from "expo-image";
+import { Image } from "react-native";
 import { DecorativeBackground } from "@/components/custom/decorative-background";
 import { useQueryClient } from "@tanstack/react-query";
 import { Box } from "@/components/ui/box";
@@ -107,7 +107,7 @@ export default function SignUpScreen() {
           <Image
             source={require("@/assets/karma-text.png")}
             style={{ width: 110, height: 32, marginBottom: 12 }}
-            contentFit="contain"
+            resizeMode="contain"
           />
           <Heading size="2xl" className="text-center">
             Create Account

@@ -16,7 +16,7 @@ import {
   Sparkles,
   UserCheck,
 } from "lucide-react-native";
-import { Image } from "expo-image";
+import { Image } from "react-native";
 import { DecorativeBackground } from "@/components/custom/decorative-background";
 import Svg, { Path } from "react-native-svg";
 import { useQueryClient } from "@tanstack/react-query";
@@ -226,7 +226,7 @@ export default function SignInScreen() {
         <Image
           source={require("@/assets/karma-text.png")}
           style={{ width: 90, height: 26 }}
-          contentFit="contain"
+          resizeMode="contain"
         />
 
         <Box className="w-10 h-10" />

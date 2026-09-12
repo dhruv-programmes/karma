@@ -3,6 +3,7 @@ import type {
   ImpactBreakdown,
   Product,
   Recommendation,
+  ScoreResponse,
   UserProfile,
 } from "@/src/types/api";
 import {
@@ -222,3 +223,24 @@ export const fallbackCloset: Product[] = [
     circularity_score: 69,
   },
 ];
+
+export const fallbackScore: ScoreResponse = {
+  provisional: 680,
+  verified: null,
+  state: "provisional",
+  confidence: 0.4,
+  confidenceLabel: "Low",
+  signals: 4,
+  signalsNeeded: 12,
+  categoriesCovered: 2,
+  categoriesNeeded: 4,
+  merchants: 2,
+  merchantsNeeded: 5,
+  missing: ["Electricity bill", "Travel history"],
+  varietyOk: false,
+  nudge: false,
+  nudgeCopy:
+    "We need more data to calculate your Carbon Score (Upload electricity, shopping, food + travel bills to improve accuracy)",
+  baselineTotalKg: 96,
+  targetKg: 82,
+};

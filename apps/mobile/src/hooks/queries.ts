@@ -1,5 +1,8 @@
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/src/lib/api";
+import { useAuthStore } from "@/src/store/auth";
+import type { ScoreResponse } from "@/src/types/api";
 import {
   fallbackBadges,
   fallbackCloset,
@@ -7,6 +10,7 @@ import {
   fallbackImpact,
   fallbackPhone,
   fallbackRecommendations,
+  fallbackScore,
   fallbackUser,
 } from "@/src/lib/fallbacks";
 
@@ -16,6 +20,38 @@ async function withFallback<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
   } catch {
     return fallback;
   }
+}
+
+/** Sync a fetched score payload into the auth store (no-op when unchanged). */
+function useSyncDataMeter(data: ScoreResponse | undefined) {
+  useEffect(() => {
+    if (!data) return;
+    try {
+      useAuthStore.getState().setDataMeter(data);
+    } catch {
+      // Offline-tolerant: never throw to UI
+    }
+  }, [data]);
+}
+
+export function useScore() {
+  const query = useQuery({
+    queryKey: ["score"],
+    queryFn: () => withFallback(api.getScore, fallbackScore),
+    staleTime: 30_000,
+  });
+  useSyncDataMeter(query.data);
+  return query;
+}
+
+export function useDataMeter() {
+  const query = useQuery({
+    queryKey: ["data-meter"],
+    queryFn: () => withFallback(api.getDataMeter, fallbackScore),
+    staleTime: 30_000,
+  });
+  useSyncDataMeter(query.data);
+  return query;
 }
 
 export function useMe() {

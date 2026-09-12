@@ -22,6 +22,7 @@ from app.db.models import (
     UserOffsetPurchaseModel,
     UserProductModel,
     UserRewardRedemptionModel,
+    ensure_kcs_columns,
 )
 from app.engines.carbon import estimate_from_spend
 from app.schemas import ProductCategory
@@ -47,7 +48,64 @@ from app.seed.data import (
 )
 
 
+def _backfill_kcs_users(db: Session) -> None:
+    """Backfill KCS defaults for pre-KCS rows (nullable-safe)."""
+    try:
+        users = db.query(UserModel).all()
+    except Exception:
+        return
+    changed = False
+    for u in users:
+        try:
+            if getattr(u, "provisional_score", None) is None:
+                email = (u.email or "").lower()
+                if email == "aisha@example.com":
+                    u.provisional_score = 680
+                elif email == "rohan@example.com":
+                    u.provisional_score = 680
+                elif email == "maya@example.com":
+                    u.provisional_score = 562
+                else:
+                    u.provisional_score = 650
+                changed = True
+            if getattr(u, "score_state", None) is None:
+                u.score_state = "provisional"
+                changed = True
+            if getattr(u, "score_confidence", None) is None:
+                u.score_confidence = 0.4
+                changed = True
+            if getattr(u, "baseline_created_at", None) is None:
+                email = (u.email or "").lower()
+                if email in ("aisha@example.com", "rohan@example.com", "maya@example.com"):
+                    u.baseline_created_at = "2026-03-01T00:00:00Z"
+                    changed = True
+            # Aisha baseline total 96 if missing
+            if (u.email or "").lower() == "aisha@example.com" and getattr(u, "baseline_total_kg", None) is None:
+                u.baseline_total_kg = 96.0
+                changed = True
+        except Exception:
+            continue
+    if changed:
+        try:
+            db.commit()
+        except Exception:
+            try:
+                db.rollback()
+            except Exception:
+                pass
+
+
 def seed_database_if_empty(db: Session) -> None:
+    # 0. Ensure KCS columns exist on pre-KCS SQLite files
+    try:
+        ensure_kcs_columns(db)
+    except Exception:
+        pass
+    # Backfill existing rows even when DB is already seeded
+    try:
+        _backfill_kcs_users(db)
+    except Exception:
+        pass
     # 1. Seed Products if empty
     if db.query(ProductModel).count() == 0:
         for p in PRODUCTS.values():
@@ -161,6 +219,12 @@ def seed_database_if_empty(db: Session) -> None:
             offset_kg_total=0.0,
             monthly_budget_kg=90.0,
             preferences_json=json.dumps({"budget_goal": "on_track", "persona": "balanced_commuter"}),
+            provisional_score=680,
+            verified_score=None,
+            score_confidence=0.4,
+            score_state="provisional",
+            baseline_total_kg=96.0,
+            baseline_created_at="2026-03-01T00:00:00Z",
         )
         db.add(aisha)
         db.flush()
@@ -208,6 +272,11 @@ def seed_database_if_empty(db: Session) -> None:
             offset_kg_total=25.0,
             monthly_budget_kg=60.0,
             preferences_json=json.dumps({"budget_goal": "strict", "persona": "low_carbon_minimalist"}),
+            provisional_score=680,
+            verified_score=None,
+            score_confidence=0.4,
+            score_state="provisional",
+            baseline_created_at="2026-03-01T00:00:00Z",
         )
         db.add(rohan)
         db.flush()
@@ -271,6 +340,11 @@ def seed_database_if_empty(db: Session) -> None:
             offset_kg_total=0.0,
             monthly_budget_kg=140.0,
             preferences_json=json.dumps({"budget_goal": "starter", "persona": "convenience_shopper"}),
+            provisional_score=562,
+            verified_score=None,
+            score_confidence=0.4,
+            score_state="provisional",
+            baseline_created_at="2026-03-01T00:00:00Z",
         )
         db.add(maya)
         db.flush()

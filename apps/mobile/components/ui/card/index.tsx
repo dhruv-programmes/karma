@@ -3,8 +3,8 @@ import { View, type ViewProps } from "react-native";
 
 export type CardProps = ViewProps & {
   className?: string;
-  /** soft = default white card; softPop = mint wash highlight; flat = muted chip */
-  variant?: "soft" | "softPop" | "flat" | "default";
+  /** soft = default white card; softPop = mint wash highlight; flat = muted chip; outline = border card */
+  variant?: "soft" | "softPop" | "flat" | "default" | "outline";
 };
 
 const variantMap = {
@@ -12,6 +12,7 @@ const variantMap = {
   soft: "bg-card border border-border rounded-3xl p-5",
   softPop: "bg-secondary border border-primary/20 rounded-3xl p-5",
   flat: "bg-muted border border-transparent rounded-2xl p-4",
+  outline: "bg-card border border-border rounded-3xl p-4",
 } as const;
 
 export function Card({

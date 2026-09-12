@@ -270,3 +270,36 @@ export interface AuthResponse {
   token_type: string;
   user: UserProfile;
 }
+
+export type ScoreState = "provisional" | "verified";
+
+export interface DataMeter {
+  signals: number;
+  signalsNeeded: number;
+  categoriesCovered: number;
+  categoriesNeeded: number;
+  merchants: number;
+  merchantsNeeded: number;
+  missing: string[];
+  varietyOk: boolean;
+  nudge: boolean;
+  nudgeCopy: string;
+  baselineTotalKg: number;
+  targetKg: number;
+}
+
+export interface ScoreResponse extends DataMeter {
+  provisional: number;
+  verified: number | null;
+  state: ScoreState;
+  confidence: number;
+  confidenceLabel: string;
+}
+
+export interface BaselineSyncPayload {
+  transport: { [key: string]: string };
+  shopping: { [key: string]: string };
+  reductionPct: number;
+  totalKg: number;
+  provisional: number;
+}

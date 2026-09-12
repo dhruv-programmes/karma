@@ -8,7 +8,7 @@ import {
   Leaf,
   RotateCcw,
 } from "lucide-react-native";
-import { Image } from "expo-image";
+import { Image } from "react-native";
 import { DecorativeBackground } from "@/components/custom/decorative-background";
 import { Box } from "@/components/ui/box";
 import { Button } from "@/components/ui/button";
@@ -52,7 +52,7 @@ export default function WelcomeScreen() {
           <Image
             source={require("@/assets/karma-text.png")}
             style={{ width: 120, height: 35 }}
-            contentFit="contain"
+            resizeMode="contain"
           />
         </HStack>
 

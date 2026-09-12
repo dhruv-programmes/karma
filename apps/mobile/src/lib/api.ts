@@ -2,6 +2,7 @@ import { useAuthStore } from "@/src/store/auth";
 import type {
   AuthResponse,
   Badge,
+  BaselineSyncPayload,
   CircularOptionsResponse,
   CompletedActionResult,
   DemoUserSummary,
@@ -14,6 +15,8 @@ import type {
   Recommendation,
   RedeemResult,
   Reward,
+  ScoreResponse,
+  ScoreState,
   Transaction,
   UserProfile,
 } from "@/src/types/api";
@@ -28,21 +31,27 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = useAuthStore.getState().token;
   const authHeader = token ? `Bearer ${token}` : "Bearer demo-carbon-loop-token";
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 4000);
+
   try {
     const res = await fetch(`${getBaseUrl()}${path}`, {
       ...init,
+      signal: init?.signal ?? controller.signal,
       headers: {
         "Content-Type": "application/json",
         Authorization: authHeader,
         ...(init?.headers ?? {}),
       },
     });
+    clearTimeout(timeoutId);
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
       throw new Error(errBody.detail || `API ${res.status}`);
     }
     return (await res.json()) as T;
   } catch (err: any) {
+    clearTimeout(timeoutId);
     if (err?.message && err.message !== "API_UNAVAILABLE") {
       throw err;
     }
@@ -50,8 +59,82 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 }
 
-export const api = {
-  // Authentication
+/**
+ * Normalize a score payload into the canonical camelCase ScoreResponse.
+ * Accepts backend snake_case (A1/A2 contract) or camelCase; missing fields
+ * fall back to provisional defaults. Never throws (offline-tolerant).
+ */
+export function normalizeScoreResponse(raw: any): ScoreResponse {
+  const src = raw && typeof raw === "object" ? raw : {};
+  const pick = (...keys: string[]): any => {
+    for (const k of keys) {
+      const v = src[k];
+      if (v !== undefined && v !== null) return v;
+    }
+    return undefined;
+  };
+  const num = (v: unknown, dflt: number): number =>
+    typeof v === "number" && Number.isFinite(v) ? v : dflt;
+  const rawState = pick("state", "score_state");
+  const state: ScoreState = rawState === "verified" ? "verified" : "provisional";
+  const confidence = num(pick("confidence", "score_confidence"), 0.4);
+  const rawLabel = pick("confidenceLabel", "confidence_label");
+  const confidenceLabel =
+    typeof rawLabel === "string" && rawLabel.length > 0
+      ? rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1)
+      : confidence >= 0.85
+        ? "High"
+        : confidence >= 0.6
+          ? "Medium"
+          : "Low";
+  const catsCovered = pick("categoriesCovered", "categories_covered");
+  const categoriesCovered =
+    typeof catsCovered === "number"
+      ? catsCovered
+      : Array.isArray(catsCovered)
+        ? catsCovered.length
+        : 0;
+  const missingRaw = pick("missing");
+  const missingList: string[] = Array.isArray(missingRaw)
+    ? missingRaw.map(String)
+    : [];
+  // Backend ScoreResponse omits variety_ok by design (quiet variety gate);
+  // derive it from the meter's missing labels: compute_data_meter appends
+  // "Varied history" iff variety_ok is False, so absence means variety OK.
+  // Only derive when the backend actually sent a missing array; else false.
+  const varietyRaw = pick("varietyOk", "variety_ok");
+  const varietyOk =
+    typeof varietyRaw === "boolean"
+      ? varietyRaw
+      : Array.isArray(missingRaw)
+        ? !missingList.includes("Varied history")
+        : false;
+  const rawVerified = pick("verified", "verified_score");
+  return {
+    provisional: num(pick("provisional", "provisional_score"), 650),
+    verified:
+      typeof rawVerified === "number" && Number.isFinite(rawVerified)
+        ? rawVerified
+        : null,
+    state,
+    confidence,
+    confidenceLabel,
+    signals: num(pick("signals"), 0),
+    signalsNeeded: num(pick("signalsNeeded", "signals_needed"), 12),
+    categoriesCovered,
+    categoriesNeeded: num(pick("categoriesNeeded", "categories_needed"), 4),
+    merchants: num(pick("merchants"), 0),
+    merchantsNeeded: num(pick("merchantsNeeded", "merchants_needed"), 5),
+    missing: missingList,
+    varietyOk,
+    nudge: Boolean(pick("nudge") ?? false),
+    nudgeCopy: String(pick("nudgeCopy", "nudge_copy") ?? ""),
+    baselineTotalKg: num(pick("baselineTotalKg", "baseline_total_kg"), 0),
+    targetKg: num(pick("targetKg", "target_kg"), 0),
+  };
+}
+
+export const api = {  // Authentication
   signin: (email: string, password = "password123") =>
     request<AuthResponse>("/api/v1/auth/signin", {
       method: "POST",
@@ -87,6 +170,15 @@ export const api = {
   getCloset: () => request<Product[]>("/api/v1/users/me/closet"),
   getBadges: () => request<Badge[]>("/api/v1/users/me/badges"),
   getScore: () =>
+    request<any>("/api/v1/users/me/score").then(normalizeScoreResponse),
+  getDataMeter: () =>
+    request<any>("/api/v1/users/me/data-meter").then(normalizeScoreResponse),
+  syncBaseline: (payload: BaselineSyncPayload) =>
+    request<any>("/api/v1/onboarding/baseline", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }).then(normalizeScoreResponse),
+  getCircularityScore: () =>
     request<{
       score: number;
       impact_points: number;

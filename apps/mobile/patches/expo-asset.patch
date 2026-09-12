@@ -1,0 +1,44 @@
+diff --git a/build/ExpoAsset.js b/build/ExpoAsset.js
+index de78366fdf0627edad4196acadb5f3c909fa3748..841fabdcf2a1d4cd5f9fe6589d3c5052d0a7e2d4 100755
+--- a/build/ExpoAsset.js
++++ b/build/ExpoAsset.js	
+@@ -1,5 +1,5 @@
+-import { requireNativeModule } from 'expo-modules-core';
+-const AssetModule = requireNativeModule('ExpoAsset');
++import { requireOptionalNativeModule } from 'expo-modules-core';
++const AssetModule = requireOptionalNativeModule('ExpoAsset');
+ /**
+  * Downloads the asset from the given URL to a local cache and returns the local URL of the cached
+  * file.
+@@ -10,6 +10,9 @@ const AssetModule = requireNativeModule('ExpoAsset');
+  * `md5Hash` parameter of this function is provided.
+  */
+ export async function downloadAsync(url, md5Hash, type) {
++    if (!AssetModule) {
++        return url;
++    }
+     return AssetModule.downloadAsync(url, md5Hash, type);
+ }
+ //# sourceMappingURL=ExpoAsset.js.map
+diff --git a/src/ExpoAsset.ts b/src/ExpoAsset.ts
+index ca61f56bf46c1c6a077b83d46e5fbb4fba86d1a6..eb5230041b4f522f542c7b8ddd5309a006b3af1a 100755
+--- a/src/ExpoAsset.ts
++++ b/src/ExpoAsset.ts	
+@@ -1,6 +1,6 @@
+-import { requireNativeModule } from 'expo-modules-core';
++import { requireOptionalNativeModule } from 'expo-modules-core';
+ 
+-const AssetModule = requireNativeModule('ExpoAsset');
++const AssetModule = requireOptionalNativeModule('ExpoAsset') as any;
+ 
+ /**
+  * Downloads the asset from the given URL to a local cache and returns the local URL of the cached
+@@ -16,5 +16,8 @@ export async function downloadAsync(
+   md5Hash: string | null,
+   type: string
+ ): Promise<string> {
++  if (!AssetModule) {
++    return url;
++  }
+   return AssetModule.downloadAsync(url, md5Hash, type);
+ }

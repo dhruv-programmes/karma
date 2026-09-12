@@ -10,3 +10,6 @@ dist/
 .DS_Store
 
 apps/api/venv
+.idea/
+*.iml
+apps/mobile/android/

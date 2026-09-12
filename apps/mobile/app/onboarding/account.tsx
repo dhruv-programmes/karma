@@ -15,7 +15,7 @@ import {
   Mail,
   User,
 } from "lucide-react-native";
-import { Image } from "expo-image";
+import { Image } from "react-native";
 import { DecorativeBackground } from "@/components/custom/decorative-background";
 import Svg, { Path } from "react-native-svg";
 import { Box } from "@/components/ui/box";
@@ -157,7 +157,7 @@ export default function AccountScreen() {
         <Image
           source={require("@/assets/karma-text.png")}
           style={{ width: 90, height: 26 }}
-          contentFit="contain"
+          resizeMode="contain"
         />
         <Box className="w-10 h-10" />
       </HStack>

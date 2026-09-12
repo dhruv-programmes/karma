@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import Animated, { FadeInDown, ZoomIn } from "react-native-reanimated";
-import { Image } from "expo-image";
+import { Image } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CircularityRing } from "@/components/custom/circularity-ring";
 import { Badge } from "@/components/ui/badge";

@@ -39,6 +39,15 @@ class UserModel(Base):
     monthly_budget_kg = Column(Float, default=90.0, nullable=False)
     preferences_json = Column(Text, default="{}", nullable=False)
     created_at = Column(DateTime, default=_utcnow, nullable=False)
+    # --- KCS provisional->verified (nullable-safe, SQLite compatible) ---
+    provisional_score = Column(Integer, default=650, nullable=True)
+    verified_score = Column(Integer, nullable=True)
+    score_confidence = Column(Float, default=0.4, nullable=True)
+    score_state = Column(String(20), default="provisional", nullable=True)
+    baseline_hash = Column(String(64), nullable=True)
+    baseline_total_kg = Column(Float, nullable=True)
+    data_meter_json = Column(Text, nullable=True)
+    baseline_created_at = Column(String(50), nullable=True)
 
     transactions = relationship(
         "TransactionModel", back_populates="user", cascade="all, delete-orphan"
@@ -277,3 +286,68 @@ class ActivityEventModel(Base):
     @meta.setter
     def meta(self, value: dict) -> None:
         self.meta_json = json.dumps(value)
+
+
+# --- Lightweight SQLite migration for KCS columns (no alembic) ---
+# Base.metadata.create_all() does not ADD columns to existing tables,
+# so Rosa DB files created before KCS need ALTER TABLE backfill.
+KCS_USER_COLUMNS: dict[str, str] = {
+    "provisional_score": "INTEGER",
+    "verified_score": "INTEGER",
+    "score_confidence": "FLOAT",
+    "score_state": "VARCHAR(20)",
+    "baseline_hash": "VARCHAR(64)",
+    "baseline_total_kg": "FLOAT",
+    "data_meter_json": "TEXT",
+    "baseline_created_at": "VARCHAR(50)",
+}
+
+
+def ensure_kcs_columns(engine_or_conn) -> None:
+    """Add missing KCS columns to users table if needed (SQLite compatible).
+
+    Accepts an Engine, Connection, or Session. No-op if columns exist.
+    """
+    from sqlalchemy import text
+
+    # Resolve a connection-like object with .execute()
+    conn = None
+    close_after = False
+    try:
+        if hasattr(engine_or_conn, "get_bind"):
+            # Session object
+            bind = engine_or_conn.get_bind()
+            conn = bind.connect()
+            close_after = True
+        elif hasattr(engine_or_conn, "connect"):
+            conn = engine_or_conn.connect()
+            close_after = True
+        else:
+            # Assume already a Connection
+            conn = engine_or_conn
+
+        existing: set[str] = set()
+        try:
+            rows = conn.execute(text("PRAGMA table_info(users)")).fetchall()
+            # rows: (cid, name, type, notnull, dflt_value, pk)
+            existing = {r[1] for r in rows}
+        except Exception:
+            return
+
+        for col, coltype in KCS_USER_COLUMNS.items():
+            if col not in existing:
+                try:
+                    conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} {coltype}"))
+                except Exception:
+                    # Column may have been added concurrently; ignore
+                    pass
+        try:
+            conn.commit()
+        except Exception:
+            pass
+    finally:
+        if close_after and conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass

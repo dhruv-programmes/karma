@@ -310,6 +310,7 @@ export interface DocumentConfirmResult {
   message: string;
   badges_unlocked?: string[];
   is_mock?: boolean;
+  total_inr?: number;
 }
 
 export interface Transaction {

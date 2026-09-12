@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,11 +18,13 @@ import {
   streamDocumentChat,
   type DocumentChatMessage,
 } from "@/src/lib/ai";
+import { useMe } from "@/src/hooks/queries";
 import { useAppStore } from "@/src/store/app";
 import type {
   DocumentConfirmItem,
   ExtractedDocumentItem,
   ProductCategory,
+  Transaction,
 } from "@/src/types/api";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -62,12 +64,20 @@ function toDraft(item: ExtractedDocumentItem): ReviewDraft {
   };
 }
 
+function firstNameFrom(name?: string | null) {
+  const part = (name || "").trim().split(/\s+/)[0];
+  return part || "";
+}
+
 export default function ReceiptReviewScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const qc = useQueryClient();
+  const me = useMe();
+  const firstName = firstNameFrom(me.data?.name);
   const pending = useAppStore((s) => s.documentDraft);
   const setDocumentDraft = useAppStore((s) => s.setDocumentDraft);
+  const setLastDocumentImport = useAppStore((s) => s.setLastDocumentImport);
   const [drafts, setDrafts] = useState<ReviewDraft[]>([]);
   const [confirming, setConfirming] = useState(false);
   const [chatInput, setChatInput] = useState("");
@@ -75,10 +85,13 @@ export default function ReceiptReviewScreen() {
   const [messages, setMessages] = useState<DocumentChatMessage[]>([]);
   const [chatBusy, setChatBusy] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
+  const leavingRef = useRef(false);
 
   useEffect(() => {
     if (!pending) {
-      router.replace("/receipt");
+      if (!leavingRef.current) {
+        router.replace("/receipt");
+      }
       return;
     }
     setDrafts(pending.needs_review.map(toDraft));
@@ -108,6 +121,7 @@ export default function ReceiptReviewScreen() {
         {
           messages: nextMessages,
           documentContext: pending.extractionJson ?? "",
+          userName: me.data?.name,
         },
         {
           onPartial: (partial) => {
@@ -137,7 +151,7 @@ export default function ReceiptReviewScreen() {
   }
 
   async function onConfirm() {
-    if (!pending) return;
+    if (!pending || confirming) return;
     setConfirming(true);
     setConfirmError(null);
     const autoItems: DocumentConfirmItem[] = pending.auto_import.map((i) => ({
@@ -156,20 +170,43 @@ export default function ReceiptReviewScreen() {
       category: d.category,
       discarded: d.discarded,
     }));
-    // If nothing needs review, still import auto items
     const allItems =
       pending.needs_review.length === 0 && drafts.length === 0
         ? autoItems
         : [...autoItems, ...reviewItems];
 
     try {
-      const result = await confirmDocumentImport(allItems);
+      const result = await confirmDocumentImport(allItems, {
+        userName: me.data?.name,
+        documentTitle: pending.title,
+      });
+
+      const importedTxns = (result.transactions ?? []) as Transaction[];
+      setLastDocumentImport({
+        ...result,
+        title: pending.title,
+        total_inr: result.total_inr,
+      });
+
+      // Seed cache so Impact / result don't flash stale fallback data
+      qc.setQueryData<Transaction[]>(["transactions"], (prev) => {
+        const existing = prev ?? [];
+        const ids = new Set(importedTxns.map((t) => String(t.id)));
+        return [
+          ...importedTxns,
+          ...existing.filter((t) => !ids.has(String(t.id))),
+        ];
+      });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["transactions"] }),
+        qc.invalidateQueries({ queryKey: ["impact"] }),
+        qc.invalidateQueries({ queryKey: ["me"] }),
+        qc.invalidateQueries({ queryKey: ["score"] }),
+        qc.invalidateQueries({ queryKey: ["activity"] }),
+      ]);
+
+      leavingRef.current = true;
       setDocumentDraft(null);
-      qc.invalidateQueries({ queryKey: ["transactions"] });
-      qc.invalidateQueries({ queryKey: ["impact"] });
-      qc.invalidateQueries({ queryKey: ["me"] });
-      qc.invalidateQueries({ queryKey: ["score"] });
-      qc.invalidateQueries({ queryKey: ["activity"] });
       router.replace({
         pathname: "/receipt/result",
         params: {
@@ -189,6 +226,12 @@ export default function ReceiptReviewScreen() {
   }
 
   const showReviewEditor = drafts.length > 0;
+  const keepCount =
+    pending.auto_import.length + drafts.filter((d) => !d.discarded).length;
+  const totalPreview = [
+    ...pending.auto_import.map((i) => i.amount_inr),
+    ...drafts.filter((d) => !d.discarded).map((d) => Number(d.amount) || 0),
+  ].reduce((a, b) => a + b, 0);
 
   return (
     <Box
@@ -207,18 +250,24 @@ export default function ReceiptReviewScreen() {
           <Text className="text-primary">Back</Text>
         </Pressable>
         <Heading size="2xl">
-          {showReviewEditor ? "Review uncertain items" : "Confirm import"}
+          {showReviewEditor
+            ? firstName
+              ? `${firstName}, a few lines need you`
+              : "Review uncertain items"
+            : firstName
+              ? `${firstName}, ready to add this?`
+              : "Confirm import"}
         </Heading>
         <Text size="sm" className="text-muted-foreground">
           {pending.title}
           {showReviewEditor
             ? " — confirm or discard lines we could not read clearly."
-            : " — all items look clear. Confirm to add them to your footprint."}
+            : " — everything looks clear. Confirm to add it to your footprint."}
         </Text>
 
         {pending.auto_import.length > 0 ? (
           <Card variant="soft">
-            <Badge action="success" label="Ready to import" />
+            <Badge action="success" label="Ready for your footprint" />
             <Text bold className="mt-2">
               {pending.auto_import.length} high-confidence item
               {pending.auto_import.length === 1 ? "" : "s"}
@@ -260,7 +309,7 @@ export default function ReceiptReviewScreen() {
             ) : null}
             {draft.discarded ? (
               <Text size="sm" className="mt-3 text-muted-foreground">
-                Won&apos;t be imported
+                Won&apos;t be added to your footprint
               </Text>
             ) : (
               <VStack className="gap-2 mt-3">
@@ -307,9 +356,11 @@ export default function ReceiptReviewScreen() {
         ))}
 
         <Card variant="soft">
-          <Text bold>Ask about this bill</Text>
+          <Text bold>
+            {firstName ? `Ask about your bill, ${firstName}` : "Ask about this bill"}
+          </Text>
           <Text size="xs" className="text-muted-foreground mt-1 mb-3">
-            Categories, totals, or unclear lines — grounded in the extraction.
+            Categories, totals, or unclear lines — grounded in what we read.
           </Text>
           {messages.map((m) => {
             if (!m.text && m.role === "assistant" && chatBusy) {
@@ -361,8 +412,19 @@ export default function ReceiptReviewScreen() {
           <Text className="text-destructive">{confirmError}</Text>
         ) : null}
 
-        <Button loading={confirming} onPress={() => void onConfirm()}>
-          Confirm import
+        <Text size="sm" className="text-muted-foreground">
+          About to add {keepCount} line{keepCount === 1 ? "" : "s"} · ₹
+          {Math.round(totalPreview).toLocaleString("en-IN")}
+        </Text>
+
+        <Button
+          loading={confirming}
+          disabled={keepCount === 0}
+          onPress={() => void onConfirm()}
+        >
+          {firstName
+            ? `Add to ${firstName}'s footprint`
+            : "Confirm import"}
         </Button>
       </ScrollView>
     </Box>

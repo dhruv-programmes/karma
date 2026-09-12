@@ -12,9 +12,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   ArrowRight,
+  Camera,
   ChevronRight,
   Footprints,
   Leaf,
+  Receipt,
+  Recycle,
   TrendingUp,
   Wrench,
 } from "lucide-react-native";
@@ -375,6 +378,27 @@ function ScoreRing({
         </View>
       </View>
     </View>
+  );
+}
+
+function ToolCard({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      style={styles.toolCard}
+      onPress={onPress}
+      activeOpacity={0.85}
+    >
+      <View style={styles.toolIconBox}>{icon}</View>
+      <Text style={styles.toolLabel}>{label}</Text>
+    </TouchableOpacity>
   );
 }
 
@@ -853,7 +877,6 @@ export default function HomeScreen() {
             </View>
           )}
 
-<<<<<<< HEAD
           {/* ── QUICK TOOLS ── */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Loop Tools</Text>
@@ -882,8 +905,6 @@ export default function HomeScreen() {
               />
             </View>
           </View>
-=======
->>>>>>> 1e27da45c8e1dead582321527ef6a32640e09474
         </View>
       </ScrollView>
     </View>
@@ -1291,4 +1312,36 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
 
+  // Loop tools
+  toolGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  toolCard: {
+    width: "47%",
+    flexGrow: 1,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 14,
+    gap: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  toolIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "rgba(46,168,110,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  toolLabel: {
+    fontSize: 13,
+    fontFamily: "Nunito_700Bold",
+    color: "#0D1811",
+  },
 });

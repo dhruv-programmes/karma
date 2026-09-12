@@ -20,7 +20,7 @@ export async function POST(req: Request) {
   // Confirm does not need Gemini; key check optional. Keep soft so confirm works offline from AI key issues after extract.
   void requireApiKey;
 
-  let body: { items?: ConfirmItem[] };
+  let body: { items?: ConfirmItem[]; userName?: string; documentTitle?: string };
   try {
     body = await req.json();
   } catch {
@@ -28,12 +28,17 @@ export async function POST(req: Request) {
   }
 
   const items = (body.items ?? []).filter((i) => !i.discarded);
+  const firstName = (body.userName || "").trim().split(/\s+/)[0] || "";
+  const docTitle = (body.documentTitle || "").trim();
+
   if (items.length === 0) {
     return withCors(
       NextResponse.json({
         imported: 0,
         transactions: [],
-        message: "No items to import.",
+        message: firstName
+          ? `${firstName}, nothing was selected to import — tweak the list and try again.`
+          : "No items to import.",
         badges_unlocked: [],
       }),
       req
@@ -71,16 +76,38 @@ export async function POST(req: Request) {
 
     const data = (await res.json()) as {
       imported: number;
-      transactions: unknown[];
+      transactions: { merchant?: string; amount_inr?: number }[];
     };
+
+    const totalInr = items.reduce(
+      (sum, i) => sum + (Number(i.amount_inr) || 0),
+      0
+    );
+    const merchants = [
+      ...new Set(items.map((i) => i.merchant.trim()).filter(Boolean)),
+    ];
+    const merchantBit =
+      merchants.length === 1
+        ? merchants[0]
+        : merchants.length === 2
+          ? `${merchants[0]} and ${merchants[1]}`
+          : `${merchants[0]} and ${merchants.length - 1} others`;
+    const titleBit = docTitle ? ` from “${docTitle}”` : "";
+    const hello = firstName ? `${firstName}, ` : "";
+    const message = `${hello}${data.imported} spend line${
+      data.imported === 1 ? "" : "s"
+    }${titleBit} ${
+      data.imported === 1 ? "is" : "are"
+    } on your footprint (₹${Math.round(totalInr).toLocaleString("en-IN")} via ${merchantBit}).`;
 
     return withCors(
       NextResponse.json({
         imported: data.imported,
         transactions: data.transactions,
-        message: `Imported ${data.imported} items into your footprint.`,
+        message,
         badges_unlocked: [],
         is_mock: false,
+        total_inr: totalInr,
       }),
       req
     );

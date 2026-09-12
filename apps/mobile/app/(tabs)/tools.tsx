@@ -1,16 +1,50 @@
 import React from "react";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
-import { Camera, Leaf, Receipt, Recycle } from "lucide-react-native";
+import {
+  Camera,
+  Leaf,
+  MessageCircle,
+  Receipt,
+  Recycle,
+} from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Text } from "@/components/ui/text";
+import Animated, { FadeInDown } from "react-native-reanimated";
+import { ActionRow } from "@/components/custom/action-row";
+import { ScreenHeader } from "@/components/custom/screen-header";
 import { useTabBarClearance } from "@/src/theme/layout";
 
 const tools = [
-  { label: "Scan Product", detail: "Check a product's circular options", icon: Camera, route: "/scan" },
-  { label: "Import Receipt", detail: "Add a purchase to your footprint", icon: Receipt, route: "/receipt" },
-  { label: "Recycling Hubs", detail: "Find a nearby drop-off point", icon: Recycle, route: "/map?type=recycling" },
-  { label: "Offset Carbon", detail: "Support a verified offset project", icon: Leaf, route: "/offsets" },
+  {
+    label: "Scan Product",
+    hint: "Check a product's circular options",
+    icon: Camera,
+    route: "/scan",
+  },
+  {
+    label: "Import Receipt",
+    hint: "Add a purchase to your footprint",
+    icon: Receipt,
+    route: "/receipt",
+  },
+  {
+    label: "Recycling Hubs",
+    hint: "Find a nearby drop-off point",
+    icon: Recycle,
+    route: "/map?type=recycling",
+  },
+  {
+    label: "Offset Carbon",
+    hint: "Support a verified offset project",
+    icon: Leaf,
+    route: "/offsets",
+  },
+  {
+    label: "Support",
+    hint: "Ask about Karma, your score, and the app",
+    icon: MessageCircle,
+    route: "/support",
+  },
 ] as const;
 
 export default function ToolsScreen() {
@@ -23,61 +57,49 @@ export default function ToolsScreen() {
       style={styles.root}
       contentContainerStyle={{
         paddingTop: insets.top + 16,
-        paddingHorizontal: 24,
+        paddingHorizontal: 20,
         paddingBottom: tabClearance,
+        gap: 16,
       }}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.title}>Tools</Text>
-      <Text style={styles.subtitle}>Practical ways to measure, reduce, and offset your footprint.</Text>
+      <ScreenHeader
+        eyebrow="TOOLS"
+        title="Tools"
+        subtitle="Practical ways to measure, reduce, and offset your footprint."
+      />
 
-      <View style={styles.grid}>
-        {tools.map(({ label, detail, icon: Icon, route }) => (
-          <TouchableOpacity
-            key={label}
-            style={styles.card}
-            onPress={() => router.push(route)}
-            activeOpacity={0.82}
-          >
-            <View style={styles.iconBox}>
-              <Icon size={22} color="#2EA86E" strokeWidth={1.9} />
-            </View>
-            <Text style={styles.cardTitle}>{label}</Text>
-            <Text style={styles.cardDetail}>{detail}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      <Animated.View entering={FadeInDown.delay(60).duration(320)}>
+        <View style={styles.card}>
+          {tools.map((tool, index) => (
+            <ActionRow
+              key={tool.label}
+              icon={tool.icon}
+              label={tool.label}
+              hint={tool.hint}
+              onPress={() =>
+                router.push(tool.route as import("expo-router").Href)
+              }
+              showDivider={index < tools.length - 1}
+            />
+          ))}
+        </View>
+      </Animated.View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#F8FAF8" },
-  title: { fontSize: 28, fontFamily: "Nunito_800ExtraBold", color: "#0D1811" },
-  subtitle: { marginTop: 4, fontSize: 14, lineHeight: 20, fontFamily: "Nunito_400Regular", color: "#7A9082" },
-  grid: { marginTop: 24, gap: 14 },
+  root: {
+    flex: 1,
+    backgroundColor: "#F4FAF6",
+  },
   card: {
-    minHeight: 112,
-    borderRadius: 20,
-    padding: 16,
     backgroundColor: "#FFFFFF",
-    borderWidth: 1,
+    borderRadius: 22,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(46,168,110,0.16)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
   },
-  iconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 13,
-    backgroundColor: "rgba(46,168,110,0.12)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
-  },
-  cardTitle: { fontSize: 16, fontFamily: "Nunito_700Bold", color: "#183222" },
-  cardDetail: { marginTop: 3, fontSize: 12, fontFamily: "Nunito_400Regular", color: "#7A9082" },
 });

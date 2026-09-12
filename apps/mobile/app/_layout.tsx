@@ -81,6 +81,7 @@ export default function RootLayout() {
             <Stack.Screen name="receipt/index" />
             <Stack.Screen name="receipt/review" />
             <Stack.Screen name="receipt/result" />
+            <Stack.Screen name="support/index" />
           </Stack>
         </QueryClientProvider>
       </GluestackUIProvider>

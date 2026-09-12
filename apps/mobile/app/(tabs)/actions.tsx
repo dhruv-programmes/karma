@@ -1,13 +1,11 @@
 import React, { useCallback } from "react";
-import { View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { FlashList } from "@shopify/flash-list";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RecommendationCard } from "@/components/custom/recommendation-card";
+import { ScreenHeader } from "@/components/custom/screen-header";
 import { SkeletonCard } from "@/components/custom/skeleton-card";
-import { Box } from "@/components/ui/box";
-import { Heading } from "@/components/ui/heading";
-import { Text } from "@/components/ui/text";
 import { useRecommendations } from "@/src/hooks/queries";
 import type { Recommendation } from "@/src/types/api";
 import { useTabBarClearance } from "@/src/theme/layout";
@@ -20,7 +18,7 @@ export default function ActionsScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: Recommendation }) => (
-      <View className="mb-4">
+      <View style={styles.listItem}>
         <RecommendationCard
           item={item}
           onPress={() =>
@@ -37,34 +35,50 @@ export default function ActionsScreen() {
   );
 
   return (
-    <Box
-      className="flex-1 bg-background"
-      style={{ paddingTop: insets.top + 16 }}
-    >
-      <Heading size="2xl" className="px-6">
-        Actions
-      </Heading>
-      <Text className="px-6 text-muted-foreground mt-1">
-        Concrete next moves — not generic tips.
-      </Text>
+    <View style={[styles.root, { paddingTop: insets.top + 16 }]}>
+      <View style={styles.headerPad}>
+        <ScreenHeader
+          eyebrow="ACTIONS"
+          title="Actions"
+          subtitle="Concrete next moves — not generic tips."
+        />
+      </View>
 
       {recs.isLoading ? (
-        <Box className="px-6 mt-4 gap-4">
+        <View style={styles.skeletonPad}>
           <SkeletonCard />
+          <View style={{ height: 14 }} />
           <SkeletonCard />
-        </Box>
+        </View>
       ) : (
         <FlashList
           data={recs.data ?? []}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{
-            paddingHorizontal: 24,
-            paddingTop: 16,
+            paddingHorizontal: 20,
+            paddingTop: 8,
             paddingBottom: tabClearance,
           }}
         />
       )}
-    </Box>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: "#F4FAF6",
+  },
+  headerPad: {
+    paddingHorizontal: 20,
+  },
+  skeletonPad: {
+    paddingHorizontal: 20,
+    marginTop: 12,
+  },
+  listItem: {
+    marginBottom: 14,
+  },
+});

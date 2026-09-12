@@ -45,6 +45,7 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
+      "softwareKeyboardLayoutMode": "pan",
       "usesCleartextTraffic": true,
       "permissions": [
         "CAMERA",

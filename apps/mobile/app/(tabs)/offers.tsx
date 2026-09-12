@@ -454,10 +454,7 @@ export default function OffersScreen() {
         {/* Top Header */}
         <View style={styles.header}>
           <View>
-            <View style={styles.headerBadge}>
-              <Sparkles size={12} color="#5EEAD4" strokeWidth={2.4} />
-              <Text style={styles.headerBadgeText}>OFFERS & REWARDS</Text>
-            </View>
+            <Text style={styles.headerEyebrow}>OFFERS & REWARDS</Text>
             <Text style={styles.title}>Coupons & Offsets</Text>
             <Text style={styles.subtitle}>
               Partner discounts, govt green subsidies & point donations
@@ -1034,13 +1031,20 @@ export default function OffersScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#F4F7F4",
+    backgroundColor: "#F4FAF6",
   },
   container: {
     flex: 1,
   },
   header: {
     marginBottom: 16,
+  },
+  headerEyebrow: {
+    fontSize: 11,
+    fontFamily: "IBMPlexMono_500Medium",
+    color: "#2EA86E",
+    letterSpacing: 1.5,
+    marginBottom: 6,
   },
   headerBadge: {
     flexDirection: "row",
@@ -1055,9 +1059,9 @@ const styles = StyleSheet.create({
   },
   headerBadgeText: {
     fontSize: 11,
-    fontFamily: "Nunito_700Bold",
-    color: "#0D5935",
-    letterSpacing: 0.8,
+    fontFamily: "IBMPlexMono_500Medium",
+    color: "#1B7A4E",
+    letterSpacing: 1.2,
   },
   title: {
     fontSize: 28,

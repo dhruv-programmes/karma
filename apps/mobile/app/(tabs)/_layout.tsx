@@ -70,7 +70,7 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
                   onPress={() => router.push("/scan")}
                   activeOpacity={0.85}
                 >
-                  <ScanLine size={22} color="#FFFFFF" strokeWidth={2.2} />
+                  <ScanLine size={24} color="#FFFFFF" strokeWidth={2.2} />
                 </TouchableOpacity>
               ) : null}
             </React.Fragment>
@@ -142,9 +142,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginHorizontal: 2,
-    // Lower the oversized center action slightly so its visual center aligns
-    // with the smaller dock icons and labels.
-    transform: [{ translateY: 4 }],
     ...Platform.select({
       ios: {
         shadowColor: "#2EA86E",

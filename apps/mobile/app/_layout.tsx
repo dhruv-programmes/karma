@@ -6,6 +6,8 @@ import {
   Nunito_400Regular,
   Nunito_600SemiBold,
   Nunito_700Bold,
+  Nunito_800ExtraBold,
+  Nunito_900Black,
   useFonts,
 } from "@expo-google-fonts/nunito";
 import {
@@ -31,6 +33,8 @@ export default function RootLayout() {
     Nunito_400Regular,
     Nunito_600SemiBold,
     Nunito_700Bold,
+    Nunito_800ExtraBold,
+    Nunito_900Black,
     IBMPlexMono_500Medium,
     IBMPlexMono_600SemiBold,
   });

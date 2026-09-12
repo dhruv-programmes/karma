@@ -428,6 +428,46 @@ class StepsMetricResponse(BaseModel):
 
 
 # ==========================================
+# GPS COMMUTE REWARDS (WALK & CYCLE)
+# ==========================================
+
+
+class CommuteTripRequest(BaseModel):
+    distance_km: float = Field(ge=0.0)
+    duration_min: float = Field(ge=0.0)
+    avg_speed_kmh: float = Field(ge=0.0)
+
+
+class CommuteTripResult(BaseModel):
+    trip_id: str
+    mode: str
+    distance_km: float
+    duration_min: float
+    avg_speed_kmh: float
+    points_awarded: int
+    daily_total_points: int
+    daily_cap: int
+    message: str
+
+
+class CommuteSeriesPoint(BaseModel):
+    date: str
+    label: str
+    distance_km: float
+    points_awarded: int
+    trips: int
+
+
+class CommuteSummaryResponse(BaseModel):
+    date: str
+    today_distance_km: float
+    today_points: int
+    daily_reward_cap: int
+    trips_today: int
+    series: list[CommuteSeriesPoint] = Field(default_factory=list)
+
+
+# ==========================================
 # KCS provisional->verified contract
 # ==========================================
 

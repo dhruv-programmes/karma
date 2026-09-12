@@ -12,9 +12,18 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   ArrowRight,
+  Award,
+  Bike,
+  Camera,
+  CheckCircle2,
   ChevronRight,
   Footprints,
   Leaf,
+  Navigation,
+  Play,
+  Receipt,
+  Recycle,
+  Square,
   TrendingUp,
   Wrench,
 } from "lucide-react-native";
@@ -36,8 +45,10 @@ import {
   useRecommendations,
   useScore,
   useSteps,
+  useCommuteSummary,
 } from "@/src/hooks/queries";
 import { useStepTracking } from "@/src/hooks/use-step-tracking";
+import { useCommuteTracking } from "@/src/hooks/use-commute-tracking";
 import { useAuthStore } from "@/src/store/auth";
 import { DEMO_REPAIR_ACTION_ID } from "@/src/types/api";
 import { useTabBarClearance } from "@/src/theme/layout";
@@ -62,7 +73,7 @@ function greeting() {
   return "Good evening";
 }
 
-/** Returns color + glowColor + label + message based on the 480–820 KCS range. */
+/** Punchy ring palette that still sits cleanly on the forest-green hero. */
 function ratingInfo(score: number): {
   color: string;
   glowColor: string;
@@ -74,30 +85,30 @@ function ratingInfo(score: number): {
   const pct = kcsProgress(score);
   if (pct < 0.45) {
     return {
-      color: "#F87171",
-      glowColor: "#FCA5A5",
-      trackColor: "rgba(248,113,113,0.18)",
+      color: "#FFC857",
+      glowColor: "#FFE29A",
+      trackColor: "rgba(255,255,255,0.28)",
       label: "Needs Attention",
       message: "High Carbon Intensity",
-      gradient: ["#1A0A0A", "#0F1510"],
+      gradient: ["#0B3D2E", "#126B4A"],
     };
   } else if (pct < 0.70) {
     return {
-      color: "#FBBF24",
-      glowColor: "#FDE68A",
-      trackColor: "rgba(251,191,36,0.18)",
+      color: "#C6FF4D",
+      glowColor: "#E7FF9A",
+      trackColor: "rgba(255,255,255,0.28)",
       label: "Making Progress",
       message: "On The Right Path",
-      gradient: ["#141008", "#0F1510"],
+      gradient: ["#0B3D2E", "#126B4A"],
     };
   } else {
     return {
-      color: "#5EEAD4",
-      glowColor: "#6EE7B7",
-      trackColor: "rgba(94,234,212,0.20)",
+      color: "#5EFFC0",
+      glowColor: "#B5FFE0",
+      trackColor: "rgba(255,255,255,0.3)",
       label: "Carbon Champion",
       message: "Great Sustainable Pace",
-      gradient: ["#081410", "#0A1510"],
+      gradient: ["#0B3D2E", "#1A8F5C"],
     };
   }
 }
@@ -105,7 +116,7 @@ function ratingInfo(score: number): {
 function ScoreRing({
   score,
   color,
-  glowColor = "#5EEAD4",
+  glowColor = "#5EFFC0",
   trackColor,
   insight,
   label,
@@ -117,31 +128,43 @@ function ScoreRing({
   insight: string;
   label: string;
 }) {
-  const size = 260;
-  const stroke = 2.2;
-  const r = (size - 6) / 2;
+  // Outer box is larger than the stroke radius so glow/bead never get clipped.
+  const size = 272;
+  const strokeMax = 14;
+  const stroke = 2.6;
+  const r = (size - strokeMax) / 2;
   const c = 2 * Math.PI * r;
   const cx = size / 2;
   const cy = size / 2;
+  const disc = size - 18;
 
-  const targetProgress = score === null ? 0 : kcsProgress(score);
+  // Match historical ring fill (f68d78f): animate to score/850 so mid-range
+  // scores like 480 still show a visible progressing arc (KCS band mapping
+  // bottoms out at 0 and looked like a broken ring).
+  const targetProgress =
+    score === null
+      ? 0
+      : Math.min(1, Math.max(0.04, score > 100 ? score / 850 : score / 100));
 
   const progress = useSharedValue(0);
 
   useEffect(() => {
-    progress.value = withTiming(targetProgress, {
-      duration: 1400,
-      easing: Easing.out(Easing.cubic),
-    });
+    progress.set(
+      withTiming(targetProgress, {
+        duration: 1400,
+        easing: Easing.out(Easing.cubic),
+      })
+    );
   }, [targetProgress, progress]);
 
   const animatedProps = useAnimatedProps(() => ({
-    strokeDashoffset: c * (1 - progress.value),
+    strokeDashoffset: c * (1 - progress.get()),
   }));
 
   const beadStyle = useAnimatedStyle(() => {
     "worklet";
-    const angle = (-90 + progress.value * 360) * (Math.PI / 180);
+    const p = progress.get();
+    const angle = (-90 + p * 360) * (Math.PI / 180);
     const bx = cx + r * Math.cos(angle);
     const by = cy + r * Math.sin(angle);
     return {
@@ -149,69 +172,74 @@ function ScoreRing({
         { translateX: bx - 9 },
         { translateY: by - 9 },
       ],
-      opacity: progress.value > 0.01 ? 1 : 0,
+      opacity: p > 0.01 ? 1 : 0,
     };
   });
 
   return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: "rgba(255, 255, 255, 0.12)",
-        alignItems: "center",
-        justifyContent: "center",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.10,
-        shadowRadius: 20,
-        elevation: 5,
-      }}
-    >
-      {/* SVG Streak + Track */}
+    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+      {/* Fill disc only — keeps borderRadius from clipping the SVG stroke */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          width: disc,
+          height: disc,
+          borderRadius: disc / 2,
+          backgroundColor: "rgba(6, 32, 24, 0.5)",
+          borderWidth: 1,
+          borderColor: "rgba(255,255,255,0.22)",
+        }}
+      />
+
       <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-        {/* Base faint glass circle perimeter */}
         <Circle
           cx={cx}
           cy={cy}
           r={r}
-          stroke="rgba(255, 255, 255, 0.28)"
-          strokeWidth={1.5}
+          stroke={trackColor}
+          strokeWidth={10}
+          fill="none"
+        />
+        <Circle
+          cx={cx}
+          cy={cy}
+          r={r}
+          stroke="rgba(255,255,255,0.4)"
+          strokeWidth={1.4}
           fill="none"
         />
 
-        {/* Outer atmospheric aura */}
         <AnimatedCircle
           cx={cx}
           cy={cy}
           r={r}
           stroke={glowColor}
-          strokeWidth={8}
+          strokeWidth={12}
           fill="none"
           strokeDasharray={`${c} ${c}`}
           animatedProps={animatedProps}
           strokeLinecap="round"
-          transform={`rotate(-90 ${cx} ${cy})`}
-          opacity={0.22}
+          rotation="-90"
+          origin={`${cx}, ${cy}`}
+          opacity={0.45}
         />
 
-        {/* Luminous colored bloom */}
         <AnimatedCircle
           cx={cx}
           cy={cy}
           r={r}
-          stroke={glowColor}
-          strokeWidth={4.5}
+          stroke={color}
+          strokeWidth={7}
           fill="none"
           strokeDasharray={`${c} ${c}`}
           animatedProps={animatedProps}
           strokeLinecap="round"
-          transform={`rotate(-90 ${cx} ${cy})`}
-          opacity={0.55}
+          rotation="-90"
+          origin={`${cx}, ${cy}`}
+          opacity={1}
         />
 
-        {/* Ultra-crisp bright core streak */}
         <AnimatedCircle
           cx={cx}
           cy={cy}
@@ -222,12 +250,12 @@ function ScoreRing({
           strokeDasharray={`${c} ${c}`}
           animatedProps={animatedProps}
           strokeLinecap="round"
-          transform={`rotate(-90 ${cx} ${cy})`}
-          opacity={0.96}
+          rotation="-90"
+          origin={`${cx}, ${cy}`}
+          opacity={1}
         />
       </Svg>
 
-      {/* Glowing Bead at the tip of the streak */}
       <Animated.View
         style={[
           {
@@ -242,7 +270,6 @@ function ScoreRing({
           beadStyle,
         ]}
       >
-        {/* Outer halo */}
         <View
           style={{
             position: "absolute",
@@ -250,10 +277,9 @@ function ScoreRing({
             height: 18,
             borderRadius: 9,
             backgroundColor: glowColor,
-            opacity: 0.45,
+            opacity: 0.65,
           }}
         />
-        {/* Mid bloom */}
         <View
           style={{
             position: "absolute",
@@ -261,119 +287,116 @@ function ScoreRing({
             height: 11,
             borderRadius: 5.5,
             backgroundColor: "#FFFFFF",
-            opacity: 0.8,
+            opacity: 0.95,
           }}
         />
-        {/* Solid white bead */}
         <View
           style={{
             width: 7,
             height: 7,
             borderRadius: 3.5,
             backgroundColor: "#FFFFFF",
-            shadowColor: "#FFFFFF",
+            shadowColor: color,
             shadowOffset: { width: 0, height: 0 },
             shadowOpacity: 1,
-            shadowRadius: 4,
+            shadowRadius: 6,
             elevation: 4,
           }}
         />
       </Animated.View>
 
-      {/* Inner orb typography & icons */}
       <View
         style={{
-          width: size - 28,
-          maxWidth: size - 28,
+          width: disc - 24,
+          maxWidth: disc - 24,
           alignItems: "center",
           justifyContent: "center",
           paddingHorizontal: 10,
         }}
       >
-        {/* Top Leaf Icon */}
-        <View style={{ marginBottom: 6, opacity: 0.95 }}>
-          <Leaf size={22} color="#FFFFFF" strokeWidth={2.2} />
+        <View style={{ marginBottom: 4 }}>
+          <Leaf size={20} color="#E8FFF4" strokeWidth={2.4} />
         </View>
 
-        {/* Insight text */}
         <Text
           numberOfLines={2}
           style={{
-            fontSize: 15,
-            fontFamily: "Nunito_600SemiBold",
-            color: "#FFFFFF",
+            fontSize: 13,
+            fontFamily: "Nunito_800ExtraBold",
+            color: "#E8FFF4",
             textAlign: "center",
-            lineHeight: 20,
-            opacity: 0.92,
+            lineHeight: 17,
+            letterSpacing: 0.6,
+            textTransform: "uppercase",
             maxWidth: 190,
           }}
         >
           {insight}
         </Text>
 
-        {/* Big score */}
         <Text
           numberOfLines={1}
           adjustsFontSizeToFit
           minimumFontScale={0.8}
           style={{
-            fontSize: 66,
-            fontFamily: "Nunito_800ExtraBold",
+            fontSize: 68,
+            fontFamily: "Nunito_400Regular",
             color: "#FFFFFF",
-            lineHeight: 72,
-            marginVertical: 2,
+            lineHeight: 74,
+            marginTop: 2,
+            marginBottom: 2,
             maxWidth: 210,
+            letterSpacing: -0.5,
+            ...Platform.select({
+              ios: {
+                textShadowColor: "rgba(0,0,0,0.35)",
+                textShadowOffset: { width: 0, height: 2 },
+                textShadowRadius: 8,
+              },
+              default: {},
+            }),
           }}
         >
           {score === null ? "—" : Math.round(score)}
         </Text>
 
-        {/* Level label */}
         <Text
           numberOfLines={2}
           style={{
             fontSize: 13,
-            fontFamily: "Nunito_600SemiBold",
-            color: "rgba(255,255,255,0.78)",
-            letterSpacing: 0.4,
+            fontFamily: "Nunito_700Bold",
+            color: "#F0FFF8",
+            letterSpacing: 0.2,
             lineHeight: 17,
             textAlign: "center",
             maxWidth: 206,
-            marginBottom: 10,
           }}
         >
           {label}
         </Text>
-
-        {/* Pagination dots */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-          <View
-            style={{
-              width: 5,
-              height: 5,
-              borderRadius: 2.5,
-              backgroundColor: "#FFFFFF",
-            }}
-          />
-          <View
-            style={{
-              width: 4.5,
-              height: 4.5,
-              borderRadius: 2.25,
-              backgroundColor: "rgba(255,255,255,0.4)",
-            }}
-          />
-          <View
-            style={{
-              width: 4.5,
-              height: 4.5,
-              borderRadius: 2.25,
-              backgroundColor: "rgba(255,255,255,0.4)",
-            }}
-          />
-        </View>
       </View>
     </View>
+  );
+}
+
+function ToolCard({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      style={styles.toolCard}
+      onPress={onPress}
+      activeOpacity={0.85}
+    >
+      <View style={styles.toolIconBox}>{icon}</View>
+      <Text style={styles.toolLabel}>{label}</Text>
+    </TouchableOpacity>
   );
 }
 
@@ -395,6 +418,8 @@ export default function HomeScreen() {
   const activity = useActivity();
   const steps = useSteps();
   const stepTracking = useStepTracking(steps.data?.todaySteps ?? 0);
+  const commuteSummary = useCommuteSummary();
+  const commuteTracking = useCommuteTracking();
   const best = recs.data?.[0];
 
   const displayName = me.data?.name || user?.name || "Member";
@@ -424,8 +449,8 @@ export default function HomeScreen() {
   const rating = ratingInfo(displayScore ?? KCS_MIN);
   const impactPoints = me.data?.impact_points ?? user?.impact_points ?? 0;
   const stepData = steps.data;
-  const isWeb = Platform.OS === "web";
-  const hasNativeStepData = !isWeb && !!stepData;
+  const isWeb = false;
+  const hasNativeStepData = !!stepData;
   const stepProgress = stepData
     ? Math.min(100, Math.round((stepData.todaySteps / stepData.targetSteps) * 100))
     : 0;
@@ -466,48 +491,43 @@ export default function HomeScreen() {
       >
         {/* ── HERO SECTION ─────────────────────────────── */}
         <LinearGradient
-          colors={["#5DC994", "#3DB876", "#2EA86E"]}
-          locations={[0, 0.5, 1]}
+          colors={["#0B3D2E", "#126B4A", "#1A8F5C"]}
+          locations={[0, 0.55, 1]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.hero, { paddingTop: insets.top + 20 }]}
         >
-          {/* Wide light ray from upper-left sweeping diagonally */}
+          {/* Wide light ray — restrained so type stays crisp */}
           <LinearGradient
-            colors={["rgba(255,255,255,0.38)", "rgba(255,255,255,0.08)", "rgba(255,255,255,0)"]}
+            colors={["rgba(255,255,255,0.22)", "rgba(255,255,255,0.06)", "rgba(255,255,255,0)"]}
             locations={[0, 0.45, 1]}
             start={{ x: 0.05, y: 0 }}
             end={{ x: 0.75, y: 1 }}
             style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
-          {/* Thin bright ray crossing from upper-right */}
           <LinearGradient
-            colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.28)", "rgba(255,255,255,0)"]}
+            colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.14)", "rgba(255,255,255,0)"]}
             locations={[0, 0.5, 1]}
             start={{ x: 0.85, y: 0 }}
             end={{ x: 0.15, y: 1 }}
             style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
-          {/* Bottom highlight — bright white fade up for depth */}
           <LinearGradient
-            colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.15)"]}
-            start={{ x: 0.5, y: 0.4 }}
+            colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.08)"]}
+            start={{ x: 0.5, y: 0.45 }}
             end={{ x: 0.5, y: 1 }}
             style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
-          {/* Frosted softness — very light, keeps green dominant */}
           <View
             style={[
-              StyleSheet.absoluteFill,
-              { backgroundColor: "rgba(255,255,255,0.08)" },
+              StyleSheet.absoluteFillObject,
+              { backgroundColor: "rgba(0,0,0,0.06)" },
             ]}
             pointerEvents="none"
           />
-
-
 
           {/* Header row */}
           <View style={styles.headerRow}>
@@ -516,28 +536,16 @@ export default function HomeScreen() {
                 source={require("@/assets/karma-text.png")}
                 style={{ width: 72, height: 20 }}
                 resizeMode="contain"
-                tintColor="rgba(255,255,255,0.95)"
+                tintColor="#FFFFFF"
               />
               <Text
                 numberOfLines={1}
                 ellipsizeMode="tail"
-                style={{
-                  fontSize: 22,
-                  fontFamily: "Nunito_700Bold",
-                  color: "#FFFFFF",
-                  marginTop: 4,
-                }}
+                style={styles.heroGreeting}
               >
                 {greeting()}, {firstName}
               </Text>
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontFamily: "Nunito_400Regular",
-                  color: "rgba(255,255,255,0.72)",
-                  marginTop: 2,
-                }}
-              >
+              <Text style={styles.heroSubcopy}>
                 {rating.message.split(".")[0]}.
               </Text>
             </View>
@@ -546,13 +554,7 @@ export default function HomeScreen() {
               onPress={() => router.push("/(tabs)/profile")}
               activeOpacity={0.8}
             >
-              <Text
-                style={{
-                  fontSize: 16,
-                  fontFamily: "Nunito_700Bold",
-                  color: "#FFFFFF",
-                }}
-              >
+              <Text style={styles.avatarInitial}>
                 {firstName.charAt(0).toUpperCase()}
               </Text>
             </TouchableOpacity>
@@ -572,7 +574,7 @@ export default function HomeScreen() {
             <View style={styles.heroPillRow}>
               {displayTrend > 0 && (
                 <View style={styles.trendPill}>
-                  <TrendingUp size={12} color="rgba(255,255,255,0.9)" strokeWidth={2.5} />
+                  <TrendingUp size={12} color="#F4FFF9" strokeWidth={2.5} />
                   <Text style={styles.heroPillText}>+{displayTrend} this month</Text>
                 </View>
               )}
@@ -591,7 +593,7 @@ export default function HomeScreen() {
           <View style={styles.statRow}>
             <View style={styles.statPill}>
               <Text style={styles.statLabel}>Footprint</Text>
-              <Text style={[styles.statValue, { color: "#FFFFFF" }]}>
+              <Text style={styles.statValue}>
                 {footprint}{" "}
                 <Text style={styles.statUnit}>kg CO₂e</Text>
               </Text>
@@ -599,7 +601,7 @@ export default function HomeScreen() {
             <View style={styles.statDivider} />
             <View style={styles.statPill}>
               <Text style={styles.statLabel}>Target</Text>
-              <Text style={[styles.statValue, { color: "#FFFFFF" }]}>
+              <Text style={styles.statValue}>
                 {targetFootprint}{" "}
                 <Text style={styles.statUnit}>kg</Text>
               </Text>
@@ -680,6 +682,138 @@ export default function HomeScreen() {
                 <Text style={styles.walkCtaText}>{stepCta}</Text>
                 {!isWeb ? <ArrowRight size={14} color="#FFFFFF" strokeWidth={2.5} /> : null}
               </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* ── GREEN COMMUTE (GPS TRACKING) ── */}
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Green Commute (GPS)</Text>
+            <View style={styles.commuteCard}>
+              <View style={styles.commuteHeader}>
+                <View style={styles.commuteIconBox}>
+                  {commuteTracking.isTracking ? (
+                    <Bike size={20} color="#2EA86E" strokeWidth={2} />
+                  ) : (
+                    <Navigation size={20} color="#2EA86E" strokeWidth={2} />
+                  )}
+                </View>
+                <View style={styles.commuteHeaderCopy}>
+                  <Text style={styles.commuteTitle}>
+                    {commuteTracking.isTracking
+                      ? "Recording Commute..."
+                      : "Walk or Cycle to Earn"}
+                  </Text>
+                  <Text style={styles.commuteSubtitle}>
+                    {commuteTracking.isTracking
+                      ? `${commuteTracking.currentSpeedKmh.toFixed(1)} km/h • Auto-detecting mode`
+                      : "No motor vehicle • GPS verified speed"}
+                  </Text>
+                </View>
+                <View style={styles.commutePointsBadge}>
+                  <Text style={styles.commutePointsText}>
+                    +{commuteSummary.data?.todayPoints ?? 0} pts today
+                  </Text>
+                </View>
+              </View>
+
+              {/* Trip Result Banner */}
+              {commuteTracking.lastResult ? (
+                <View style={styles.tripResultBanner}>
+                  <View style={styles.tripResultHeader}>
+                    <CheckCircle2 size={16} color="#2EA86E" />
+                    <Text style={styles.tripResultTitle}>
+                      {commuteTracking.lastResult.mode === "walk"
+                        ? "🚶 Walk Logged"
+                        : commuteTracking.lastResult.mode === "cycle"
+                        ? "🚴 Cycle Logged"
+                        : "🚗 Motor Transit"}
+                    </Text>
+                  </View>
+                  <Text style={styles.tripResultDesc}>
+                    {commuteTracking.lastResult.message}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={commuteTracking.dismissResult}
+                    style={styles.tripResultDismiss}
+                  >
+                    <Text style={styles.tripResultDismissText}>Dismiss</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+
+              {/* Active Trip Telemetry */}
+              {commuteTracking.isTracking ? (
+                <View style={styles.liveTelemetryBox}>
+                  <View style={styles.telemetryItem}>
+                    <Text style={styles.telemetryValue}>
+                      {commuteTracking.distanceKm.toFixed(2)}
+                    </Text>
+                    <Text style={styles.telemetryLabel}>km traveled</Text>
+                  </View>
+                  <View style={styles.telemetryDivider} />
+                  <View style={styles.telemetryItem}>
+                    <Text style={styles.telemetryValue}>
+                      {Math.floor(commuteTracking.elapsedSec / 60)}:
+                      {(commuteTracking.elapsedSec % 60).toString().padStart(2, "0")}
+                    </Text>
+                    <Text style={styles.telemetryLabel}>duration</Text>
+                  </View>
+                  <View style={styles.telemetryDivider} />
+                  <View style={styles.telemetryItem}>
+                    <Text style={styles.telemetryValue}>
+                      {commuteTracking.currentSpeedKmh.toFixed(1)}
+                    </Text>
+                    <Text style={styles.telemetryLabel}>km/h speed</Text>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.commuteStatsRow}>
+                  <View>
+                    <Text style={styles.commuteDistanceText}>
+                      {(commuteSummary.data?.todayDistanceKm ?? 0).toFixed(2)} km
+                    </Text>
+                    <Text style={styles.commuteDistanceLabel}>
+                      Clean distance today ({commuteSummary.data?.tripsToday ?? 0} trips)
+                    </Text>
+                  </View>
+                  <View style={styles.commuteTiersPill}>
+                    <Text style={styles.commuteTiersText}>
+                      Walk: 10 pts/km • Cycle: 5 pts/km
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Action Button */}
+              {commuteTracking.isTracking ? (
+                <TouchableOpacity
+                  style={[styles.commuteCta, styles.commuteCtaStop]}
+                  onPress={commuteTracking.stopTracking}
+                  activeOpacity={0.85}
+                >
+                  <Square size={16} color="#FFFFFF" fill="#FFFFFF" />
+                  <Text style={styles.commuteCtaText}>End Trip & Claim Points</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[
+                    styles.commuteCta,
+                    (isWeb || commuteTracking.isSyncing) && styles.walkCtaMuted,
+                  ]}
+                  onPress={commuteTracking.startTracking}
+                  disabled={isWeb || commuteTracking.isSyncing}
+                  activeOpacity={0.85}
+                >
+                  <Play size={16} color="#FFFFFF" fill="#FFFFFF" />
+                  <Text style={styles.commuteCtaText}>
+                    {commuteTracking.isSyncing
+                      ? "Saving Trip..."
+                      : isWeb
+                      ? "Phone GPS Required"
+                      : "Start Commute Tracking"}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
 
@@ -852,6 +986,34 @@ export default function HomeScreen() {
             </View>
           )}
 
+          {/* ── QUICK TOOLS ── */}
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Loop Tools</Text>
+            <View style={styles.toolGrid}>
+              <ToolCard
+                icon={<Camera size={20} color="#2EA86E" strokeWidth={1.8} />}
+                label="Scan Product"
+                onPress={() => router.push("/scan")}
+              />
+              <ToolCard
+                icon={<Receipt size={20} color="#2EA86E" strokeWidth={1.8} />}
+                label="Import bill / receipt"
+                onPress={() => router.push("/receipt")}
+              />
+              <ToolCard
+                icon={<Recycle size={20} color="#2EA86E" strokeWidth={1.8} />}
+                label="Recycling Hubs"
+                onPress={() => router.push("/map?type=recycling")}
+              />
+              <ToolCard
+                icon={<Leaf size={20} color="#2EA86E" strokeWidth={1.8} />}
+                label="Offset Carbon"
+                onPress={() =>
+                  router.push("/offsets" as import("expo-router").Href)
+                }
+              />
+            </View>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -866,7 +1028,13 @@ const styles = StyleSheet.create({
   hero: {
     paddingHorizontal: 24,
     paddingBottom: 32,
-    overflow: "hidden",
+    overflow: "visible",
+  },
+  ringContainer: {
+    alignItems: "center",
+    marginBottom: 28,
+    gap: 12,
+    overflow: "visible",
   },
 
   headerRow: {
@@ -881,21 +1049,34 @@ const styles = StyleSheet.create({
     minWidth: 0,
     marginRight: 12,
   },
+  heroGreeting: {
+    fontSize: 24,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#FFFFFF",
+    marginTop: 6,
+    letterSpacing: -0.3,
+  },
+  heroSubcopy: {
+    fontSize: 14,
+    fontFamily: "Nunito_700Bold",
+    color: "#E8FFF4",
+    marginTop: 4,
+  },
   avatarCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(255,255,255,0.22)",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.35)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.45)",
     flexShrink: 0,
   },
-  ringContainer: {
-    alignItems: "center",
-    marginBottom: 28,
-    gap: 12,
+  avatarInitial: {
+    fontSize: 17,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#FFFFFF",
   },
   heroPillRow: {
     flexDirection: "row",
@@ -921,40 +1102,41 @@ const styles = StyleSheet.create({
   trendPill: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.18)",
+    backgroundColor: "rgba(8, 36, 26, 0.35)",
     paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.25)",
+    borderColor: "rgba(255,255,255,0.32)",
+    gap: 5,
   },
   pointsPill: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(13,24,17,0.18)",
+    backgroundColor: "rgba(8, 36, 26, 0.4)",
     paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.28)",
+    borderColor: "rgba(255,255,255,0.35)",
     gap: 5,
   },
   pointsPillValue: {
     color: "#FFFFFF",
     fontFamily: "Nunito_800ExtraBold",
-    fontSize: 12,
+    fontSize: 13,
   },
   heroPillText: {
     fontSize: 12,
-    fontFamily: "Nunito_700Bold",
-    color: "rgba(255,255,255,0.9)",
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#F4FFF9",
   },
   statRow: {
     flexDirection: "row",
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 16,
+    backgroundColor: "rgba(8, 36, 26, 0.38)",
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.22)",
+    borderColor: "rgba(255,255,255,0.28)",
     paddingVertical: 14,
     paddingHorizontal: 8,
     alignItems: "center",
@@ -962,28 +1144,29 @@ const styles = StyleSheet.create({
   statPill: {
     flex: 1,
     alignItems: "center",
-    gap: 2,
+    gap: 3,
   },
   statDivider: {
     width: 1,
-    height: 28,
-    backgroundColor: "rgba(255,255,255,0.25)",
+    height: 30,
+    backgroundColor: "rgba(255,255,255,0.28)",
   },
   statLabel: {
     fontSize: 10,
-    fontFamily: "Nunito_600SemiBold",
-    color: "rgba(255,255,255,0.6)",
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#D8F5E8",
     textTransform: "uppercase",
-    letterSpacing: 1,
+    letterSpacing: 1.1,
   },
   statValue: {
-    fontSize: 16,
+    fontSize: 17,
     fontFamily: "Nunito_800ExtraBold",
+    color: "#FFFFFF",
   },
   statUnit: {
-    fontSize: 10,
-    fontFamily: "Nunito_400Regular",
-    color: "rgba(255,255,255,0.55)",
+    fontSize: 11,
+    fontFamily: "Nunito_700Bold",
+    color: "#C8F0DC",
   },
 
   // Sheet
@@ -1052,6 +1235,98 @@ const styles = StyleSheet.create({
   },
   walkCtaMuted: { backgroundColor: "#6C8374" },
   walkCtaText: { fontSize: 12, fontFamily: "Nunito_700Bold", color: "#FFFFFF" },
+
+  // Commute Card
+  commuteCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: "rgba(46,168,110,0.16)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  commuteHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
+  commuteIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(46,168,110,0.11)",
+  },
+  commuteHeaderCopy: { flex: 1, minWidth: 0 },
+  commuteTitle: { fontSize: 14, fontFamily: "Nunito_700Bold", color: "#183222" },
+  commuteSubtitle: { marginTop: 1, fontSize: 11, fontFamily: "Nunito_600SemiBold", color: "#2EA86E" },
+  commutePointsBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    backgroundColor: "rgba(46,168,110,0.1)",
+  },
+  commutePointsText: { fontSize: 11, fontFamily: "Nunito_700Bold", color: "#2EA86E" },
+  commuteStatsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#F4FAF6",
+    borderRadius: 14,
+    padding: 12,
+  },
+  commuteDistanceText: { fontSize: 20, fontFamily: "Nunito_800ExtraBold", color: "#183222" },
+  commuteDistanceLabel: { fontSize: 11, fontFamily: "Nunito_600SemiBold", color: "#7A9082", marginTop: 2 },
+  commuteTiersPill: {
+    backgroundColor: "rgba(46,168,110,0.12)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  commuteTiersText: { fontSize: 10, fontFamily: "Nunito_700Bold", color: "#2EA86E" },
+  liveTelemetryBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+    backgroundColor: "#EBF7F0",
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: "#A7E5C2",
+  },
+  telemetryItem: { alignItems: "center" },
+  telemetryValue: { fontSize: 20, fontFamily: "Nunito_800ExtraBold", color: "#183222" },
+  telemetryLabel: { fontSize: 10, fontFamily: "Nunito_600SemiBold", color: "#6A8372", marginTop: 2 },
+  telemetryDivider: { width: 1, height: 28, backgroundColor: "#C3EBD4" },
+  commuteCta: {
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#2EA86E",
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  commuteCtaStop: {
+    backgroundColor: "#E04F4F",
+  },
+  commuteCtaText: { fontSize: 13, fontFamily: "Nunito_700Bold", color: "#FFFFFF" },
+  tripResultBanner: {
+    backgroundColor: "#EBF7F0",
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#A7E5C2",
+    gap: 6,
+  },
+  tripResultHeader: { flexDirection: "row", alignItems: "center", gap: 6 },
+  tripResultTitle: { fontSize: 13, fontFamily: "Nunito_700Bold", color: "#183222" },
+  tripResultDesc: { fontSize: 12, fontFamily: "Nunito_400Regular", color: "#45614F", lineHeight: 16 },
+  tripResultDismiss: { alignSelf: "flex-end", paddingVertical: 2, paddingHorizontal: 6 },
+  tripResultDismissText: { fontSize: 11, fontFamily: "Nunito_700Bold", color: "#2EA86E" },
 
   // Sections
   section: {
@@ -1259,4 +1534,36 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
 
+  // Loop tools
+  toolGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  toolCard: {
+    width: "47%",
+    flexGrow: 1,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 14,
+    gap: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  toolIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "rgba(46,168,110,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  toolLabel: {
+    fontSize: 13,
+    fontFamily: "Nunito_700Bold",
+    color: "#0D1811",
+  },
 });

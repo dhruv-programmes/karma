@@ -76,6 +76,9 @@ class UserModel(Base):
     )
     solar_recommendations = relationship(
         "SolarRecommendationStateModel", back_populates="user", cascade="all, delete-orphan"
+daily_commutes = relationship(
+        "UserCommuteTripModel", back_populates="user", cascade="all, delete-orphan"
+
     )
 
     @property
@@ -336,6 +339,25 @@ class SolarRecommendationStateModel(Base):
     points_awarded = Column(Integer, default=0, nullable=False)
 
     user = relationship("UserModel", back_populates="solar_recommendations")
+
+
+class UserCommuteTripModel(Base):
+    """An individual commute trip detected via GPS with mode, distance, and awarded impact points."""
+
+    __tablename__ = "user_commute_trips"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    date = Column(String(10), nullable=False, index=True)
+    mode = Column(String(20), nullable=False)  # "walk", "cycle", "motor"
+    distance_km = Column(Float, nullable=False)
+    duration_min = Column(Float, nullable=False)
+    avg_speed_kmh = Column(Float, nullable=False)
+    points_awarded = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime, default=_utcnow, nullable=False)
+
+    user = relationship("UserModel", back_populates="daily_commutes")
+
 
 
 # --- Lightweight SQLite migrations (no Alembic) ---

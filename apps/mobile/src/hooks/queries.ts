@@ -136,6 +136,27 @@ export function useSyncSteps() {
   });
 }
 
+export function useCommuteSummary() {
+  return useQuery({
+    queryKey: ["commute-summary"],
+    queryFn: api.getCommuteSummary,
+    staleTime: 20_000,
+  });
+}
+
+export function useLogCommute() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: import("@/src/types/api").CommuteTripRequest) =>
+      api.logCommute(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["commute-summary"] });
+      qc.invalidateQueries({ queryKey: ["me"] });
+      qc.invalidateQueries({ queryKey: ["activity"] });
+    },
+  });
+}
+
 export function useImpact() {
   return useQuery({
     queryKey: ["impact"],

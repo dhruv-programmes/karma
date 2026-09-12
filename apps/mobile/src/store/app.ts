@@ -1,5 +1,12 @@
 import { create } from "zustand";
-import type { DocumentProcessResult } from "@/src/types/api";
+import type {
+  DocumentConfirmResult,
+  DocumentProcessResult,
+} from "@/src/types/api";
+
+export type LastDocumentImport = DocumentConfirmResult & {
+  title?: string;
+};
 
 type AppState = {
   onboardingDone: boolean;
@@ -10,6 +17,8 @@ type AppState = {
   setScannerLocked: (v: boolean) => void;
   documentDraft: DocumentProcessResult | null;
   setDocumentDraft: (draft: DocumentProcessResult | null) => void;
+  lastDocumentImport: LastDocumentImport | null;
+  setLastDocumentImport: (result: LastDocumentImport | null) => void;
 };
 
 export const useAppStore = create<AppState>((set) => ({
@@ -21,4 +30,7 @@ export const useAppStore = create<AppState>((set) => ({
   setScannerLocked: (v) => set({ scannerLocked: v }),
   documentDraft: null,
   setDocumentDraft: (draft) => set({ documentDraft: draft }),
+  lastDocumentImport: null,
+  setLastDocumentImport: (result) => set({ lastDocumentImport: result }),
 }));
+

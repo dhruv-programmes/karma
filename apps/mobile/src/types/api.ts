@@ -280,6 +280,41 @@ export interface StepSummary {
   series: StepSeriesPoint[];
 }
 
+export interface CommuteTripRequest {
+  distance_km: number;
+  duration_min: number;
+  avg_speed_kmh: number;
+}
+
+export interface CommuteTripResult {
+  trip_id: string;
+  mode: "walk" | "cycle" | "motor" | string;
+  distance_km: number;
+  duration_min: number;
+  avg_speed_kmh: number;
+  points_awarded: number;
+  daily_total_points: number;
+  daily_cap: number;
+  message: string;
+}
+
+export interface CommuteSeriesPoint {
+  date: string;
+  label: string;
+  distance_km: number;
+  points_awarded: number;
+  trips: number;
+}
+
+export interface CommuteSummary {
+  date: string;
+  todayDistanceKm: number;
+  todayPoints: number;
+  dailyRewardCap: number;
+  tripsToday: number;
+  series: CommuteSeriesPoint[];
+}
+
 export interface Badge {
   id: string;
   title: string;
@@ -387,6 +422,7 @@ export interface DocumentConfirmResult {
   message: string;
   badges_unlocked?: string[];
   is_mock?: boolean;
+  total_inr?: number;
 }
 
 export interface Transaction {

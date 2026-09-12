@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 import { ActivityIndicator, Image } from "react-native";
 import { useRouter } from "expo-router";
+import { Asset } from "expo-asset";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -108,17 +109,45 @@ export default function ReceiptScanScreen() {
   async function choosePdf() {
     setError(null);
     const result = await DocumentPicker.getDocumentAsync({
-      type: "application/pdf",
+      type: ["application/pdf"],
       copyToCacheDirectory: true,
       multiple: false,
     });
     if (result.canceled || !result.assets?.[0]) return;
     const asset = result.assets[0];
+    if (asset.size != null && asset.size > 10 * 1024 * 1024) {
+      setError("PDF is too large (max 10MB). Try a shorter bill or a photo.");
+      return;
+    }
+    // Prefer the cached copy URI; Android sometimes still returns content://.
     setPicked({
       uri: asset.uri,
       name: asset.name || `bill_${Date.now()}.pdf`,
       kind: "pdf",
     });
+  }
+
+  async function loadSamplePdf() {
+    setError(null);
+    try {
+      const [asset] = await Asset.loadAsync(
+        require("@/assets/samples/bescom-bill.pdf")
+      );
+      const uri = asset.localUri ?? asset.uri;
+      if (!uri) {
+        setError("Sample PDF is not available in this build.");
+        return;
+      }
+      setPicked({
+        uri,
+        name: "bescom-bill.pdf",
+        kind: "pdf",
+      });
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Could not load sample PDF"
+      );
+    }
   }
 
   async function runExtract(hint?: string) {
@@ -249,6 +278,17 @@ export default function ReceiptScanScreen() {
                   </Text>
                 </VStack>
               </HStack>
+            </Card>
+          </Pressable>
+
+          <Pressable disabled={extracting} onPress={() => void loadSamplePdf()}>
+            <Card variant="soft">
+              <Text bold size="sm">
+                Try sample BESCOM PDF
+              </Text>
+              <Text size="xs" className="text-muted-foreground mt-1">
+                Bundled utility bill — useful if device PDF pick fails to open.
+              </Text>
             </Card>
           </Pressable>
         </VStack>

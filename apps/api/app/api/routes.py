@@ -34,6 +34,9 @@ from app.schemas import (
     AuthResponse,
     BarcodeLookupRequest,
     BaselineRequest,
+    CommuteSummaryResponse,
+    CommuteTripRequest,
+    CommuteTripResult,
     CompletedActionResult,
     DataMeterResponse,
     DemoUserSummary,
@@ -329,7 +332,9 @@ def sync_users_me_steps(
 
 # ==========================================
 # IMPACT / SOLAR INTELLIGENCE + GREEN REWARDS
-# ==========================================
+#
+
+==================================
 
 
 @router.get("/users/me/solar-impact", response_model=SolarImpactResponse)
@@ -364,6 +369,33 @@ def complete_solar_recommendation(
     db: Session = Depends(get_db),
 ):
     return solar_service.complete_recommendation(current_user, db, recommendation_id)
+=======
+# GPS COMMUTE REWARDS
+# ==========================================
+
+
+@router.post("/commute/log", response_model=CommuteTripResult)
+def log_commute(
+    body: CommuteTripRequest,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return services.log_commute_trip(
+        distance_km=body.distance_km,
+        duration_min=body.duration_min,
+        avg_speed_kmh=body.avg_speed_kmh,
+        user=current_user,
+        db=db,
+    )
+
+
+@router.get("/commute/summary", response_model=CommuteSummaryResponse)
+def commute_summary(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return services.build_commute_summary(current_user, db)
+
 
 
 # ==========================================

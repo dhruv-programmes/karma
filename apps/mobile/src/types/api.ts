@@ -91,6 +91,18 @@ export interface UserProfile {
   baseline_created_at?: string | null;
 }
 
+export interface SustainablePurchaseVerification {
+  status: "verified" | string;
+  reward_points: number;
+  total_points: number;
+  already_claimed: boolean;
+  vehicle_make_model: string;
+  vehicle_type: string;
+  ownership: string;
+  verification: string;
+  is_mock: boolean;
+}
+
 export interface ImpactBreakdown {
   purchases_kg: number;
   transport_kg: number;

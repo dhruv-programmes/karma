@@ -57,6 +57,8 @@ from app.schemas import (
     SignUpRequest,
     StepsMetricResponse,
     StepsSyncRequest,
+    SustainablePurchaseVerifyRequest,
+    SustainablePurchaseVerifyResponse,
     UserPreferences,
     SolarImpactResponse,
     SolarRecommendationActionResponse,
@@ -395,6 +397,30 @@ def commute_summary(
     db: Session = Depends(get_db),
 ):
     return services.build_commute_summary(current_user, db)
+
+
+# ==========================================
+# SUSTAINABLE PURCHASE VERIFICATION (DEMO)
+# ==========================================
+
+
+@router.post(
+    "/sustainable-purchases/verify",
+    response_model=SustainablePurchaseVerifyResponse,
+)
+def verify_sustainable_purchase(
+    body: SustainablePurchaseVerifyRequest,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Run the mock provider; no document bytes are uploaded or parsed yet."""
+    return services.verify_sustainable_purchase(
+        filename=body.filename,
+        mime_type=body.mime_type,
+        size_bytes=body.size_bytes,
+        user=current_user,
+        db=db,
+    )
 
 
 

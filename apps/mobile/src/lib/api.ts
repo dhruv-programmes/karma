@@ -414,6 +414,15 @@ export const api = {  // Authentication
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  verifySustainablePurchase: (payload: {
+    filename: string;
+    mime_type?: string | null;
+    size_bytes?: number | null;
+  }) =>
+    request<import("@/src/types/api").SustainablePurchaseVerification>(
+      "/api/v1/sustainable-purchases/verify",
+      { method: "POST", body: JSON.stringify(payload) }
+    ),
   syncBaseline: (payload: BaselineSyncPayload) =>
     request<any>("/api/v1/onboarding/baseline", {
       method: "POST",

@@ -468,6 +468,29 @@ class CommuteSummaryResponse(BaseModel):
 
 
 # ==========================================
+# SUSTAINABLE PURCHASE VERIFICATION (DEMO)
+# ==========================================
+
+
+class SustainablePurchaseVerifyRequest(BaseModel):
+    filename: str = Field(min_length=1, max_length=255)
+    mime_type: str | None = Field(default=None, max_length=120)
+    size_bytes: int | None = Field(default=None, ge=0)
+
+
+class SustainablePurchaseVerifyResponse(BaseModel):
+    status: str
+    reward_points: int
+    total_points: int
+    already_claimed: bool = False
+    vehicle_make_model: str = "Tata Nexon EV"
+    vehicle_type: str = "Electric Vehicle"
+    ownership: str = "Verified"
+    verification: str = "Successful"
+    is_mock: bool = True
+
+
+# ==========================================
 # KCS provisional->verified contract
 # ==========================================
 

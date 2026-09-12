@@ -78,6 +78,7 @@ export default function RootLayout() {
             <Stack.Screen name="map/index" />
             <Stack.Screen name="rewards/index" />
             <Stack.Screen name="offsets/index" />
+            <Stack.Screen name="tools/verify-sustainable-purchase" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="receipt/index" />
             <Stack.Screen name="receipt/review" />
             <Stack.Screen name="receipt/result" />

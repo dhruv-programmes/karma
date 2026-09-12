@@ -332,6 +332,62 @@ def build_commute_summary(user: UserModel, db: Session, today: date | None = Non
     }
 
 
+def verify_sustainable_purchase(
+    filename: str,
+    mime_type: str | None,
+    size_bytes: int | None,
+    user: UserModel,
+    db: Session,
+) -> dict:
+    """Award the one-time demo EV verification reward idempotently.
+
+    The uploaded file is deliberately treated as metadata only. This keeps the
+    prototype honest while leaving a provider seam for DigiLocker later.
+    """
+    existing = (
+        db.query(ActivityEventModel)
+        .filter(
+            ActivityEventModel.user_id == user.id,
+            ActivityEventModel.kind == "sustainable_purchase_verification",
+        )
+        .first()
+    )
+    if existing:
+        return {
+            "status": "verified",
+            "reward_points": 0,
+            "total_points": int(user.impact_points),
+            "already_claimed": True,
+        }
+
+    reward_points = 1500
+    user.impact_points = int(user.impact_points) + reward_points
+    log_activity_event(
+        user,
+        db,
+        "sustainable_purchase_verification",
+        "EV purchase verified",
+        "Verified sustainable purchase · +1,500 Green Points",
+        points_delta=reward_points,
+        meta={
+            "filename": filename,
+            "mime_type": mime_type,
+            "size_bytes": size_bytes,
+            "vehicle_type": "Electric Vehicle",
+            "provider": "MockVerificationProvider",
+            "is_mock": True,
+        },
+    )
+    db.commit()
+    db.refresh(user)
+    return {
+        "status": "verified",
+        "reward_points": reward_points,
+        "total_points": int(user.impact_points),
+        "already_claimed": False,
+    }
+
+
 def haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     r = 6371.0
     p1, p2 = math.radians(lat1), math.radians(lat2)

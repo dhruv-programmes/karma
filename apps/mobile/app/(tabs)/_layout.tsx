@@ -2,13 +2,10 @@ import React from "react";
 import { Platform, StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import { Tabs, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Home, Leaf, ListChecks, ScanLine, Wrench } from "lucide-react-native";
+import { Home, Leaf, ListChecks, ScanLine, TicketPercent, Wrench } from "lucide-react-native";
 
 
-type TabBarProps = {
-  state: { routes: { key: string; name: string }[]; index: number };
-  navigation: { emit: (e: { type: string; target: string; canPreventDefault: boolean }) => { defaultPrevented: boolean }; navigate: (name: string) => void };
-};
+type TabBarProps = any;
 
 function CustomTabBar({ state, navigation }: TabBarProps) {
   const insets = useSafeAreaInsets();
@@ -19,6 +16,7 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
     { name: "tools", label: "Tools", icon: Wrench },
     { name: "impact", label: "Impact", icon: Leaf },
     { name: "actions", label: "Actions", icon: ListChecks },
+    { name: "offers", label: "Offers", icon: TicketPercent },
   ];
 
   return (
@@ -30,7 +28,7 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
       pointerEvents="box-none"
     >
       <View style={styles.dock}>
-        {state.routes.map((route, index) => {
+        {state.routes.map((route: any, index: number) => {
           const item = tabItems.find((t) => t.name === route.name);
           if (!item) return null;
 
@@ -54,11 +52,14 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
                 activeOpacity={0.7}
               >
                 <Icon
-                  size={20}
+                  size={19}
                   color={isFocused ? "#2EA86E" : "rgba(255,255,255,0.45)"}
                   strokeWidth={isFocused ? 2.2 : 1.8}
                 />
-                <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>
+                <Text
+                  numberOfLines={1}
+                  style={[styles.tabLabel, isFocused && styles.tabLabelActive]}
+                >
                   {item.label}
                 </Text>
               </TouchableOpacity>
@@ -88,17 +89,17 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     backgroundColor: "transparent",
   },
   dock: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-around",
+    justifyContent: "space-between",
     backgroundColor: "#111D16",
     borderRadius: 36,
-    height: 64,
-    paddingHorizontal: 12,
+    height: 62,
+    paddingHorizontal: 6,
     width: "100%",
     ...Platform.select({
       ios: {
@@ -116,14 +117,16 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    height: 48,
+    height: 46,
     gap: 2,
     minWidth: 0,
+    paddingHorizontal: 2,
   },
   tabLabel: {
     color: "rgba(255,255,255,0.45)",
     fontFamily: "Nunito_600SemiBold",
-    fontSize: 10,
+    fontSize: 9.5,
+    textAlign: "center",
   },
   tabLabelActive: {
     color: "#5EEAD4",
@@ -135,9 +138,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#2EA86E",
   },
   scanButton: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: "#2EA86E",
     alignItems: "center",
     justifyContent: "center",
@@ -166,6 +169,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="tools" options={{ title: "Tools" }} />
       <Tabs.Screen name="impact" options={{ title: "Impact" }} />
       <Tabs.Screen name="actions" options={{ title: "Actions" }} />
+      <Tabs.Screen name="offers" options={{ title: "Offers" }} />
       <Tabs.Screen name="profile" options={{ title: "Profile", href: null }} />
     </Tabs>
   );

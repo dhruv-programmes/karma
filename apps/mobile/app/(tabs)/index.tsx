@@ -32,7 +32,6 @@ import {
   useCloset,
   useImpact,
   useImpactTimeseries,
-  useLeaderboard,
   useMe,
   useRecommendations,
   useScore,
@@ -479,7 +478,7 @@ export default function HomeScreen() {
             locations={[0, 0.45, 1]}
             start={{ x: 0.05, y: 0 }}
             end={{ x: 0.75, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
           {/* Thin bright ray crossing from upper-right */}
@@ -488,7 +487,7 @@ export default function HomeScreen() {
             locations={[0, 0.5, 1]}
             start={{ x: 0.85, y: 0 }}
             end={{ x: 0.15, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
           {/* Bottom highlight — bright white fade up for depth */}
@@ -496,13 +495,13 @@ export default function HomeScreen() {
             colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.15)"]}
             start={{ x: 0.5, y: 0.4 }}
             end={{ x: 0.5, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
           {/* Frosted softness — very light, keeps green dominant */}
           <View
             style={[
-              StyleSheet.absoluteFillObject,
+              StyleSheet.absoluteFill,
               { backgroundColor: "rgba(255,255,255,0.08)" },
             ]}
             pointerEvents="none"

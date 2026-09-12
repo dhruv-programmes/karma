@@ -48,6 +48,12 @@
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.3"
   },
+  "pnpm": {
+    "overrides": {
+      "react": "19.2.3",
+      "react-dom": "19.2.3"
+    }
+  },
   "private": true,
   "packageManager": "pnpm@10.17.1"
 }

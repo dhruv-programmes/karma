@@ -40,6 +40,7 @@ import {
 } from "@/src/hooks/queries";
 import { useAuthStore } from "@/src/store/auth";
 import { DEMO_REPAIR_ACTION_ID } from "@/src/types/api";
+import { useTabBarClearance } from "@/src/theme/layout";
 import { FootprintTrend } from "@/components/custom/footprint-trend";
 import { ProductImage } from "@/components/custom/product-image";
 
@@ -366,6 +367,7 @@ function ScoreRing({
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const tabClearance = useTabBarClearance();
   const router = useRouter();
 
   const user = useAuthStore((s) => s.user);
@@ -406,14 +408,12 @@ export default function HomeScreen() {
     Math.round((displayScore > 100 ? displayScore / 850 : displayScore / 100) * 100)
   );
 
-  const DOCK_HEIGHT = 64 + Math.max(insets.bottom, 12) + 12;
-
   return (
     <View style={styles.root}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingBottom: DOCK_HEIGHT + 20,
+          paddingBottom: tabClearance,
         }}
       >
         {/* ── HERO SECTION ─────────────────────────────── */}

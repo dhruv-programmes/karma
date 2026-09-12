@@ -10,9 +10,11 @@ import { Heading } from "@/components/ui/heading";
 import { Text } from "@/components/ui/text";
 import { useRecommendations } from "@/src/hooks/queries";
 import type { Recommendation } from "@/src/types/api";
+import { useTabBarClearance } from "@/src/theme/layout";
 
 export default function ActionsScreen() {
   const insets = useSafeAreaInsets();
+  const tabClearance = useTabBarClearance();
   const router = useRouter();
   const recs = useRecommendations();
 
@@ -37,7 +39,7 @@ export default function ActionsScreen() {
   return (
     <Box
       className="flex-1 bg-background"
-      style={{ paddingTop: insets.top + 16, paddingBottom: insets.bottom }}
+      style={{ paddingTop: insets.top + 16 }}
     >
       <Heading size="2xl" className="px-6">
         Actions
@@ -59,7 +61,7 @@ export default function ActionsScreen() {
           contentContainerStyle={{
             paddingHorizontal: 24,
             paddingTop: 16,
-            paddingBottom: 32,
+            paddingBottom: tabClearance,
           }}
         />
       )}

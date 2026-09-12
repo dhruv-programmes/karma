@@ -1,8 +1,24 @@
 import React from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 import { LineChart } from "react-native-gifted-charts";
 import { Card } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
+
+const POINT_COLOR = "rgb(46,168,110)";
+const POINT_SIZE = 8;
+
+function DataPoint() {
+  return (
+    <View
+      style={{
+        width: POINT_SIZE,
+        height: POINT_SIZE,
+        borderRadius: POINT_SIZE / 2,
+        backgroundColor: POINT_COLOR,
+      }}
+    />
+  );
+}
 
 export function FootprintTrend({
   points,
@@ -27,7 +43,7 @@ export function FootprintTrend({
             data={data}
             height={160}
             width={300}
-            color="rgb(46,168,110)"
+            color={POINT_COLOR}
             thickness={3}
             startFillColor="rgba(46,168,110,0.25)"
             endFillColor="rgba(46,168,110,0.02)"
@@ -40,9 +56,18 @@ export function FootprintTrend({
             xAxisColor="rgb(210,230,218)"
             yAxisTextStyle={{ color: "rgb(100,120,110)", fontSize: 10 }}
             xAxisLabelTextStyle={{ color: "rgb(100,120,110)", fontSize: 10 }}
-            dataPointsColor="rgb(46,168,110)"
+            dataPointsColor={POINT_COLOR}
+            dataPointsHeight={POINT_SIZE}
+            dataPointsWidth={POINT_SIZE}
             curved
             noOfSections={4}
+            focusEnabled={false}
+            // Avoid SVG circle onPress/onPressOut props that React DOM rejects on web.
+            {...(Platform.OS === "web"
+              ? {
+                  customDataPoint: () => <DataPoint />,
+                }
+              : {})}
           />
         </View>
       ) : (

@@ -22,9 +22,11 @@ import {
   useImpactTimeseries,
   useTransactions,
 } from "@/src/hooks/queries";
+import { useTabBarClearance } from "@/src/theme/layout";
 
 export default function ImpactScreen() {
   const insets = useSafeAreaInsets();
+  const tabClearance = useTabBarClearance();
   const router = useRouter();
   const impact = useImpact();
   const series = useImpactTimeseries();
@@ -36,7 +38,7 @@ export default function ImpactScreen() {
       className="flex-1 bg-background"
       contentContainerStyle={{
         paddingTop: insets.top + 16,
-        paddingBottom: insets.bottom + 32,
+        paddingBottom: tabClearance,
         paddingHorizontal: 24,
         gap: 20,
       }}

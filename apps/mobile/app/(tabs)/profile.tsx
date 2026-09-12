@@ -16,9 +16,11 @@ import { VStack } from "@/components/ui/vstack";
 import { useBadges, useMe } from "@/src/hooks/queries";
 import { api } from "@/src/lib/api";
 import { useAuthStore } from "@/src/store/auth";
+import { useTabBarClearance } from "@/src/theme/layout";
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const tabClearance = useTabBarClearance();
   const router = useRouter();
   const me = useMe();
   const badges = useBadges();
@@ -60,7 +62,7 @@ export default function ProfileScreen() {
       className="flex-1 bg-background"
       contentContainerStyle={{
         paddingTop: insets.top + 16,
-        paddingBottom: insets.bottom + 32,
+        paddingBottom: tabClearance,
         paddingHorizontal: 24,
         gap: 20,
       }}

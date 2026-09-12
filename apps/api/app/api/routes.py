@@ -25,6 +25,7 @@ from app.db.models import (
     UserProductModel,
 )
 from app.db.session import get_db
+from app.engines.scoring import provisional_kcs
 from app.engines.repair_replace import build_circular_options
 from app.schemas import (
     ActionType,
@@ -46,6 +47,8 @@ from app.schemas import (
     ScoreResponse,
     SignInRequest,
     SignUpRequest,
+    StepsMetricResponse,
+    StepsSyncRequest,
     UserPreferences,
 )
 from app.seed.data import PHONE_ID
@@ -267,13 +270,9 @@ def onboarding_baseline(
     now_iso = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
     target = round(float(body.totalKg) * (1 - float(body.reductionPct) / 100))
 
-    # Enforce provisional cap server-side (QA 2026-09-12: client value untrusted,
-    # ScoreResponse.provisional must never exceed 680 while provisional).
-    try:
-        _prov = int(body.provisional)
-    except Exception:
-        _prov = 650
-    current_user.provisional_score = min(_prov, 680)
+    # Derive the provisional estimate from the submitted baseline instead of
+    # trusting the client-provided display value.
+    current_user.provisional_score = provisional_kcs(body.totalKg)
     current_user.baseline_total_kg = float(body.totalKg)
     current_user.baseline_hash = baseline_hash
     current_user.baseline_created_at = now_iso
@@ -301,6 +300,23 @@ def users_me_data_meter(
     db: Session = Depends(get_db),
 ):
     return services.build_score_response(current_user, db)
+
+
+@router.get("/users/me/steps", response_model=StepsMetricResponse)
+def users_me_steps(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return services.build_steps_metric(current_user, db)
+
+
+@router.post("/users/me/steps/sync", response_model=StepsMetricResponse)
+def sync_users_me_steps(
+    body: StepsSyncRequest,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return services.sync_steps(body.steps, current_user, db)
 
 
 # ==========================================

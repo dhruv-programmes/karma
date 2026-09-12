@@ -225,7 +225,7 @@ export const fallbackCloset: Product[] = [
 ];
 
 export const fallbackScore: ScoreResponse = {
-  provisional: 680,
+  provisional: 681,
   verified: null,
   state: "provisional",
   confidence: 0.4,

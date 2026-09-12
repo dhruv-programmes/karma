@@ -21,6 +21,7 @@ from app.db.models import (
     TransactionModel,
     UserBadgeModel,
     UserCompletedActionModel,
+    UserDailyStepsModel,
     UserModel,
     UserOffsetPurchaseModel,
     UserProductModel,
@@ -70,6 +71,123 @@ from app.seed.data import (
 # A1 contract requires this exact string.
 SCORE_NUDGE_COPY = "We need more data to calculate your Carbon Score (Upload electricity, shopping, food + travel bills to improve accuracy)"
 NUDGE_COPY = SCORE_NUDGE_COPY  # alias for A1 convenience
+
+
+# Walking rewards are Impact Points only. Do not add them to KCS inputs or its
+# data meter: walking is a healthy incentive, not evidence of carbon footprint.
+STEP_REWARD_TIERS: tuple[tuple[int, int, str, str], ...] = (
+    (10_000, 100, "Daily goal reached", "Excellent"),
+    (8_000, 60, "Strong day", "Strong"),
+    (5_000, 30, "Active day", "Active"),
+    (2_000, 10, "Getting started", "Steady"),
+    (0, 0, "Start walking", "Starting"),
+)
+
+
+def _local_today() -> date:
+    """Use the API host's local calendar day for the one permitted sync date."""
+    return datetime.now().astimezone().date()
+
+
+def _step_tier(steps: int) -> tuple[int, str, str]:
+    for threshold, points, status, rating in STEP_REWARD_TIERS:
+        if steps >= threshold:
+            return points, status, rating
+    return 0, "Start walking", "Starting"
+
+
+def _next_step_tier(steps: int, earned_points: int) -> tuple[int | None, int]:
+    for threshold, points, _status, _rating in reversed(STEP_REWARD_TIERS[:-1]):
+        if steps < threshold:
+            return threshold, max(0, points - earned_points)
+    return None, 0
+
+
+def build_steps_metric(user: UserModel, db: Session, today: date | None = None) -> dict:
+    """Return today's walking metric plus an honest, zero-filled seven-day history."""
+    current_day = today or _local_today()
+    first_day = current_day - timedelta(days=6)
+    start = first_day.isoformat()
+    end = current_day.isoformat()
+    rows = (
+        db.query(UserDailyStepsModel)
+        .filter(
+            UserDailyStepsModel.user_id == user.id,
+            UserDailyStepsModel.date >= start,
+            UserDailyStepsModel.date <= end,
+        )
+        .all()
+    )
+    rows_by_date = {row.date: row for row in rows}
+    today_row = rows_by_date.get(end)
+    steps = int(today_row.steps) if today_row else 0
+    earned_points = int(today_row.points_awarded) if today_row else 0
+    _tier_points, status, rating = _step_tier(steps)
+    next_threshold, next_points = _next_step_tier(steps, earned_points)
+
+    series = []
+    for offset in range(7):
+        day = first_day + timedelta(days=offset)
+        row = rows_by_date.get(day.isoformat())
+        series.append(
+            {
+                "date": day.isoformat(),
+                "steps": int(row.steps) if row else 0,
+                "points_awarded": int(row.points_awarded) if row else 0,
+            }
+        )
+
+    return {
+        "date": end,
+        "steps": steps,
+        "points_awarded": earned_points,
+        "daily_reward_cap": 100,
+        "next_threshold": next_threshold,
+        "next_points": next_points,
+        "status": status,
+        "rating": rating,
+        "series": series,
+    }
+
+
+def sync_steps(steps: int, user: UserModel, db: Session) -> dict:
+    """Sync today's total and award only the unearned positive tier difference."""
+    today = _local_today()
+    date_key = today.isoformat()
+    row = (
+        db.query(UserDailyStepsModel)
+        .filter(
+            UserDailyStepsModel.user_id == user.id,
+            UserDailyStepsModel.date == date_key,
+        )
+        .first()
+    )
+    if row is None:
+        row = UserDailyStepsModel(user_id=user.id, date=date_key, steps=0, points_awarded=0)
+        db.add(row)
+        db.flush()
+
+    # Device counters can briefly regress. Preserve the highest total observed
+    # today so a later lower sync cannot erase progress or revoke points.
+    row.steps = max(int(row.steps), int(steps))
+    target_points, _status, _rating = _step_tier(row.steps)
+    points_delta = max(0, target_points - int(row.points_awarded))
+    if points_delta:
+        row.points_awarded = int(row.points_awarded) + points_delta
+        user.impact_points = int(user.impact_points) + points_delta
+        log_activity_event(
+            user,
+            db,
+            "steps",
+            f"Walked {row.steps:,} steps",
+            f"Earned {points_delta} Impact Points from today's walking tier.",
+            points_delta=points_delta,
+            meta={"date": date_key, "steps": row.steps, "tier_points": row.points_awarded},
+        )
+
+    db.commit()
+    db.refresh(user)
+    return build_steps_metric(user, db, today)
 
 
 def haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:

@@ -64,7 +64,7 @@ export default function SignUpScreen() {
       setError("Please fill in all fields.");
       return;
     }
-    if (password.length < 6) {
+    if (password.trim().length < 6) {
       setError("Password must be at least 6 characters.");
       return;
     }
@@ -83,7 +83,12 @@ export default function SignUpScreen() {
       queryClient.invalidateQueries();
       router.replace("/(tabs)");
     } catch (err: any) {
-      setError(err?.message || "Failed to create account. Please try again.");
+      const message = String(err?.message || "");
+      setError(
+        /account with this email already exists/i.test(message)
+          ? "An account with this email already exists. Use Sign In below."
+          : message || "Failed to create account. Please try again."
+      );
     } finally {
       setLoading(false);
     }

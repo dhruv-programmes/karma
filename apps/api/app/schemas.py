@@ -328,6 +328,28 @@ class DemoUserSummary(BaseModel):
     monthly_budget_kg: float
 
 
+class StepsSyncRequest(BaseModel):
+    steps: int = Field(ge=0, strict=True)
+
+
+class DailyStepsPoint(BaseModel):
+    date: str
+    steps: int
+    points_awarded: int
+
+
+class StepsMetricResponse(BaseModel):
+    date: str
+    steps: int
+    points_awarded: int
+    daily_reward_cap: int = 100
+    next_threshold: int | None = None
+    next_points: int = 0
+    status: str
+    rating: str
+    series: list[DailyStepsPoint] = Field(default_factory=list)
+
+
 # ==========================================
 # KCS provisional->verified contract
 # ==========================================

@@ -98,10 +98,10 @@ export default function RevealScreen() {
             {startingScore}
           </Text>
           <Text size="xs" bold className="text-primary tracking-widest uppercase font-mono mt-1">
-            Carbon Score
+            Provisional Carbon Credit Score
           </Text>
           <Text size="xs" className="text-muted-foreground font-body text-center mt-1 px-4">
-            Estimated initial score on the 0–850 index. Sharper precision unlocks as you log verified circular actions and receipts.
+            This questionnaire-based estimate uses the 480–820 KCS range. Your verified score arrives after sufficient real footprint data across receipts, transactions, categories, and history.
           </Text>
         </Card>
 

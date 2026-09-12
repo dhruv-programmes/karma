@@ -4,19 +4,17 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Dimensions,
   Image,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   ArrowRight,
-  Camera,
   ChevronRight,
+  Footprints,
   Leaf,
-  Receipt,
-  Recycle,
   TrendingUp,
   Wrench,
 } from "lucide-react-native";
@@ -37,15 +35,26 @@ import {
   useLeaderboard,
   useMe,
   useRecommendations,
+  useScore,
+  useSteps,
 } from "@/src/hooks/queries";
+import { useStepTracking } from "@/src/hooks/use-step-tracking";
 import { useAuthStore } from "@/src/store/auth";
 import { DEMO_REPAIR_ACTION_ID } from "@/src/types/api";
 import { useTabBarClearance } from "@/src/theme/layout";
 import { FootprintTrend } from "@/components/custom/footprint-trend";
 import { ProductImage } from "@/components/custom/product-image";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+const KCS_MIN = 480;
+const KCS_MAX = 820;
+
+function kcsProgress(score: number) {
+  return Math.min(
+    1,
+    Math.max(0, (score - KCS_MIN) / (KCS_MAX - KCS_MIN))
+  );
+}
 
 function greeting() {
   const h = new Date().getHours();
@@ -54,7 +63,7 @@ function greeting() {
   return "Good evening";
 }
 
-/** Returns color + glowColor + label + message based on score (0–100 or 0–850) */
+/** Returns color + glowColor + label + message based on the 480–820 KCS range. */
 function ratingInfo(score: number): {
   color: string;
   glowColor: string;
@@ -63,7 +72,7 @@ function ratingInfo(score: number): {
   message: string;
   gradient: [string, string];
 } {
-  const pct = score > 100 ? score / 850 : score / 100;
+  const pct = kcsProgress(score);
   if (pct < 0.45) {
     return {
       color: "#F87171",
@@ -102,7 +111,7 @@ function ScoreRing({
   insight,
   label,
 }: {
-  score: number;
+  score: number | null;
   color: string;
   glowColor?: string;
   trackColor: string;
@@ -116,10 +125,7 @@ function ScoreRing({
   const cx = size / 2;
   const cy = size / 2;
 
-  const targetProgress = Math.min(
-    1,
-    Math.max(0.04, score > 100 ? score / 850 : score / 100)
-  );
+  const targetProgress = score === null ? 0 : kcsProgress(score);
 
   const progress = useSharedValue(0);
 
@@ -314,7 +320,7 @@ function ScoreRing({
             marginVertical: 2,
           }}
         >
-          {Math.round(score)}
+          {score === null ? "—" : Math.round(score)}
         </Text>
 
         {/* Level label */}
@@ -368,25 +374,32 @@ export default function HomeScreen() {
   const router = useRouter();
 
   const user = useAuthStore((s) => s.user);
-  const startingScore = useAuthStore((s) => s.startingScore);
   const startingFootprintKg = useAuthStore((s) => s.startingFootprintKg);
   const goal = useAuthStore((s) => s.goal);
 
   const me = useMe();
+  const score = useScore();
   const impact = useImpact();
   const series = useImpactTimeseries();
   const recs = useRecommendations();
   const closet = useCloset();
   const activity = useActivity();
+  const steps = useSteps();
+  const stepTracking = useStepTracking(steps.data?.todaySteps ?? 0);
   const best = recs.data?.[0];
 
   const displayName = me.data?.name || user?.name || "Member";
   const firstName = displayName.split(" ")[0];
   const displayScore =
-    me.data?.circularity_score ??
-    user?.circularity_score ??
-    startingScore ??
-    642;
+    score.data?.state === "verified" && score.data.verified !== null
+      ? score.data.verified
+      : score.data?.provisional ?? null;
+  const scoreState =
+    score.data === undefined
+      ? "Loading score"
+      : score.data.state === "verified" && score.data.verified !== null
+        ? "Verified score"
+        : "Provisional estimate";
   const displayTrend = me.data?.trend_delta ?? user?.trend_delta ?? 14;
 
   const currentMonthFootprint = Math.round(impact.data?.this_month_kg ?? 0);
@@ -399,11 +412,42 @@ export default function HomeScreen() {
   const targetReduction = goal.reductionPct ?? 15;
   const targetFootprint = Math.round(footprint * (1 - targetReduction / 100));
 
-  const rating = ratingInfo(displayScore);
-  const scorePercent = Math.min(
-    100,
-    Math.round((displayScore > 100 ? displayScore / 850 : displayScore / 100) * 100)
+  const rating = ratingInfo(displayScore ?? KCS_MIN);
+  const scorePercent =
+    displayScore === null ? null : Math.round(kcsProgress(displayScore) * 100);
+  const impactPoints = me.data?.impact_points ?? user?.impact_points ?? 0;
+  const stepData = steps.data;
+  const isWeb = Platform.OS === "web";
+  const hasNativeStepData = !isWeb && !!stepData;
+  const stepProgress = stepData
+    ? Math.min(100, Math.round((stepData.todaySteps / stepData.targetSteps) * 100))
+    : 0;
+  const maxSeriesSteps = Math.max(
+    1,
+    ...(stepData?.series.map((point) => point.steps) ?? [])
   );
+  const stepNotice = isWeb
+    ? "Step tracking is available on iPhone and Android. Open Carbon Loop on your phone to enable it."
+    : steps.isError
+      ? "Walking rewards are unavailable right now. Try again when you are online."
+      : stepTracking.state === "denied"
+        ? "Motion permission is off. Enable it in Settings to earn walking points."
+        : stepTracking.state === "unavailable"
+          ? "This phone does not expose a pedometer to Carbon Loop."
+          : stepTracking.state === "error"
+            ? "Could not sync steps. Your saved rewards have not changed."
+            : stepTracking.state === "enabled" && Platform.OS === "android"
+              ? "Android tracks steps while Carbon Loop is open."
+              : stepTracking.state === "enabled"
+                ? "Today's phone steps are synced to your rewards."
+                : "Enable on your phone to start earning Impact Points for walking.";
+  const stepCta = isWeb
+    ? "Use on phone"
+    : stepTracking.isSyncing
+      ? "Syncing…"
+      : stepTracking.state === "enabled"
+        ? "Sync steps"
+        : "Enable step tracking";
 
   return (
     <View style={styles.root}>
@@ -460,7 +504,7 @@ export default function HomeScreen() {
 
           {/* Header row */}
           <View style={styles.headerRow}>
-            <View>
+            <View style={styles.headerCopy}>
               <Image
                 source={require("@/assets/karma-text.png")}
                 style={{ width: 72, height: 20 }}
@@ -468,6 +512,8 @@ export default function HomeScreen() {
                 tintColor="rgba(255,255,255,0.95)"
               />
               <Text
+                numberOfLines={1}
+                ellipsizeMode="tail"
                 style={{
                   fontSize: 22,
                   fontFamily: "Nunito_700Bold",
@@ -512,26 +558,26 @@ export default function HomeScreen() {
               color={rating.color}
               glowColor={rating.glowColor}
               trackColor={rating.trackColor}
-              insight={rating.message.split(".")[0]}
-              label={rating.label}
+              insight="Carbon Credit Score"
+              label={`${rating.label} · ${scoreState}`}
             />
 
-            {/* Trend pill below ring */}
-            {displayTrend > 0 && (
-              <View style={styles.trendPill}>
-                <TrendingUp size={12} color="rgba(255,255,255,0.9)" strokeWidth={2.5} />
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontFamily: "Nunito_700Bold",
-                    color: "rgba(255,255,255,0.9)",
-                    marginLeft: 4,
-                  }}
-                >
-                  +{displayTrend} this month
-                </Text>
-              </View>
-            )}
+            <View style={styles.heroPillRow}>
+              {displayTrend > 0 && (
+                <View style={styles.trendPill}>
+                  <TrendingUp size={12} color="rgba(255,255,255,0.9)" strokeWidth={2.5} />
+                  <Text style={styles.heroPillText}>+{displayTrend} this month</Text>
+                </View>
+              )}
+              <TouchableOpacity
+                style={styles.pointsPill}
+                onPress={() => router.push("/rewards")}
+                activeOpacity={0.82}
+              >
+                <Text style={styles.pointsPillValue}>{impactPoints}</Text>
+                <Text style={styles.heroPillText}>Impact Points</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Stat pills row */}
@@ -567,9 +613,9 @@ export default function HomeScreen() {
           {/* Score progress bar */}
           <View style={styles.progressSection}>
             <View style={styles.progressLabelRow}>
-              <Text style={styles.sectionLabel}>Score Progress</Text>
+              <Text style={styles.sectionLabel}>Carbon Credit Score Progress</Text>
               <Text style={[styles.progressPct, { color: rating.color }]}>
-                {scorePercent}%
+                {scorePercent === null ? "—" : `${scorePercent}%`}
               </Text>
             </View>
             <View style={styles.progressTrack}>
@@ -577,11 +623,77 @@ export default function HomeScreen() {
                 style={[
                   styles.progressFill,
                   {
-                    width: `${scorePercent}%`,
+                    width: `${scorePercent ?? 0}%`,
                     backgroundColor: rating.color,
                   },
                 ]}
               />
+            </View>
+          </View>
+
+          {/* ── WALK & EARN ── */}
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Walk & Earn</Text>
+            <View style={styles.walkCard}>
+              <View style={styles.walkHeader}>
+                <View style={styles.walkIconBox}>
+                  <Footprints size={20} color="#2EA86E" strokeWidth={2} />
+                </View>
+                <View style={styles.walkHeaderCopy}>
+                  <Text style={styles.walkTitle}>Turn steps into Impact Points</Text>
+                  <Text style={styles.walkRating}>
+                    {hasNativeStepData ? stepData.rating : "Phone-only metric"}
+                  </Text>
+                </View>
+                {hasNativeStepData ? (
+                  <View style={styles.walkPointsBadge}>
+                    <Text style={styles.walkPointsText}>+{stepData.todayPoints} pts</Text>
+                  </View>
+                ) : null}
+              </View>
+
+              {hasNativeStepData ? (
+                <>
+                  <View style={styles.walkStepRow}>
+                    <Text style={styles.walkSteps}>{stepData.todaySteps.toLocaleString()}</Text>
+                    <Text style={styles.walkTarget}> / {stepData.targetSteps.toLocaleString()} steps</Text>
+                  </View>
+                  <View style={styles.walkProgressTrack}>
+                    <View style={[styles.walkProgressFill, { width: `${stepProgress}%` }]} />
+                  </View>
+                  <Text style={styles.walkDetail}>
+                    {stepData.nextThreshold === null
+                      ? "Daily walking reward unlocked."
+                      : `${Math.max(0, stepData.nextThreshold - stepData.todaySteps).toLocaleString()} steps to your next reward`}
+                  </Text>
+                  {stepData.series.length > 0 ? (
+                    <View style={styles.stepSeries}>
+                      {stepData.series.slice(-7).map((point) => (
+                        <View key={`${point.date}-${point.label}`} style={styles.stepSeriesItem}>
+                          <View
+                            style={[
+                              styles.stepSeriesBar,
+                              { height: 6 + Math.round((point.steps / maxSeriesSteps) * 24) },
+                            ]}
+                          />
+                          <Text style={styles.stepSeriesLabel}>{point.label}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+                </>
+              ) : null}
+
+              <Text style={styles.walkNotice}>{stepNotice}</Text>
+              <TouchableOpacity
+                style={[styles.walkCta, (isWeb || stepTracking.isSyncing) && styles.walkCtaMuted]}
+                onPress={stepTracking.enableOrSync}
+                disabled={stepTracking.isSyncing}
+                activeOpacity={0.82}
+              >
+                <Text style={styles.walkCtaText}>{stepCta}</Text>
+                {!isWeb ? <ArrowRight size={14} color="#FFFFFF" strokeWidth={2.5} /> : null}
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -754,58 +866,9 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {/* ── QUICK TOOLS ── */}
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Loop Tools</Text>
-            <View style={styles.toolGrid}>
-              <ToolCard
-                icon={<Camera size={20} color="#2EA86E" strokeWidth={1.8} />}
-                label="Scan Product"
-                onPress={() => router.push("/scan")}
-              />
-              <ToolCard
-                icon={<Receipt size={20} color="#2EA86E" strokeWidth={1.8} />}
-                label="Import Receipt"
-                onPress={() => router.push("/receipt")}
-              />
-              <ToolCard
-                icon={<Recycle size={20} color="#2EA86E" strokeWidth={1.8} />}
-                label="Recycling Hubs"
-                onPress={() => router.push("/map?type=recycling")}
-              />
-              <ToolCard
-                icon={<Leaf size={20} color="#2EA86E" strokeWidth={1.8} />}
-                label="Offset Carbon"
-                onPress={() =>
-                  router.push("/offsets" as import("expo-router").Href)
-                }
-              />
-            </View>
-          </View>
         </View>
       </ScrollView>
     </View>
-  );
-}
-
-function ToolCard({
-  icon,
-  label,
-  onPress,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      style={styles.toolCard}
-      onPress={onPress}
-      activeOpacity={0.8}
-    >
-      <View style={styles.toolIconBox}>{icon}</View>
-      <Text style={styles.toolLabel}>{label}</Text>
-    </TouchableOpacity>
   );
 }
 
@@ -826,6 +889,12 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     marginBottom: 32,
   },
+  headerCopy: {
+    flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
+    marginRight: 12,
+  },
   avatarCircle: {
     width: 44,
     height: 44,
@@ -835,11 +904,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.35)",
+    flexShrink: 0,
   },
   ringContainer: {
     alignItems: "center",
     marginBottom: 28,
     gap: 12,
+  },
+  heroPillRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
   },
   ratingBadge: {
     flexDirection: "row",
@@ -864,6 +941,27 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.25)",
+  },
+  pointsPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(13,24,17,0.18)",
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.28)",
+    gap: 5,
+  },
+  pointsPillValue: {
+    color: "#FFFFFF",
+    fontFamily: "Nunito_800ExtraBold",
+    fontSize: 12,
+  },
+  heroPillText: {
+    fontSize: 12,
+    fontFamily: "Nunito_700Bold",
+    color: "rgba(255,255,255,0.9)",
   },
   statRow: {
     flexDirection: "row",
@@ -936,6 +1034,62 @@ const styles = StyleSheet.create({
     height: "100%",
     borderRadius: 3,
   },
+
+  // Walking rewards
+  walkCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "rgba(46,168,110,0.16)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  walkHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
+  walkIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(46,168,110,0.11)",
+  },
+  walkHeaderCopy: { flex: 1, minWidth: 0 },
+  walkTitle: { fontSize: 14, fontFamily: "Nunito_700Bold", color: "#183222" },
+  walkRating: { marginTop: 1, fontSize: 11, fontFamily: "Nunito_600SemiBold", color: "#2EA86E" },
+  walkPointsBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    backgroundColor: "rgba(46,168,110,0.1)",
+  },
+  walkPointsText: { fontSize: 11, fontFamily: "Nunito_700Bold", color: "#2EA86E" },
+  walkStepRow: { flexDirection: "row", alignItems: "baseline" },
+  walkSteps: { fontSize: 28, fontFamily: "Nunito_800ExtraBold", color: "#183222" },
+  walkTarget: { fontSize: 12, fontFamily: "Nunito_600SemiBold", color: "#8BA898" },
+  walkProgressTrack: { height: 6, borderRadius: 3, overflow: "hidden", backgroundColor: "#E5EDE8" },
+  walkProgressFill: { height: "100%", borderRadius: 3, backgroundColor: "#2EA86E" },
+  walkDetail: { fontSize: 11, fontFamily: "Nunito_600SemiBold", color: "#6A8372" },
+  stepSeries: { height: 42, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", paddingHorizontal: 2 },
+  stepSeriesItem: { flex: 1, alignItems: "center", justifyContent: "flex-end", gap: 3 },
+  stepSeriesBar: { width: 12, borderRadius: 6, backgroundColor: "#A7E5C2" },
+  stepSeriesLabel: { fontSize: 9, fontFamily: "Nunito_600SemiBold", color: "#8BA898" },
+  walkNotice: { fontSize: 11, lineHeight: 16, fontFamily: "Nunito_400Regular", color: "#7A9082" },
+  walkCta: {
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: "#2EA86E",
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 7,
+  },
+  walkCtaMuted: { backgroundColor: "#6C8374" },
+  walkCtaText: { fontSize: 12, fontFamily: "Nunito_700Bold", color: "#FFFFFF" },
 
   // Sections
   section: {
@@ -1143,39 +1297,4 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
 
-  // Tool grid
-  toolGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  toolCard: {
-    width: (SCREEN_WIDTH - 40 - 30) / 4,
-    minWidth: 72,
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    paddingVertical: 14,
-    alignItems: "center",
-    gap: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  toolIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: "rgba(46,168,110,0.1)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  toolLabel: {
-    fontSize: 11,
-    fontFamily: "Nunito_600SemiBold",
-    color: "#3D5248",
-    textAlign: "center",
-  },
 });

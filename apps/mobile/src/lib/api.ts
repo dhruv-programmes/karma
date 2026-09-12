@@ -20,11 +20,16 @@ import type {
   Reward,
   ScoreResponse,
   ScoreState,
+  StepSummary,
   Transaction,
   UserProfile,
 } from "@/src/types/api";
 
 const API_PORT = 8000;
+const DEFAULT_REQUEST_TIMEOUT_MS = 8_000;
+// Password verification deliberately uses a slow KDF. Give authentication a
+// realistic window without making every read request feel unresponsive.
+const AUTH_REQUEST_TIMEOUT_MS = 15_000;
 
 function resolveDevHost(): string | null {
   const hostUri =
@@ -61,12 +66,16 @@ function getBaseUrl() {
   return `http://localhost:${API_PORT}`;
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function request<T>(
+  path: string,
+  init?: RequestInit,
+  timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS
+): Promise<T> {
   const token = useAuthStore.getState().token;
   const authHeader = token ? `Bearer ${token}` : "Bearer demo-carbon-loop-token";
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 4000);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const res = await fetch(`${getBaseUrl()}${path}`, {
@@ -86,6 +95,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     return (await res.json()) as T;
   } catch (err: any) {
     clearTimeout(timeoutId);
+    if (controller.signal.aborted) {
+      throw new Error("The server is taking longer than expected. Please try again.");
+    }
     if (err?.message && err.message !== "API_UNAVAILABLE") {
       throw err;
     }
@@ -168,12 +180,49 @@ export function normalizeScoreResponse(raw: any): ScoreResponse {
   };
 }
 
+/** Normalize the step endpoint while keeping its UI contract camelCased. */
+export function normalizeStepSummary(raw: any): StepSummary {
+  const src = raw && typeof raw === "object" ? raw : {};
+  const pick = (...keys: string[]): any => {
+    for (const key of keys) {
+      const value = src[key];
+      if (value !== undefined && value !== null) return value;
+    }
+    return undefined;
+  };
+  const number = (value: unknown, fallback = 0) =>
+    typeof value === "number" && Number.isFinite(value) ? value : fallback;
+  const rawSeries = pick("series", "seven_day_series", "history");
+
+  return {
+    todaySteps: number(pick("todaySteps", "today_steps", "steps")),
+    todayPoints: number(
+      pick("todayPoints", "today_points", "points_awarded", "points")
+    ),
+    targetSteps: number(pick("targetSteps", "target_steps"), 10_000),
+    nextThreshold: (() => {
+      const value = pick("nextThreshold", "next_threshold");
+      return typeof value === "number" && Number.isFinite(value) ? value : null;
+    })(),
+    rating: String(pick("rating") ?? "Starting out"),
+    status: String(pick("status") ?? "not_started"),
+    series: Array.isArray(rawSeries)
+      ? rawSeries.map((point: any, index: number) => ({
+          label: String(point?.label ?? point?.day ?? point?.date?.slice(-2) ?? `D${index + 1}`),
+          date: String(point?.date ?? point?.day ?? ""),
+          steps: number(point?.steps),
+          points: number(point?.points ?? point?.points_awarded),
+        }))
+      : [],
+  };
+}
+
 export const api = {  // Authentication
   signin: (email: string, password = "password123") =>
     request<AuthResponse>("/api/v1/auth/signin", {
       method: "POST",
       body: JSON.stringify({ email, password }),
-    }),
+    }, AUTH_REQUEST_TIMEOUT_MS),
   signup: (data: {
     name: string;
     email: string;
@@ -184,7 +233,7 @@ export const api = {  // Authentication
     request<AuthResponse>("/api/v1/auth/signup", {
       method: "POST",
       body: JSON.stringify(data),
-    }),
+    }, AUTH_REQUEST_TIMEOUT_MS),
   getDemoUsers: () => request<DemoUserSummary[]>("/api/v1/auth/demo-users"),
   getAuthMe: () => request<UserProfile>("/api/v1/auth/me"),
 
@@ -207,6 +256,13 @@ export const api = {  // Authentication
     request<any>("/api/v1/users/me/score").then(normalizeScoreResponse),
   getDataMeter: () =>
     request<any>("/api/v1/users/me/data-meter").then(normalizeScoreResponse),
+  getSteps: () =>
+    request<any>("/api/v1/users/me/steps").then(normalizeStepSummary),
+  syncSteps: (steps: number) =>
+    request<any>("/api/v1/users/me/steps/sync", {
+      method: "POST",
+      body: JSON.stringify({ steps: Math.max(0, Math.round(steps)) }),
+    }).then(normalizeStepSummary),
   syncBaseline: (payload: BaselineSyncPayload) =>
     request<any>("/api/v1/onboarding/baseline", {
       method: "POST",

@@ -10,12 +10,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.db.models import ActivityEventModel, RewardModel, TransactionModel, UserModel
+from app.db.seed import _backfill_kcs_users
 from app.db.session import Base
 from app.engines.scoring import (
     BASE_SCORE,
     MAX_SCORE,
     MIN_SCORE,
-    PROVISIONAL_CAP,
     REF_KG,
     compute_data_meter,
     confidence_for_meter,
@@ -112,15 +112,14 @@ def test_kcs_reference_point():
     assert kcs_from_kg(REF_KG) == BASE_SCORE
 
 
-def test_provisional_cap_40kg():
-    assert kcs_from_kg(40) == 804  # raw
-    assert provisional_kcs(40) == 680  # shown (capped)
-    assert provisional_kcs(40) == PROVISIONAL_CAP
+def test_provisional_uses_the_standard_kcs_mapping_without_a_ceiling():
+    assert kcs_from_kg(40) == 804
+    assert provisional_kcs(40) == 804
 
 
 def test_you_case_96kg():
-    assert kcs_from_kg(96) == 681  # raw
-    assert provisional_kcs(96) == 680  # shown (capped)
+    assert kcs_from_kg(96) == 681
+    assert provisional_kcs(96) == 681
 
 
 def test_heavy_150kg():
@@ -132,6 +131,35 @@ def test_kcs_clamp():
     assert kcs_from_kg(-500) == MAX_SCORE  # 650+(610)*2.2 huge -> clamp 820
     assert kcs_from_kg(1000) == MIN_SCORE  # very heavy -> clamp 480
     assert MIN_SCORE <= kcs_from_kg(110) <= MAX_SCORE
+
+
+def test_kcs_backfill_replaces_legacy_cap_only_for_provisional_baselines():
+    db = _mem_db()
+    legacy = _make_user(db, email="legacy@example.com")
+    legacy.baseline_total_kg = 74.0
+    legacy.provisional_score = 680
+    legacy.score_state = "provisional"
+
+    verified = _make_user(db, email="verified@example.com")
+    verified.baseline_total_kg = 74.0
+    verified.provisional_score = 680
+    verified.verified_score = 777
+    verified.score_state = "verified"
+
+    no_baseline = _make_user(db, email="no-baseline@example.com")
+    no_baseline.provisional_score = 680
+    no_baseline.score_state = "provisional"
+    db.commit()
+
+    _backfill_kcs_users(db)
+    db.refresh(legacy)
+    db.refresh(verified)
+    db.refresh(no_baseline)
+
+    assert legacy.provisional_score == 729
+    assert verified.provisional_score == 680
+    assert verified.verified_score == 777
+    assert no_baseline.provisional_score == 680
 
 
 def test_shopping_reverse():

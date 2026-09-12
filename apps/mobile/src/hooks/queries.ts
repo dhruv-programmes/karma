@@ -61,6 +61,31 @@ export function useMe() {
   });
 }
 
+/**
+ * Step data intentionally has no made-up fallback. A missing API/device must
+ * look unavailable instead of pretending the person walked a demo distance.
+ */
+export function useSteps() {
+  return useQuery({
+    queryKey: ["steps"],
+    queryFn: api.getSteps,
+    staleTime: 20_000,
+  });
+}
+
+export function useSyncSteps() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (steps: number) => api.syncSteps(steps),
+    onSuccess: (data) => {
+      qc.setQueryData(["steps"], data);
+      // The backend awards Impact Points, so refresh the existing point source.
+      qc.invalidateQueries({ queryKey: ["me"] });
+      qc.invalidateQueries({ queryKey: ["activity"] });
+    },
+  });
+}
+
 export function useImpact() {
   return useQuery({
     queryKey: ["impact"],

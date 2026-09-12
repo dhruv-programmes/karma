@@ -26,17 +26,7 @@ import {
   TAB_DOCK_HEIGHT,
 } from "@/src/theme/layout";
 
-type TabBarProps = {
-  state: { routes: { key: string; name: string }[]; index: number };
-  navigation: {
-    emit: (e: {
-      type: string;
-      target: string;
-      canPreventDefault: boolean;
-    }) => { defaultPrevented: boolean };
-    navigate: (name: string) => void;
-  };
-};
+type TabBarProps = any;
 
 type DockTab = {
   name: string;
@@ -123,7 +113,7 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
   const dockLift = bottomInset + TAB_DOCK_BOTTOM_GAP;
 
   const routeMeta = (name: string) => {
-    const index = state.routes.findIndex((r) => r.name === name);
+    const index = state.routes.findIndex((r: any) => r.name === name);
     if (index < 0) return null;
     return {
       key: state.routes[index].key,

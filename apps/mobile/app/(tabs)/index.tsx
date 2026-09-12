@@ -853,37 +853,6 @@ export default function HomeScreen() {
             </View>
           )}
 
-<<<<<<< HEAD
-          {/* ── QUICK TOOLS ── */}
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Loop Tools</Text>
-            <View style={styles.toolGrid}>
-              <ToolCard
-                icon={<Camera size={20} color="#2EA86E" strokeWidth={1.8} />}
-                label="Scan Product"
-                onPress={() => router.push("/scan")}
-              />
-              <ToolCard
-                icon={<Receipt size={20} color="#2EA86E" strokeWidth={1.8} />}
-                label="Import bill / receipt"
-                onPress={() => router.push("/receipt")}
-              />
-              <ToolCard
-                icon={<Recycle size={20} color="#2EA86E" strokeWidth={1.8} />}
-                label="Recycling Hubs"
-                onPress={() => router.push("/map?type=recycling")}
-              />
-              <ToolCard
-                icon={<Leaf size={20} color="#2EA86E" strokeWidth={1.8} />}
-                label="Offset Carbon"
-                onPress={() =>
-                  router.push("/offsets" as import("expo-router").Href)
-                }
-              />
-            </View>
-          </View>
-=======
->>>>>>> 1e27da45c8e1dead582321527ef6a32640e09474
         </View>
       </ScrollView>
     </View>

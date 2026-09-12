@@ -178,6 +178,12 @@ export default function RewardsScreen() {
           <View style={styles.navTitleWrap}>
             <Text style={styles.navTitle}>Green Rewards</Text>
           </View>
+          <TouchableOpacity
+            style={styles.leaderboardLink}
+            onPress={() => router.push("/community")}
+          >
+            <Text style={styles.leaderboardLinkText}>Community</Text>
+          </TouchableOpacity>
         </View>
 
         {/* ========================================================= */}
@@ -478,6 +484,17 @@ const styles = StyleSheet.create({
     fontFamily: "Nunito_800ExtraBold",
     color: "#0D1811",
     letterSpacing: -0.5,
+  },
+  leaderboardLink: {
+    backgroundColor: "#E3F5EA",
+    borderRadius: 10,
+    paddingHorizontal: 9,
+    paddingVertical: 8,
+  },
+  leaderboardLinkText: {
+    color: "#0E2A1E",
+    fontFamily: "Nunito_700Bold",
+    fontSize: 11,
   },
 
   // Hero Card (Matching Offers Hero)

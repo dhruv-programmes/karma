@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import router
 from app.config import settings
 from app.db.seed import seed_database_if_empty
+import app.db.models  # noqa: F401
 from app.db.session import Base, SessionLocal, engine
 
 

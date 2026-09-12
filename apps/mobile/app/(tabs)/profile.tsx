@@ -18,6 +18,7 @@ import { useBadges, useMe, useScore } from "@/src/hooks/queries";
 import { api } from "@/src/lib/api";
 import { useAuthStore } from "@/src/store/auth";
 import { useTabBarClearance } from "@/src/theme/layout";
+import { Crown } from "lucide-react-native";
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -151,6 +152,22 @@ export default function ProfileScreen() {
         </Text>
       </Card>
 
+      <Card variant="soft" className="p-4 border border-border">
+        <HStack className="items-center justify-between gap-3">
+          <HStack className="items-center gap-3 flex-1">
+            <Box className="h-10 w-10 rounded-xl bg-amber-100 items-center justify-center">
+              <Crown size={18} color="#B7791F" />
+            </Box>
+            <VStack space="xs" className="flex-1">
+              <Text size="xs" bold className="text-muted-foreground uppercase tracking-wider font-mono">Karma League</Text>
+              <Text bold className="font-heading">Silver League · 640 pts</Text>
+              <Text size="xs" className="text-muted-foreground font-body">160 points to Gold · 3/5 actions</Text>
+            </VStack>
+          </HStack>
+          <Button size="sm" variant="outline" onPress={() => router.push("/league")}>View</Button>
+        </HStack>
+      </Card>
+
       <VStack space="sm">
         <Text bold size="sm" className="font-heading">Badges</Text>
         <Box className="flex-row flex-wrap gap-2">
@@ -172,6 +189,13 @@ export default function ProfileScreen() {
           onPress={() => router.push("/rewards")}
         >
           Rewards
+        </Button>
+        <Button
+          variant="outline"
+          className="flex-1"
+          onPress={() => router.push("/community")}
+        >
+          Community
         </Button>
         <Button
           className="flex-1"

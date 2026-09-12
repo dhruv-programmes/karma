@@ -517,3 +517,72 @@ export interface BaselineSyncPayload {
   totalKg: number;
   provisional: number;
 }
+
+export type LeaderboardMetric = "impact_points" | "kcs";
+export type LeaderboardScope = "global" | "friends";
+
+export interface LeaderboardEntry {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_url?: string | null;
+  impact_points: number;
+  carbon_score: number;
+  score_state?: "provisional" | "verified";
+  rank: number;
+  is_current_user?: boolean;
+}
+
+export interface FriendResult {
+  id: string;
+  username: string;
+  display_name: string;
+  impact_points: number;
+  carbon_score: number;
+  is_friend: boolean;
+  is_current_user?: boolean;
+}
+
+export type ChallengePeriod = "daily" | "weekly" | "monthly";
+
+export interface Challenge {
+  id: string;
+  title: string;
+  description: string;
+  action_label: string;
+  period: ChallengePeriod;
+  progress: number;
+  target: number;
+  reward_points: number;
+  completed: boolean;
+  claimed?: boolean;
+  category?: string;
+  expires_at?: string | null;
+}
+
+/** Competitive season track. League points are intentionally separate from KCS and Karma Coins. */
+export type LeagueTier = "bronze" | "silver" | "gold" | "platinum";
+
+export type LeaguePromotionStatus = "holding" | "promoted" | "at_risk";
+
+export interface LeagueStanding {
+  id: string;
+  display_name: string;
+  username: string;
+  league_points: number;
+  rank: number;
+  is_current_user?: boolean;
+}
+
+export interface LeagueSummary {
+  tier: LeagueTier;
+  league_name: string;
+  league_points: number;
+  promotion_threshold: number | null;
+  weekly_actions_completed: number;
+  weekly_actions_target: number;
+  promotion_status: LeaguePromotionStatus;
+  season_label: string;
+  demotion_note: string;
+  standings: LeagueStanding[];
+}

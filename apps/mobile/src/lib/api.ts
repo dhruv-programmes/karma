@@ -6,6 +6,8 @@ import type {
   AuthResponse,
   Badge,
   BaselineSyncPayload,
+  Challenge,
+  ChallengePeriod,
   CircularOptionsResponse,
   CommuteSummary,
   CommuteTripRequest,
@@ -13,12 +15,18 @@ import type {
   CompletedActionResult,
   DemoUserSummary,
   Facility,
+  FriendResult,
   ImpactBreakdown,
   OffsetProject,
   OffsetPurchaseResult,
   Product,
   ReceiptParseResult,
   Recommendation,
+  LeaderboardEntry,
+  LeaderboardMetric,
+  LeaderboardScope,
+  LeagueSummary,
+  LeagueTier,
   RedeemResult,
   Reward,
   ScoreResponse,
@@ -35,6 +43,24 @@ const DEFAULT_REQUEST_TIMEOUT_MS = 8_000;
 // Password verification deliberately uses a slow KDF. Give authentication a
 // realistic window without making every read request feel unresponsive.
 const AUTH_REQUEST_TIMEOUT_MS = 15_000;
+
+const DEMO_LEAGUE: LeagueSummary = {
+  tier: "silver",
+  league_name: "Silver League",
+  league_points: 640,
+  promotion_threshold: 800,
+  weekly_actions_completed: 3,
+  weekly_actions_target: 5,
+  promotion_status: "holding",
+  season_label: "September season",
+  demotion_note: "On the first day of each month, every league drops one tier. Bronze is protected.",
+  standings: [
+    { id: "rohan", display_name: "Rohan Mehta", username: "rohan.loop", league_points: 910, rank: 1 },
+    { id: "maya", display_name: "Maya Green", username: "maya.green", league_points: 760, rank: 2 },
+    { id: "aisha", display_name: "Aisha Sharma", username: "aisha.loop", league_points: 640, rank: 3, is_current_user: true },
+    { id: "dev", display_name: "Dev Kapoor", username: "dev.reuse", league_points: 520, rank: 4 },
+  ],
+};
 
 function resolveDevHost(): string | null {
   const hostUri =
@@ -442,6 +468,84 @@ export const api = {  // Authentication
       loop_level: number;
       offset_kg_total: number;
     }>("/api/v1/profile/circularity-score"),
+
+  // Social competition. These endpoints are optional during rollout; the
+  // screen supplies an offline demo state until the API is deployed.
+  getLeaderboard: (scope: LeaderboardScope, metric: LeaderboardMetric) =>
+    request<any>(`/api/v1/leaderboard?scope=${scope}&metric=${metric === "impact_points" ? "reward_points" : "carbon_credit_score"}`)
+      .then((raw) => (Array.isArray(raw) ? raw : raw?.entries ?? []).map((item: any, index: number) => ({
+        id: String(item.id ?? item.user_id ?? index),
+        username: String(item.username ?? "member"),
+        display_name: String(item.display_name ?? item.name ?? item.username ?? "Member"),
+        impact_points: Number(item.impact_points ?? item.reward_points ?? 0),
+        carbon_score: Number(item.carbon_score ?? item.carbon_credit_score ?? 650),
+        rank: Number(item.rank ?? index + 1),
+        is_current_user: Boolean(item.is_current_user),
+      } as LeaderboardEntry))),
+  searchFriends: (username: string) =>
+    request<any[]>(`/api/v1/users/search?q=${encodeURIComponent(username)}`).then((items) => items.map((item: any) => ({
+      id: String(item.id), username: String(item.username ?? ""), display_name: String(item.display_name ?? item.name ?? "Member"),
+      impact_points: Number(item.impact_points ?? 0), carbon_score: Number(item.carbon_score ?? 650), is_friend: item.status === "accepted",
+    } as FriendResult))),
+  addFriend: (username: string) =>
+    request<FriendResult>(`/api/v1/friends/${encodeURIComponent(username)}`, { method: "POST" }),
+  removeFriend: (username: string) =>
+    request<{ status: string }>(`/api/v1/friends/${encodeURIComponent(username)}`, {
+      method: "DELETE",
+    }),
+  getChallenges: (period: ChallengePeriod) =>
+    request<any[]>(`/api/v1/challenges?cadence=${period}`).then((items) => items.map((item: any) => ({
+      id: String(item.id), title: String(item.title), description: String(item.description ?? ""),
+      action_label: String(item.action_label ?? "Complete challenge"), period: (item.period ?? item.cadence) as ChallengePeriod,
+      progress: Number(item.progress?.progress ?? item.progress ?? 0), target: Number(item.progress?.goal_value ?? item.target ?? item.goal_value ?? 1),
+      reward_points: Number(item.reward_points ?? 0), completed: Boolean(item.progress?.completed ?? item.completed), claimed: Boolean(item.progress?.reward_awarded ?? item.claimed),
+    } as Challenge))),
+  claimChallenge: async (id: string) => {
+    try {
+      return await request<Challenge & { points_awarded: number }>(`/api/v1/challenges/${encodeURIComponent(id)}/claim`, { method: "POST" });
+    } catch {
+      return request<Challenge & { points_awarded: number }>(`/api/v1/challenges/${encodeURIComponent(id)}/complete`, { method: "POST" });
+    }
+  },
+
+  /** League APIs are optional while the season service rolls out; demo data keeps the UI useful offline. */
+  getLeague: async (): Promise<LeagueSummary> => {
+    try {
+      const remote = await request<any>("/api/v1/league/status");
+      const current = remote.current_league ?? {};
+      const standings = await api.getLeagueStandings();
+      const status = remote.promotion_status === "ready" ? "promoted" : "holding";
+      return {
+        ...DEMO_LEAGUE,
+        tier: (current.slug ?? DEMO_LEAGUE.tier) as LeagueTier,
+        league_name: `${current.display_name ?? "Bronze"} League`,
+        league_points: Number(remote.season_league_points ?? 0),
+        promotion_threshold: remote.promotion_threshold == null ? null : Number(remote.promotion_threshold),
+        weekly_actions_completed: Number(remote.weekly_action_count ?? 0),
+        promotion_status: status,
+        season_label: `${remote.season_key ?? "Current"} season`,
+        standings,
+      };
+    } catch {
+      return DEMO_LEAGUE;
+    }
+  },
+  getLeagueStandings: async (): Promise<LeagueSummary["standings"]> => {
+    try {
+      const remote = await request<any>("/api/v1/league/standings");
+      const entries = Array.isArray(remote) ? remote : (remote.entries ?? remote.standings ?? []);
+      return entries.map((entry: any) => ({
+        id: String(entry.user_id ?? entry.id),
+        display_name: String(entry.name ?? entry.display_name ?? "Member"),
+        username: String(entry.username ?? "member"),
+        league_points: Number(entry.season_league_points ?? entry.league_points ?? 0),
+        rank: Number(entry.rank ?? 0),
+        is_current_user: Boolean(entry.is_current_user),
+      }));
+    } catch {
+      return DEMO_LEAGUE.standings;
+    }
+  },
 
   // Products
   lookupBarcode: (barcode: string) =>

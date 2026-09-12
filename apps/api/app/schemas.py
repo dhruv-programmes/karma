@@ -117,6 +117,7 @@ class UserProfile(BaseModel):
     id: UUID
     name: str
     email: str
+    username: str | None = None
     circularity_score: int
     impact_points: int
     streak_days: int
@@ -134,6 +135,9 @@ class UserProfile(BaseModel):
     score_confidence: float = 0.4
     baseline_total_kg: float | None = None
     baseline_created_at: str | None = None
+    current_league: str = "bronze"
+    league_badge_id: str = "league_bronze"
+    league_season_points: int = 0
 
 
 class ImpactBreakdown(BaseModel):
@@ -379,6 +383,7 @@ class SignUpRequest(BaseModel):
     name: str
     email: str
     password: str
+    username: str | None = Field(default=None, min_length=3, max_length=80, pattern=r"^[A-Za-z0-9_.-]+$")
     monthly_budget_kg: float = 90.0
     persona: str | None = None
 
@@ -488,6 +493,127 @@ class SustainablePurchaseVerifyResponse(BaseModel):
     ownership: str = "Verified"
     verification: str = "Successful"
     is_mock: bool = True
+
+
+# ==========================================
+# FRIENDS, LEADERBOARD & RENEWABLE CHALLENGES
+# ==========================================
+
+
+class FriendSummary(BaseModel):
+    id: UUID
+    username: str
+    name: str
+    status: str = "accepted"
+
+
+class LeaderboardEntry(BaseModel):
+    rank: int
+    user_id: UUID
+    username: str
+    name: str
+    reward_points: int
+    carbon_credit_score: int
+    is_current_user: bool = False
+    is_friend: bool = False
+
+
+class LeaderboardResponse(BaseModel):
+    scope: str
+    metric: str
+    entries: list[LeaderboardEntry]
+    current_user_rank: int | None = None
+
+
+class ChallengeProgress(BaseModel):
+    progress: int
+    goal_value: int
+    completed: bool
+    reward_awarded: bool
+    period_key: str
+
+
+class ChallengeSummary(BaseModel):
+    id: UUID
+    slug: str
+    title: str
+    description: str
+    cadence: str
+    goal_kind: str
+    goal_value: int
+    reward_points: int
+    progress: ChallengeProgress
+
+
+class ChallengeProgressRequest(BaseModel):
+    progress: int = Field(ge=0)
+
+
+# ==========================================
+# MONTHLY LEAGUES (CCS ACTION POINTS)
+# ==========================================
+
+
+class LeagueActionRequest(BaseModel):
+    action_key: str = Field(min_length=1, max_length=160)
+    action_type: str = Field(min_length=1, max_length=50)
+    verified: bool = True
+    source: str = Field(default="app", max_length=50)
+    evidence: dict[str, Any] = Field(default_factory=dict)
+
+
+class LeagueActionSyncRequest(BaseModel):
+    actions: list[LeagueActionRequest] = Field(default_factory=list, max_length=100)
+
+
+class LeagueRolloverRequest(BaseModel):
+    # Internal QA/demo support; omitted by clients in normal operation.
+    evaluate_all: bool = True
+
+
+class LeagueStatusResponse(BaseModel):
+    current_league: dict[str, Any]
+    season_key: str
+    season_league_points: int
+    weekly_league_points: int
+    weekly_action_count: int
+    lifetime_best_league: str
+    next_league: str | None = None
+    next_league_display_name: str | None = None
+    promotion_threshold: int | None = None
+    points_to_next: int = 0
+    promotion_status: str
+    last_promotion_at: str | None = None
+    last_promotion_from: str | None = None
+    last_promotion_to: str | None = None
+    last_demotion_at: str | None = None
+    last_demotion_from: str | None = None
+    last_demotion_to: str | None = None
+    weekly_points_cap: int = 500
+    monthly_points_cap: int = 2500
+    league_config: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class LeagueStandingEntry(BaseModel):
+    rank: int
+    user_id: UUID
+    username: str
+    name: str
+    league: str
+    league_display_name: str
+    season_league_points: int
+    weekly_league_points: int
+    badge_id: str
+    badge_asset_url: str | None = None
+    is_current_user: bool = False
+    is_friend: bool = False
+
+
+class LeagueStandingsResponse(BaseModel):
+    scope: str
+    season_key: str
+    entries: list[LeagueStandingEntry]
+    current_user_rank: int | None = None
 
 
 # ==========================================

@@ -14,6 +14,7 @@ from app.config import settings
 from app.db.models import (
     ActivityEventModel,
     FacilityModel,
+    LeagueDefinitionModel,
     OffsetProjectModel,
     ProductModel,
     RecommendationModel,
@@ -25,6 +26,7 @@ from app.db.models import (
     UserDailyStepsModel,
     UserModel,
     UserOffsetPurchaseModel,
+    UserLeagueStateModel,
     UserProductModel,
     UserRewardRedemptionModel,
 )
@@ -487,6 +489,9 @@ def product_model_to_schema(p: ProductModel) -> Product:
 def user_model_to_profile(user: UserModel, db: Session | None = None) -> UserProfile:
     owned_ids: list[UUID] = []
     badge_ids: list[str] = []
+    current_league = "bronze"
+    league_badge_id = "league_bronze"
+    league_season_points = 0
 
     if db is not None:
         user_prods = (
@@ -502,6 +507,17 @@ def user_model_to_profile(user: UserModel, db: Session | None = None) -> UserPro
             .all()
         )
         badge_ids = [row[0] for row in badges]
+        league_state = db.query(UserLeagueStateModel).filter(
+            UserLeagueStateModel.user_id == user.id
+        ).first()
+        if league_state is not None:
+            current_league = league_state.current_league_slug or current_league
+            league_season_points = int(league_state.season_points or 0)
+            league_definition = db.query(LeagueDefinitionModel).filter(
+                LeagueDefinitionModel.slug == current_league
+            ).first()
+            if league_definition is not None:
+                league_badge_id = league_definition.badge_id
     else:
         owned_ids = [UUID(up.product_id) for up in user.user_products] if user.user_products else []
         badge_ids = [b.badge_id for b in user.badges] if user.badges else []
@@ -550,6 +566,7 @@ def user_model_to_profile(user: UserModel, db: Session | None = None) -> UserPro
         id=UUID(user.id),
         name=user.name,
         email=user.email,
+        username=getattr(user, "username", None) or user.email.split("@", 1)[0],
         circularity_score=user.circularity_score,
         impact_points=user.impact_points,
         streak_days=user.streak_days,
@@ -566,6 +583,9 @@ def user_model_to_profile(user: UserModel, db: Session | None = None) -> UserPro
         score_confidence=_conf,
         baseline_total_kg=_btotal,
         baseline_created_at=_bcreated,
+        current_league=current_league,
+        league_badge_id=league_badge_id,
+        league_season_points=league_season_points,
     )
 
 

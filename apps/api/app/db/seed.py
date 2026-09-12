@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import math
 from datetime import datetime, timezone
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Session
 
@@ -11,6 +11,10 @@ from app.auth.security import hash_password
 from app.config import settings
 from app.db.models import (
     ActivityEventModel,
+    ChallengeModel,
+    FriendConnectionModel,
+    LeagueDefinitionModel,
+    UserLeagueStateModel,
     FacilityModel,
     OffsetProjectModel,
     ProductModel,
@@ -25,6 +29,8 @@ from app.db.models import (
     UserRewardRedemptionModel,
     ensure_kcs_columns,
 )
+
+from app.services.leagues import LEAGUE_DEFINITIONS, season_key, week_key
 from app.engines.carbon import estimate_from_spend
 from app.engines.scoring import provisional_kcs
 from app.schemas import ProductCategory
@@ -54,6 +60,7 @@ DEMO_USER_DEFAULTS = (
     {
         "id": str(settings.demo_user_id),
         "name": "Aisha Sharma",
+        "username": "aisha-sharma",
         "email": "aisha@example.com",
         "circularity_score": 74,
         "impact_points": 420,
@@ -72,6 +79,7 @@ DEMO_USER_DEFAULTS = (
     {
         "id": "11111111-1111-1111-1111-111111111112",
         "name": "Rohan Patel",
+        "username": "rohan-patel",
         "email": "rohan@example.com",
         "circularity_score": 88,
         "impact_points": 850,
@@ -89,6 +97,7 @@ DEMO_USER_DEFAULTS = (
     {
         "id": "11111111-1111-1111-1111-111111111113",
         "name": "Maya Sen",
+        "username": "maya-sen",
         "email": "maya@example.com",
         "circularity_score": 52,
         "impact_points": 110,
@@ -104,6 +113,81 @@ DEMO_USER_DEFAULTS = (
         "baseline_created_at": "2026-03-01T00:00:00Z",
     },
 )
+
+
+def _backfill_usernames(db: Session) -> None:
+    """Assign stable public handles to pre-feature accounts."""
+    users = db.query(UserModel).order_by(UserModel.created_at.asc(), UserModel.id.asc()).all()
+    used: set[str] = set()
+    changed = False
+    for user in users:
+        current = (getattr(user, "username", None) or "").strip().lower()
+        if current and current not in used:
+            used.add(current)
+            continue
+        base = "-".join((user.name or "member").lower().split())
+        candidate = base or "member"
+        suffix = 2
+        while candidate in used:
+            candidate = f"{base}-{suffix}"
+            suffix += 1
+        user.username = candidate
+        used.add(candidate)
+        changed = True
+    if changed:
+        db.commit()
+
+
+def _seed_challenges_and_friendships(db: Session) -> None:
+    """Seed renewable challenge definitions and useful demo relationships."""
+    if db.query(ChallengeModel).count() == 0:
+        definitions = [
+            ("daily-walk", "Walk 2,000 steps", "Take a short walk and turn movement into measurable green impact.", "daily", "steps", 2000, 25),
+            ("weekly-repair", "Choose repair first", "Complete one repair or refurbishment action this week.", "weekly", "repair_action", 1, 100),
+            ("monthly-circular-actions", "A month of circular choices", "Complete five verified green actions this month.", "monthly", "green_actions", 5, 300),
+        ]
+        for slug, title, description, cadence, goal_kind, goal_value, reward_points in definitions:
+            db.add(ChallengeModel(
+                id=str(uuid4()), slug=slug, title=title, description=description,
+                cadence=cadence, goal_kind=goal_kind, goal_value=goal_value,
+                reward_points=reward_points, active=True,
+            ))
+        db.flush()
+
+    aisha = db.query(UserModel).filter(UserModel.username == "aisha-sharma").first()
+    rohan = db.query(UserModel).filter(UserModel.username == "rohan-patel").first()
+    if aisha and rohan:
+        for owner, friend in ((aisha.id, rohan.id), (rohan.id, aisha.id)):
+            if not db.query(FriendConnectionModel).filter_by(user_id=owner, friend_id=friend).first():
+                db.add(FriendConnectionModel(user_id=owner, friend_id=friend, status="accepted"))
+    db.commit()
+
+
+def _seed_league_definitions_and_states(db: Session) -> None:
+    """Seed balance/config metadata and attach a visible tier badge to demos."""
+    existing = {row.slug: row for row in db.query(LeagueDefinitionModel).all()}
+    for definition in LEAGUE_DEFINITIONS:
+        if definition["slug"] not in existing:
+            db.add(LeagueDefinitionModel(**definition))
+    db.flush()
+    # Keep the demo personas visually differentiated in the league UI while
+    # leaving their reward points and KCS values untouched.
+    seeded_leagues = {"aisha-sharma": "silver", "rohan-patel": "gold", "maya-sen": "bronze"}
+    current_season = season_key()
+    current_week = week_key()
+    for username, league in seeded_leagues.items():
+        user = db.query(UserModel).filter(UserModel.username == username).first()
+        if user is None:
+            continue
+        state = db.query(UserLeagueStateModel).filter(UserLeagueStateModel.user_id == user.id).first()
+        if state is None:
+            state = UserLeagueStateModel(
+                user_id=user.id, season_key=current_season, weekly_key=current_week,
+                current_league_slug=league, lifetime_best_league_slug=league,
+                season_points=0, weekly_league_points=0,
+            )
+            db.add(state)
+    db.commit()
 
 
 def _repair_demo_accounts(db: Session) -> None:
@@ -501,3 +585,6 @@ def seed_database_if_empty(db: Session) -> None:
     # pre-auth demo row with no credential. Repair those known fixtures after
     # the full seed path without assigning passwords to non-demo accounts.
     _repair_demo_accounts(db)
+    _backfill_usernames(db)
+    _seed_challenges_and_friendships(db)
+    _seed_league_definitions_and_states(db)

@@ -196,6 +196,25 @@ The current reset endpoint deletes the verification activity and subtracts point
 - Persistent client query/state invalidation after claim.
 - Explicit privacy/retention policy for uploaded documents.
 
+## 10A. Leaderboard and green challenges
+
+The new social layer is specified in `proof reading/leaderboard-challenges-spec.md` and currently exists as uncommitted implementation work.
+
+- Friends are searched by public username and stored as accepted `FriendConnectionModel` rows.
+- Leaderboards support `global` and `friends` scopes.
+- Ranking metrics are independent: reward/impact points versus Carbon Credit Score/KCS.
+- Challenges are renewable by period key (`daily`, `weekly`, `monthly`) and award impact points once per user/challenge/period.
+- Backend routes cover search, friend add/remove/list, leaderboard retrieval, challenge retrieval, progress, and completion.
+- Mobile route is `/leaderboard`, linked from Profile and Green Rewards, with offline/demo fallback data.
+
+This feature must preserve the same invariant as the rest of the app: challenge rewards increase `impact_points`; they do not alter KCS.
+
+## 10B. Monthly leagues
+
+Leagues are a separate gamification progression built on verified weekly CCS actions. The ladder is Bronze → Silver → Gold → Platinum. Each calendar month starts a new season: every user drops exactly one tier on the first authenticated league evaluation (Bronze is the floor), then can climb during that month through configurable league-point thresholds. League points are distinct from both reward points and KCS. The full lifecycle, anti-spam constraints, thresholds, and badge mapping are documented in `proof reading/leagues-gamification-spec.md`.
+
+Current implementation includes persistent league state, idempotent month rollover, action-event caps/diminishing returns, promotion thresholds, standings, and the generated badge assets under `assets/league-badges/`.
+
 ## 10. AI service
 
 `apps/ai` is a Next.js service on port 8001 using Vercel AI SDK and Google Gemini. It exposes document extraction, document chat, and confirmation routes. `POST /api/documents/confirm` proxies confirmed data into the FastAPI transaction/import flow. Required environment variable: `GOOGLE_GENERATIVE_AI_API_KEY`; optional `AI_MODEL` and `FASTAPI_BASE_URL`.

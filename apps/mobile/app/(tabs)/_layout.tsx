@@ -20,6 +20,7 @@ import {
   TicketPercent,
   Wrench,
   User,
+  Users,
   type LucideIcon,
 } from "lucide-react-native";
 import {
@@ -44,7 +45,7 @@ const LEFT_TABS: DockTab[] = [
 ];
 
 const RIGHT_TABS: DockTab[] = [
-  { name: "actions", label: "Actions", icon: ListChecks },
+  { name: "community", label: "Community", icon: Users },
 ];
 
 const MORE_DESTINATIONS = [
@@ -71,6 +72,14 @@ const MORE_DESTINATIONS = [
     icon: User,
     tint: "#93C5FD",
     soft: "rgba(147,197,253,0.16)",
+  },
+  {
+    name: "actions",
+    title: "Actions",
+    detail: "Your next circular actions",
+    icon: ListChecks,
+    tint: "#86EFAC",
+    soft: "rgba(134,239,172,0.16)",
   },
 ] as const;
 
@@ -135,7 +144,7 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
 
   const activeRoute = state.routes[state.index]?.name;
   const moreActive =
-    activeRoute === "impact" || activeRoute === "offers" || moreOpen;
+    activeRoute === "impact" || activeRoute === "offers" || activeRoute === "actions" || moreOpen;
 
   const openMore = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -463,6 +472,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" options={{ title: "Home" }} />
       <Tabs.Screen name="tools" options={{ title: "Tools" }} />
       <Tabs.Screen name="actions" options={{ title: "Actions" }} />
+      <Tabs.Screen name="community" options={{ title: "Community" }} />
       <Tabs.Screen name="impact" options={{ title: "Impact", href: null }} />
       <Tabs.Screen name="offers" options={{ title: "Offers", href: null }} />
       <Tabs.Screen name="profile" options={{ title: "Profile", href: null }} />

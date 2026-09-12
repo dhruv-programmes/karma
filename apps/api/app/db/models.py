@@ -30,6 +30,9 @@ class UserModel(Base):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
     name = Column(String(100), nullable=False)
     email = Column(String(255), unique=True, index=True, nullable=False)
+    # Public handle used by friend search.  Kept nullable for legacy SQLite
+    # databases; startup backfill assigns handles to existing accounts.
+    username = Column(String(80), unique=True, index=True, nullable=True)
     password_hash = Column(String(255), nullable=False)
     circularity_score = Column(Integer, default=70, nullable=False)
     impact_points = Column(Integer, default=0, nullable=False)
@@ -79,6 +82,22 @@ class UserModel(Base):
     )
     daily_commutes = relationship(
         "UserCommuteTripModel", back_populates="user", cascade="all, delete-orphan"
+    )
+    friend_links = relationship(
+        "FriendConnectionModel",
+        foreign_keys="FriendConnectionModel.user_id",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    challenge_progress = relationship(
+        "UserChallengeProgressModel", back_populates="user", cascade="all, delete-orphan"
+    )
+    league_state = relationship(
+        "UserLeagueStateModel", back_populates="user", uselist=False,
+        cascade="all, delete-orphan"
+    )
+    league_action_logs = relationship(
+        "LeagueActionLogModel", back_populates="user", cascade="all, delete-orphan"
     )
 
     @property
@@ -359,6 +378,157 @@ class UserCommuteTripModel(Base):
     user = relationship("UserModel", back_populates="daily_commutes")
 
 
+class FriendConnectionModel(Base):
+    """A one-way friend request/connection.
+
+    The service stores an accepted link in both directions, which keeps friend
+    leaderboard queries simple and makes removing a friend deterministic.
+    """
+
+    __tablename__ = "friend_connections"
+    __table_args__ = (UniqueConstraint("user_id", "friend_id", name="uq_friend_connection"),)
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    friend_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    status = Column(String(20), default="accepted", nullable=False)
+    created_at = Column(DateTime, default=_utcnow, nullable=False)
+
+    user = relationship("UserModel", foreign_keys=[user_id], back_populates="friend_links")
+    friend = relationship("UserModel", foreign_keys=[friend_id])
+
+
+class ChallengeModel(Base):
+    """A renewable green challenge definition."""
+
+    __tablename__ = "challenges"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    slug = Column(String(100), unique=True, nullable=False, index=True)
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=False)
+    cadence = Column(String(20), nullable=False)  # daily, weekly, monthly
+    goal_kind = Column(String(50), nullable=False)
+    goal_value = Column(Integer, nullable=False)
+    reward_points = Column(Integer, nullable=False)
+    active = Column(Boolean, default=True, nullable=False)
+    starts_on = Column(String(20), nullable=True)
+    ends_on = Column(String(20), nullable=True)
+    created_at = Column(DateTime, default=_utcnow, nullable=False)
+
+    progress = relationship(
+        "UserChallengeProgressModel", back_populates="challenge", cascade="all, delete-orphan"
+    )
+
+
+class UserChallengeProgressModel(Base):
+    """Per-user progress for one challenge period.
+
+    ``period_key`` makes daily/weekly/monthly challenges renewable without
+    deleting history, and the unique constraint makes reward claiming safe on
+    retries or multiple devices.
+    """
+
+    __tablename__ = "user_challenge_progress"
+    __table_args__ = (
+        UniqueConstraint("user_id", "challenge_id", "period_key", name="uq_user_challenge_period"),
+    )
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    challenge_id = Column(String(36), ForeignKey("challenges.id"), nullable=False, index=True)
+    period_key = Column(String(20), nullable=False, index=True)
+    progress = Column(Integer, default=0, nullable=False)
+    completed_at = Column(DateTime, nullable=True)
+    reward_awarded = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, default=_utcnow, nullable=False)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    user = relationship("UserModel", back_populates="challenge_progress")
+    challenge = relationship("ChallengeModel", back_populates="progress")
+
+
+class LeagueDefinitionModel(Base):
+    """Seeded configuration for a competitive CCS league.
+
+    Thresholds and presentation metadata live in the database so clients can
+    render the current rules without duplicating game-balance constants.
+    ``promotion_threshold`` is the accumulated season-point target for that
+    league; Bronze is the floor and therefore has no lower promotion target.
+    """
+
+    __tablename__ = "league_definitions"
+    __table_args__ = (
+        UniqueConstraint("slug", name="uq_league_definition_slug"),
+        UniqueConstraint("rank", name="uq_league_definition_rank"),
+    )
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    slug = Column(String(30), nullable=False, index=True)
+    display_name = Column(String(60), nullable=False)
+    rank = Column(Integer, nullable=False)
+    # Points required while the user is in this league to promote one tier.
+    # Platinum is the ceiling and stores 0.
+    promotion_threshold = Column(Integer, nullable=False, default=0)
+    weekly_points_cap = Column(Integer, default=500, nullable=False)
+    badge_id = Column(String(100), nullable=False)
+    badge_asset_url = Column(String(500), nullable=True)
+    color_hex = Column(String(20), nullable=False)
+    created_at = Column(DateTime, default=_utcnow, nullable=False)
+
+
+class UserLeagueStateModel(Base):
+    """The user's current monthly league season state."""
+
+    __tablename__ = "user_league_states"
+    __table_args__ = (UniqueConstraint("user_id", name="uq_user_league_state_user"),)
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    season_key = Column(String(7), nullable=False, index=True)
+    current_league_slug = Column(String(30), nullable=False, default="bronze")
+    season_points = Column(Integer, nullable=False, default=0)
+    weekly_league_points = Column(Integer, nullable=False, default=0)
+    weekly_key = Column(String(8), nullable=False, default="")
+    weekly_action_count = Column(Integer, nullable=False, default=0)
+    lifetime_best_league_slug = Column(String(30), nullable=False, default="bronze")
+    last_demotion_at = Column(DateTime, nullable=True)
+    last_demotion_from = Column(String(30), nullable=True)
+    last_demotion_to = Column(String(30), nullable=True)
+    last_promotion_at = Column(DateTime, nullable=True)
+    last_promotion_from = Column(String(30), nullable=True)
+    last_promotion_to = Column(String(30), nullable=True)
+    last_rollover_key = Column(String(7), nullable=True)
+    created_at = Column(DateTime, default=_utcnow, nullable=False)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    user = relationship("UserModel", back_populates="league_state")
+
+
+class LeagueActionLogModel(Base):
+    """Idempotent, verified action ledger used to award league points."""
+
+    __tablename__ = "league_action_logs"
+    __table_args__ = (
+        UniqueConstraint("user_id", "action_key", name="uq_league_action_user_key"),
+    )
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    action_key = Column(String(160), nullable=False)
+    action_type = Column(String(50), nullable=False)
+    source = Column(String(50), default="app", nullable=False)
+    evidence_json = Column(Text, default="{}", nullable=False)
+    verified = Column(Boolean, default=True, nullable=False)
+    week_key = Column(String(8), nullable=False, index=True)
+    season_key = Column(String(7), nullable=False, index=True)
+    base_points = Column(Integer, nullable=False)
+    awarded_points = Column(Integer, nullable=False)
+    created_at = Column(DateTime, default=_utcnow, nullable=False)
+
+    user = relationship("UserModel", back_populates="league_action_logs")
+
+
 
 # --- Lightweight SQLite migrations (no Alembic) ---
 # Base.metadata.create_all() does not ADD columns to an existing table. Keep
@@ -370,6 +540,7 @@ USER_MIGRATION_COLUMNS: dict[str, str] = {
     # known demo accounts below, while legacy non-demo accounts must use a
     # password-reset flow rather than silently receiving a password.
     "password_hash": "VARCHAR(255)",
+    "username": "VARCHAR(80)",
     "provisional_score": "INTEGER",
     "verified_score": "INTEGER",
     "score_confidence": "FLOAT",

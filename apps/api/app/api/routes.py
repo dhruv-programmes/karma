@@ -18,6 +18,7 @@ from app.auth.security import (
 from app.config import settings
 from app.db.models import (
     ActivityEventModel,
+    ChallengeModel,
     OffsetProjectModel,
     ProductModel,
     RewardModel,
@@ -37,6 +38,12 @@ from app.schemas import (
     CommuteSummaryResponse,
     CommuteTripRequest,
     CommuteTripResult,
+    ChallengeProgressRequest,
+    LeagueActionRequest,
+    LeagueActionSyncRequest,
+    LeagueRolloverRequest,
+    LeagueStatusResponse,
+    LeagueStandingsResponse,
     CompletedActionResult,
     DataMeterResponse,
     DemoUserSummary,
@@ -66,6 +73,8 @@ from app.schemas import (
 from app.seed.data import PHONE_ID
 from app.services import core as services
 from app.services import solar as solar_service
+from app.services import leaderboard as leaderboard_service
+from app.services import leagues as league_service
 
 router = APIRouter(prefix="/api/v1")
 
@@ -90,12 +99,23 @@ def signup(body: SignUpRequest, db: Session = Depends(get_db)):
             detail="An account with this email already exists",
         )
 
+    requested_username = (body.username or body.name).strip().lower().replace(" ", "-")
+    username_taken = db.query(UserModel).filter(UserModel.username == requested_username).first()
+    if username_taken:
+        if body.username:
+            raise HTTPException(status_code=400, detail="That username is already taken")
+        base_username = requested_username
+        suffix = 2
+        while db.query(UserModel).filter(UserModel.username == requested_username).first():
+            requested_username = f"{base_username}-{suffix}"
+            suffix += 1
     user_id = str(uuid4())
     _now_iso = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
     user = UserModel(
         id=user_id,
         name=body.name.strip(),
         email=email_clean,
+        username=requested_username,
         password_hash=hash_password(body.password),
         circularity_score=68,
         impact_points=100,
@@ -261,6 +281,165 @@ def circularity_score(
         "loop_level": current_user.loop_level,
         "offset_kg_total": current_user.offset_kg_total,
     }
+
+
+# ==========================================
+# FRIENDS, LEADERBOARD & CHALLENGES
+# ==========================================
+
+
+@router.get("/users/search")
+def search_users(
+    q: str = Query(..., min_length=1, max_length=80),
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return leaderboard_service.search_users(db, q, current_user)
+
+
+@router.get("/friends")
+def friends(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return leaderboard_service.list_friends(db, current_user)
+
+
+@router.post("/friends/{username}")
+def add_friend(
+    username: str,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        return leaderboard_service.add_friend(db, current_user, username)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.delete("/friends/{username}")
+def remove_friend(
+    username: str,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    leaderboard_service.remove_friend(db, current_user, username)
+    return {"status": "removed"}
+
+
+@router.get("/leaderboard")
+def get_leaderboard(
+    scope: str = Query("global", pattern="^(global|friends)$"),
+    metric: str = Query("reward_points", pattern="^(reward_points|carbon_credit_score)$"),
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return leaderboard_service.leaderboard(db, current_user, scope, metric)
+
+
+@router.get("/challenges")
+def get_challenges(
+    cadence: str | None = Query(default=None, pattern="^(daily|weekly|monthly)$"),
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return leaderboard_service.list_challenges(db, current_user, cadence)
+
+
+@router.post("/challenges/{challenge_id}/progress")
+def update_challenge(
+    challenge_id: UUID,
+    body: ChallengeProgressRequest,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        return leaderboard_service.update_challenge_progress(db, current_user, challenge_id, body.progress)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/challenges/{challenge_id}/complete")
+def complete_challenge(
+    challenge_id: UUID,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Convenience endpoint for UI actions that complete a challenge at once."""
+    try:
+        challenge = db.query(ChallengeModel).filter(ChallengeModel.id == str(challenge_id)).first()
+        if challenge is None:
+            raise ValueError("Challenge not found")
+        return leaderboard_service.update_challenge_progress(db, current_user, challenge_id, challenge.goal_value)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+# ==========================================
+# MONTHLY CCS-ACTION LEAGUES
+# ==========================================
+
+
+@router.get("/league/status", response_model=LeagueStatusResponse)
+@router.get("/leagues/me", response_model=LeagueStatusResponse)
+def get_league_status(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return league_service.get_status(db, current_user)
+
+
+@router.get("/league/standings", response_model=LeagueStandingsResponse)
+@router.get("/leagues/standings", response_model=LeagueStandingsResponse)
+def get_league_standings(
+    scope: str = Query("global", pattern="^(global|friends)$"),
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        return league_service.standings(db, current_user, scope)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/league/actions", response_model=LeagueStatusResponse)
+@router.post("/leagues/actions/record")
+def record_league_action(
+    body: LeagueActionRequest,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        return league_service.record_action(db, current_user, **body.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/league/actions/sync")
+@router.post("/leagues/actions/sync")
+def sync_league_actions(
+    body: LeagueActionSyncRequest,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        actions = [item.model_dump() for item in body.actions]
+        return league_service.sync_actions(db, current_user, actions)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/league/rollover")
+@router.post("/leagues/rollover")
+def evaluate_league_rollover(
+    body: LeagueRolloverRequest | None = None,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # Rollover is deliberately request-driven rather than scheduler-driven.
+    count = league_service.rollover_all(db)
+    return {"status": "evaluated", "users_evaluated": count,
+            "league": league_service.get_status(db, current_user)}
 
 
 # ==========================================

@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   ChevronRight,
   Coins,
+  Crown,
   Footprints,
   Leaf,
   Navigation,
@@ -611,6 +612,17 @@ export default function HomeScreen() {
 
         {/* ── CONTENT SHEET ─────────────────────────────── */}
         <View style={styles.sheet}>
+          {/* ── LEAGUE SNAPSHOT ── */}
+          <TouchableOpacity style={styles.leagueMiniCard} onPress={() => router.push("/league")} activeOpacity={0.86}>
+            <View style={styles.leagueMiniBadge}><Crown size={18} color="#D58B19" /></View>
+            <View style={styles.leagueMiniCopy}>
+              <Text style={styles.leagueMiniEyebrow}>KARMA LEAGUE</Text>
+              <Text style={styles.leagueMiniTitle}>Silver League · 640 pts</Text>
+              <Text style={styles.leagueMiniHint}>160 points to Gold · 3/5 weekly actions</Text>
+            </View>
+            <ChevronRight size={18} color="#2EA86E" />
+          </TouchableOpacity>
+
           {/* ── WALK & EARN ── */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Walk & Earn</Text>
@@ -1171,6 +1183,21 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     gap: 24,
   },
+  leagueMiniCard: {
+    backgroundColor: "#FFF9EC",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#F0D898",
+    padding: 13,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  leagueMiniBadge: { width: 40, height: 40, borderRadius: 13, backgroundColor: "#FFF0C9", alignItems: "center", justifyContent: "center" },
+  leagueMiniCopy: { flex: 1, gap: 2 },
+  leagueMiniEyebrow: { color: "#A46C13", fontSize: 9, fontFamily: "Nunito_800ExtraBold", letterSpacing: 1.1 },
+  leagueMiniTitle: { color: "#183222", fontSize: 14, fontFamily: "Nunito_800ExtraBold" },
+  leagueMiniHint: { color: "#8F774C", fontSize: 10, fontFamily: "Nunito_600SemiBold" },
 
   // Walking rewards
   walkCard: {

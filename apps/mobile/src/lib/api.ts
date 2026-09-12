@@ -20,6 +20,8 @@ import type {
   Reward,
   ScoreResponse,
   ScoreState,
+  SolarImpactResponse,
+  SolarRecommendationStatus,
   StepSummary,
   Transaction,
   UserProfile,
@@ -217,6 +219,107 @@ export function normalizeStepSummary(raw: any): StepSummary {
   };
 }
 
+/** Normalize the Solar Impact dashboard contract, allowing backend snake_case during rollout. */
+export function normalizeSolarImpact(raw: any): SolarImpactResponse {
+  const src = raw && typeof raw === "object" ? raw : {};
+  const pick = (...keys: string[]) => keys.reduce((value, key) => value ?? src[key], undefined as any);
+  const num = (value: unknown, fallback = 0) => typeof value === "number" && Number.isFinite(value) ? value : fallback;
+  const live = pick("live", "live_energy_flow", "energy_flow", "live_flow") ?? {};
+  const financial = pick("financial", "financial_impact") ?? {};
+  const forecast = pick("forecast", "tomorrow_forecast") ?? {};
+  const comparison = pick("comparison", "before_vs_optimized") ?? {};
+  const current = comparison.current ?? {};
+  const optimized = comparison.optimized ?? {};
+  const score = pick("solarScore", "solar_score");
+  const list = (value: unknown) => Array.isArray(value) ? value : [];
+  return {
+    date: String(pick("date") ?? new Date().toISOString().slice(0, 10)),
+    location: String(pick("location") ?? "Ahmedabad"),
+    systemSizeKw: num(pick("systemSizeKw", "system_size_kw"), 5),
+    generatedKwh: num(pick("generatedKwh", "generated_kwh"), 20.4),
+    consumedKwh: num(pick("consumedKwh", "consumed_kwh", "directly_consumed_kwh"), 12.8),
+    exportedKwh: num(pick("exportedKwh", "exported_kwh"), 7.6),
+    gridImportedKwh: num(pick("gridImportedKwh", "grid_imported_kwh"), 4.3),
+    householdConsumptionKwh: num(pick("householdConsumptionKwh", "household_consumption_kwh"), 17.1),
+    selfConsumptionPct: num(pick("selfConsumptionPct", "self_consumption_pct"), 62.7),
+    solarContributionPct: num(pick("solarContributionPct", "solar_contribution_pct"), 74.9),
+    co2AvoidedKg: num(pick("co2AvoidedKg", "co2_avoided_kg"), 7.4),
+    moneySavedInr: num(pick("moneySavedInr", "money_saved_inr", "estimated_savings_inr"), 118),
+    greenPoints: num(pick("greenPoints", "green_points", "green_points_earned"), 75),
+    solarScore: num(typeof score === "object" ? score?.score : score, 78),
+    scoreBreakdown: list(pick("scoreBreakdown", "score_breakdown") ?? (score && typeof score === "object" ? Object.entries(score.components ?? {}).map(([label, value]) => ({ label, value })) : [])).map((item: any) => ({
+      label: String(item?.label ?? item?.name ?? "Metric"),
+      value: num(item?.value, 0),
+    })),
+    live: {
+      solarKw: num(live.solarKw ?? live.solar_kw ?? live.generation_kw ?? live.solar_generation_kw, 3.8),
+      homeKw: num(live.homeKw ?? live.home_kw ?? live.usage_kw ?? live.home_usage_kw, 2.4),
+      gridExportKw: num(live.gridExportKw ?? live.grid_export_kw ?? live.export_kw, 1.4),
+      gridImportKw: num(live.gridImportKw ?? live.grid_import_kw ?? live.import_kw),
+      batteryKw: num(live.batteryKw ?? live.battery_kw),
+      evKw: num(live.evKw ?? live.ev_kw),
+    },
+    hourly: list(pick("hourly", "hourly_data", "hourly_series")).map((point: any, index: number) => ({
+      label: String(point?.label ?? point?.time ?? point?.hour ?? `${index + 6}:00`),
+      solarKwh: num(point?.solarKwh ?? point?.solar_kwh ?? point?.solar_generation_kwh),
+      consumptionKwh: num(point?.consumptionKwh ?? point?.consumption_kwh ?? point?.load_kwh ?? point?.home_consumption_kwh),
+      gridImportKwh: num(point?.gridImportKwh ?? point?.grid_import_kwh),
+      gridExportKwh: num(point?.gridExportKwh ?? point?.grid_export_kwh),
+    })),
+    recommendations: list(pick("recommendations")).map((item: any, index: number) => ({
+      id: String(item?.id ?? `solar-rec-${index + 1}`),
+      title: String(item?.title ?? "Use more solar during the day"),
+      body: String(item?.body ?? item?.description ?? item?.subtitle ?? item?.explanation ?? "Shift flexible loads into the solar window."),
+      window: String(item?.window ?? item?.recommended_window ?? "12:30 PM – 3:00 PM"),
+      expectedSavingsInr: num(item?.expectedSavingsInr ?? item?.expected_savings_inr),
+      co2AvoidedKg: num(item?.co2AvoidedKg ?? item?.co2_avoided_kg),
+      points: num(item?.points ?? item?.green_points),
+      status: (item?.status ?? "suggested") as SolarRecommendationStatus,
+      action: item?.action ? String(item.action) : undefined,
+    })),
+    forecast: {
+      generatedKwh: num(forecast.generatedKwh ?? forecast.generated_kwh ?? forecast.expected_generation_kwh, 21.2),
+      peakWindow: String(forecast.peakWindow ?? forecast.peak_window ?? (forecast.peak_start && forecast.peak_end ? `${forecast.peak_start} – ${forecast.peak_end}` : "12:15 PM – 2:45 PM")),
+      weather: String(forecast.weather ?? "Mostly sunny"),
+      opportunity: String(forecast.opportunity ?? "High"),
+      message: String(forecast.message ?? forecast.advice ?? "Schedule EV charging, laundry and battery charging between 12 PM and 3 PM."),
+    },
+    financial: {
+      actualSavingsInr: num(financial.actualSavingsInr ?? financial.actual_savings_inr, num(pick("moneySavedInr", "money_saved_inr", "estimated_savings_inr"), 118)),
+      additionalSavingsInr: num(financial.additionalSavingsInr ?? financial.additional_savings_inr ?? financial.additional_possible_savings_inr, 34),
+      optimizedSavingsInr: num(financial.optimizedSavingsInr ?? financial.optimized_savings_inr ?? financial.potential_optimized_savings_inr, 152),
+      tariffInrPerKwh: num(financial.tariffInrPerKwh ?? financial.tariff_inr_per_kwh ?? financial.import_tariff_inr_per_kwh, 8),
+    },
+    rewards: list(pick("rewards", "green_rewards")).map((item: any) => ({
+      label: String(item?.label ?? item?.title ?? "Solar action"),
+      points: num(item?.points ?? item?.green_points),
+      unlocked: item?.unlocked !== false,
+    })),
+    comparison: {
+      current: {
+        generatedKwh: num(current.generatedKwh ?? current.generated_kwh, 20),
+        usedKwh: num(current.usedKwh ?? current.used_kwh ?? current.solar_used_kwh, 7),
+        exportedKwh: num(current.exportedKwh ?? current.exported_kwh, 13),
+        selfConsumptionPct: num(current.selfConsumptionPct ?? current.self_consumption_pct, 35),
+      },
+      optimized: {
+        generatedKwh: num(optimized.generatedKwh ?? optimized.generated_kwh, 20),
+        usedKwh: num(optimized.usedKwh ?? optimized.used_kwh ?? optimized.solar_used_kwh, 14),
+        exportedKwh: num(optimized.exportedKwh ?? optimized.exported_kwh, 6),
+        selfConsumptionPct: num(optimized.selfConsumptionPct ?? optimized.self_consumption_pct, 70),
+      },
+      additionalSavingsInr: num(comparison.additionalSavingsInr ?? comparison.additional_savings_inr, 42),
+      additionalCo2Kg: num(comparison.additionalCo2Kg ?? comparison.additional_co2_kg, 3.8),
+    },
+    timeline: list(pick("timeline", "impact_timeline")).map((item: any) => ({
+      time: String(item?.time ?? "Today"),
+      title: String(item?.title ?? "Solar surplus detected"),
+      detail: String(item?.detail ?? item?.description ?? ""),
+      points: item?.points == null ? undefined : num(item.points),
+    })),
+  };
+}
+
 export const api = {  // Authentication
   signin: (email: string, password = "password123") =>
     request<AuthResponse>("/api/v1/auth/signin", {
@@ -243,6 +346,18 @@ export const api = {  // Authentication
   getImpactTimeseries: () =>
     request<import("@/src/types/api").ImpactTimeseries>(
       "/api/v1/users/me/impact/timeseries"
+    ),
+  getSolarImpact: () =>
+    request<any>("/api/v1/users/me/solar-impact").then(normalizeSolarImpact),
+  acceptSolarRecommendation: (id: string) =>
+    request<{ recommendation_id: string; status: string; points_awarded: number; message: string }>(
+      `/api/v1/users/me/solar-impact/recommendations/${encodeURIComponent(id)}/accept`,
+      { method: "POST" }
+    ),
+  completeSolarRecommendation: (id: string) =>
+    request<{ recommendation_id: string; status: string; points_awarded: number; message: string }>(
+      `/api/v1/users/me/solar-impact/recommendations/${encodeURIComponent(id)}/complete`,
+      { method: "POST" }
     ),
   getActivity: () =>
     request<import("@/src/types/api").ActivityEvent[]>(

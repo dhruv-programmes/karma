@@ -461,3 +461,164 @@ class ScoreResponse(BaseModel):
 
 # DataMeterResponse is intentionally the same shape (alias OK)
 DataMeterResponse = ScoreResponse
+
+
+# ==========================================
+# Solar Intelligence + Green Rewards
+# ==========================================
+
+
+class SolarScoreComponents(BaseModel):
+    self_consumption: int
+    smart_load_shifting: int
+    solar_ev_charging: int
+    peak_grid_avoidance: int
+    consistency: int
+
+
+class SolarScore(BaseModel):
+    score: int
+    max_score: int = 100
+    components: SolarScoreComponents
+    is_product_score: bool = True
+    disclaimer: str = "Internal product score; not an industry certification."
+
+
+class SolarLiveFlow(BaseModel):
+    solar_generation_kw: float
+    home_usage_kw: float
+    grid_export_kw: float
+    grid_import_kw: float
+    battery_kw: float = 0.0
+    ev_kw: float = 0.0
+    is_demo: bool = True
+
+
+class SolarHourlyPoint(BaseModel):
+    hour: str
+    solar_generation_kwh: float
+    home_consumption_kwh: float
+    grid_import_kwh: float
+    grid_export_kwh: float
+
+
+class SolarForecast(BaseModel):
+    date: str
+    expected_generation_kwh: float
+    peak_start: str
+    peak_end: str
+    weather: str
+    opportunity: str
+    advice: str
+
+
+class SolarEnvironmentalImpact(BaseModel):
+    renewable_energy_used_kwh: float
+    grid_electricity_avoided_kwh: float
+    co2_avoided_kg: float
+    solar_exported_kwh: float
+    renewable_ev_charging_kwh: float
+    emissions_factor_kg_per_kwh: float
+    is_estimate: bool = True
+
+
+class SolarFinancialImpact(BaseModel):
+    actual_savings_inr: float
+    self_consumed_value_inr: float
+    export_value_inr: float
+    smart_load_shift_savings_inr: float
+    additional_possible_savings_inr: float
+    potential_optimized_savings_inr: float
+    import_tariff_inr_per_kwh: float
+    export_tariff_inr_per_kwh: float
+    tariff_source: str = "Demo household configuration"
+
+
+class SolarRewardEvent(BaseModel):
+    id: str
+    title: str
+    points: int
+    status: str
+    description: str
+
+
+class SolarRecommendation(BaseModel):
+    id: str
+    title: str
+    subtitle: str
+    status: str
+    recommended_window: str
+    action_kwh: float
+    expected_savings_inr: float
+    co2_avoided_kg: float
+    green_points: int
+    explanation: str
+
+
+class SolarComparisonSide(BaseModel):
+    generated_kwh: float
+    solar_used_kwh: float
+    exported_kwh: float
+    self_consumption_pct: float
+    grid_import_kwh: float
+
+
+class SolarImpactComparison(BaseModel):
+    current: SolarComparisonSide
+    optimized: SolarComparisonSide
+    additional_solar_used_kwh: float
+    self_consumption_improvement_pct_points: float
+    additional_savings_inr: float
+    additional_co2_avoided_kg: float
+
+
+class SolarTimelineEvent(BaseModel):
+    id: str
+    time: str
+    title: str
+    description: str
+    status: str
+    points: int = 0
+
+
+class SolarHousehold(BaseModel):
+    location: str
+    system_size_kw: float
+    appliances: list[str]
+    demo_mode: bool = True
+
+
+class SolarRecommendationActionResponse(BaseModel):
+    recommendation_id: str
+    status: str
+    points_awarded: int
+    message: str
+
+
+class SolarImpactResponse(BaseModel):
+    generated_kwh: float
+    directly_consumed_kwh: float
+    exported_kwh: float
+    grid_import_kwh: float
+    home_consumption_kwh: float
+    self_consumption_pct: float
+    solar_contribution_pct: float
+    co2_avoided_kg: float
+    estimated_savings_inr: float
+    green_points_earned: int
+    import_tariff_inr_per_kwh: float
+    export_tariff_inr_per_kwh: float
+    emissions_factor_kg_per_kwh: float
+    is_demo: bool = True
+    household: SolarHousehold
+    solar_score: SolarScore
+    live_flow: SolarLiveFlow
+    hourly_series: list[SolarHourlyPoint]
+    best_surplus_window: str
+    forecast: SolarForecast
+    environmental_impact: SolarEnvironmentalImpact
+    financial_impact: SolarFinancialImpact
+    rewards: list[SolarRewardEvent]
+    recommendations: list[SolarRecommendation]
+    comparison: SolarImpactComparison
+    timeline: list[SolarTimelineEvent]

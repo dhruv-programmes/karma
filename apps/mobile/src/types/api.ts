@@ -181,6 +181,83 @@ export interface ImpactTimeseries {
   previous_month_kg: number;
 }
 
+export type SolarRecommendationStatus =
+  | "suggested"
+  | "accepted"
+  | "in_progress"
+  | "completed"
+  | "partially_completed"
+  | "missed";
+
+export interface SolarHourlyPoint {
+  label: string;
+  solarKwh: number;
+  consumptionKwh: number;
+  gridImportKwh: number;
+  gridExportKwh: number;
+}
+
+export interface SolarRecommendation {
+  id: string;
+  title: string;
+  body: string;
+  window: string;
+  expectedSavingsInr: number;
+  co2AvoidedKg: number;
+  points: number;
+  status: SolarRecommendationStatus;
+  action?: string;
+}
+
+export interface SolarImpactResponse {
+  date: string;
+  location: string;
+  systemSizeKw: number;
+  generatedKwh: number;
+  consumedKwh: number;
+  exportedKwh: number;
+  gridImportedKwh: number;
+  householdConsumptionKwh: number;
+  selfConsumptionPct: number;
+  solarContributionPct: number;
+  co2AvoidedKg: number;
+  moneySavedInr: number;
+  greenPoints: number;
+  solarScore: number;
+  scoreBreakdown: { label: string; value: number }[];
+  live: {
+    solarKw: number;
+    homeKw: number;
+    gridExportKw: number;
+    gridImportKw: number;
+    batteryKw?: number;
+    evKw?: number;
+  };
+  hourly: SolarHourlyPoint[];
+  recommendations: SolarRecommendation[];
+  forecast: {
+    generatedKwh: number;
+    peakWindow: string;
+    weather: string;
+    opportunity: string;
+    message: string;
+  };
+  financial: {
+    actualSavingsInr: number;
+    additionalSavingsInr: number;
+    optimizedSavingsInr: number;
+    tariffInrPerKwh: number;
+  };
+  rewards: { label: string; points: number; unlocked?: boolean }[];
+  comparison: {
+    current: { generatedKwh: number; usedKwh: number; exportedKwh: number; selfConsumptionPct: number };
+    optimized: { generatedKwh: number; usedKwh: number; exportedKwh: number; selfConsumptionPct: number };
+    additionalSavingsInr: number;
+    additionalCo2Kg: number;
+  };
+  timeline: { time: string; title: string; detail: string; points?: number }[];
+}
+
 /** Daily walking rewards returned by the step-rewards API. */
 export interface StepSeriesPoint {
   label: string;

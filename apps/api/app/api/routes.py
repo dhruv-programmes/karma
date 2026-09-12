@@ -55,9 +55,12 @@ from app.schemas import (
     StepsMetricResponse,
     StepsSyncRequest,
     UserPreferences,
+    SolarImpactResponse,
+    SolarRecommendationActionResponse,
 )
 from app.seed.data import PHONE_ID
 from app.services import core as services
+from app.services import solar as solar_service
 
 router = APIRouter(prefix="/api/v1")
 
@@ -322,6 +325,45 @@ def sync_users_me_steps(
     db: Session = Depends(get_db),
 ):
     return services.sync_steps(body.steps, current_user, db)
+
+
+# ==========================================
+# IMPACT / SOLAR INTELLIGENCE + GREEN REWARDS
+# ==========================================
+
+
+@router.get("/users/me/solar-impact", response_model=SolarImpactResponse)
+@router.get("/users/me/impact/solar", response_model=SolarImpactResponse)
+def users_me_solar_impact(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return the demo household solar dashboard and current recommendation state."""
+    return solar_service.build_solar_impact(current_user, db)
+
+
+@router.post(
+    "/users/me/solar-impact/recommendations/{recommendation_id}/accept",
+    response_model=SolarRecommendationActionResponse,
+)
+def accept_solar_recommendation(
+    recommendation_id: str,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return solar_service.accept_recommendation(current_user, db, recommendation_id)
+
+
+@router.post(
+    "/users/me/solar-impact/recommendations/{recommendation_id}/complete",
+    response_model=SolarRecommendationActionResponse,
+)
+def complete_solar_recommendation(
+    recommendation_id: str,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return solar_service.complete_recommendation(current_user, db, recommendation_id)
 
 
 # ==========================================

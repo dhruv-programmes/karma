@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/src/lib/api";
 import { useAuthStore } from "@/src/store/auth";
-import type { ScoreResponse } from "@/src/types/api";
+import type { ScoreResponse, SolarImpactResponse } from "@/src/types/api";
 import {
   fallbackBadges,
   fallbackCloset,
@@ -13,6 +13,56 @@ import {
   fallbackScore,
   fallbackUser,
 } from "@/src/lib/fallbacks";
+
+const fallbackSolarImpact: SolarImpactResponse = {
+  date: "2026-09-12",
+  location: "Ahmedabad",
+  systemSizeKw: 5,
+  generatedKwh: 20.4,
+  consumedKwh: 12.8,
+  exportedKwh: 7.6,
+  gridImportedKwh: 4.3,
+  householdConsumptionKwh: 17.1,
+  selfConsumptionPct: 62.7,
+  solarContributionPct: 74.9,
+  co2AvoidedKg: 7.4,
+  moneySavedInr: 118,
+  greenPoints: 75,
+  solarScore: 78,
+  scoreBreakdown: [
+    { label: "Self-consumption", value: 82 },
+    { label: "Smart load shifting", value: 74 },
+    { label: "Solar EV charging", value: 91 },
+    { label: "Peak-grid reduction", value: 63 },
+  ],
+  live: { solarKw: 3.8, homeKw: 2.4, gridExportKw: 1.4, gridImportKw: 0 },
+  hourly: [
+    { label: "6 AM", solarKwh: 0.2, consumptionKwh: 1.1, gridImportKwh: 0.9, gridExportKwh: 0 },
+    { label: "9 AM", solarKwh: 2.1, consumptionKwh: 1.8, gridImportKwh: 0, gridExportKwh: 0.3 },
+    { label: "12 PM", solarKwh: 4.6, consumptionKwh: 2.1, gridImportKwh: 0, gridExportKwh: 2.5 },
+    { label: "3 PM", solarKwh: 3.9, consumptionKwh: 2.6, gridImportKwh: 0, gridExportKwh: 1.3 },
+    { label: "6 PM", solarKwh: 1.6, consumptionKwh: 3.3, gridImportKwh: 1.7, gridExportKwh: 0 },
+    { label: "9 PM", solarKwh: 0, consumptionKwh: 2.5, gridImportKwh: 2.5, gridExportKwh: 0 },
+  ],
+  recommendations: [
+    { id: "ev-solar", title: "Move EV charging to solar hours", body: "You normally charge around 8:00 PM. Shift 6.5 kWh into tomorrow's solar window.", window: "12:30 PM – 3:00 PM", expectedSavingsInr: 42, co2AvoidedKg: 3.8, points: 50, status: "suggested" },
+    { id: "laundry-solar", title: "Run laundry during the surplus window", body: "A midday cycle can use excess solar instead of grid electricity.", window: "1:00 PM – 2:30 PM", expectedSavingsInr: 15, co2AvoidedKg: 0.9, points: 15, status: "suggested" },
+  ],
+  forecast: { generatedKwh: 21.2, peakWindow: "12:15 PM – 2:45 PM", weather: "Mostly sunny", opportunity: "High", message: "Tomorrow is a good day to schedule EV charging, laundry and battery charging between 12 PM and 3 PM." },
+  financial: { actualSavingsInr: 118, additionalSavingsInr: 34, optimizedSavingsInr: 152, tariffInrPerKwh: 8 },
+  rewards: [
+    { label: "EV charged using solar", points: 40 },
+    { label: "Laundry shifted to solar peak", points: 15 },
+    { label: "70% self-consumption achieved", points: 25 },
+  ],
+  comparison: { current: { generatedKwh: 20, usedKwh: 7, exportedKwh: 13, selfConsumptionPct: 35 }, optimized: { generatedKwh: 20, usedKwh: 14, exportedKwh: 6, selfConsumptionPct: 70 }, additionalSavingsInr: 42, additionalCo2Kg: 3.8 },
+  timeline: [
+    { time: "12:20 PM", title: "Solar surplus detected", detail: "Excess generation is available for flexible loads." },
+    { time: "12:30 PM", title: "EV charging recommendation sent", detail: "Shift 6.5 kWh into the renewable window." },
+    { time: "1:05 PM", title: "Solar window started", detail: "The home is using solar before exporting the excess." },
+    { time: "2:45 PM", title: "+45 Green Points awarded", detail: "Solar-first behavior was verified.", points: 45 },
+  ],
+};
 
 async function withFallback<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
   try {
@@ -115,6 +165,31 @@ export function useImpactTimeseries() {
         previous_month_kg: 40,
       }),
   });
+}
+
+export function useSolarImpact() {
+  return useQuery({
+    queryKey: ["solar-impact"],
+    queryFn: () => withFallback(api.getSolarImpact, fallbackSolarImpact),
+    staleTime: 30_000,
+  });
+}
+
+export function useSolarRecommendationActions() {
+  const qc = useQueryClient();
+  const accept = useMutation({
+    mutationFn: (id: string) => api.acceptSolarRecommendation(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["solar-impact"] }),
+  });
+  const complete = useMutation({
+    mutationFn: (id: string) => api.completeSolarRecommendation(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["solar-impact"] });
+      qc.invalidateQueries({ queryKey: ["me"] });
+      qc.invalidateQueries({ queryKey: ["activity"] });
+    },
+  });
+  return { accept, complete };
 }
 
 export function useActivity() {

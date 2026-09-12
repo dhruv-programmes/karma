@@ -74,6 +74,9 @@ class UserModel(Base):
     daily_steps = relationship(
         "UserDailyStepsModel", back_populates="user", cascade="all, delete-orphan"
     )
+    solar_recommendations = relationship(
+        "SolarRecommendationStateModel", back_populates="user", cascade="all, delete-orphan"
+    )
 
     @property
     def preferences(self) -> dict:
@@ -309,6 +312,30 @@ class UserDailyStepsModel(Base):
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
 
     user = relationship("UserModel", back_populates="daily_steps")
+
+
+class SolarRecommendationStateModel(Base):
+    """Per-user state for the deterministic solar demo recommendations.
+
+    Solar rewards are Impact Points and are intentionally independent from KCS.
+    Keeping state in its own table makes accept/complete idempotent across
+    browser refreshes and multiple devices.
+    """
+
+    __tablename__ = "solar_recommendation_states"
+    __table_args__ = (
+        UniqueConstraint("user_id", "recommendation_id", name="uq_solar_rec_user_rec"),
+    )
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    recommendation_id = Column(String(100), nullable=False, index=True)
+    status = Column(String(30), default="suggested", nullable=False)
+    accepted_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    points_awarded = Column(Integer, default=0, nullable=False)
+
+    user = relationship("UserModel", back_populates="solar_recommendations")
 
 
 # --- Lightweight SQLite migrations (no Alembic) ---

@@ -28,17 +28,6 @@ import { VStack } from "@/components/ui/vstack";
 import { api } from "@/src/lib/api";
 import { useAuthStore } from "@/src/store/auth";
 
-function AppleLogo() {
-  return (
-    <Svg width={18} height={18} viewBox="0 0 170 170" fill="currentColor">
-      <Path
-        d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.08-7.7-7.93-12.04-14.55-6.08-9.28-10.9-19.98-14.44-32.09-3.55-12.11-5.32-23.74-5.32-34.89 0-14.9 3.83-27.12 11.49-36.66 7.66-9.54 17.1-14.37 28.32-14.51 4.58 0 9.87 1.25 15.86 3.75 5.99 2.5 9.77 3.79 11.34 3.87 1.34 0 5.34-1.37 12-4.11 6.66-2.73 12.44-3.99 17.34-3.77 12.87.64 23.36 5.48 31.47 14.51-11.22 6.85-16.71 16.29-16.48 28.32.22 9.54 3.83 17.43 10.83 23.67 7 6.24 15.22 9.78 24.66 10.63-2.22 6.74-4.89 13.34-8.01 19.8-3.12 6.46-6.27 12.35-9.46 17.67zM119.22 31.02c0-7.39 2.66-14.34 7.98-20.85 5.32-6.51 11.85-10.17 19.59-11 0 .98.05 2.01.16 3.1.11 1.09.16 2.06.16 2.93 0 7.39-2.61 14.28-7.83 20.67-5.22 6.39-11.95 10.05-20.19 10.97.11-1.95.13-3.89.13-5.82z"
-        fill="rgb(28,42,36)"
-      />
-    </Svg>
-  );
-}
-
 function GoogleLogo() {
   return (
     <Svg width={18} height={18} viewBox="0 0 48 48">
@@ -67,7 +56,6 @@ export default function AccountScreen() {
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
   const setOnboardingStep = useAuthStore((s) => s.setOnboardingStep);
-  const startDemo = useAuthStore((s) => s.startDemo);
 
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [name, setName] = useState("");
@@ -77,16 +65,15 @@ export default function AccountScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleContinueWithSocial(provider: "apple" | "google") {
+  async function handleContinueWithGoogle() {
     setLoading(true);
     setError(null);
     try {
-      const mockName = provider === "apple" ? "Apple User" : "Google User";
       const timestamp = Date.now();
-      const mockEmail = `${provider}.user.${timestamp}@carbonloop.app`;
+      const mockEmail = `google.user.${timestamp}@carbonloop.app`;
       // Call backend signup with default budget, marking onboarding incomplete
       const res = await api.signup({
-        name: mockName,
+        name: "Google User",
         email: mockEmail,
         password: "social-oauth-token-12345",
         monthly_budget_kg: 90,
@@ -98,8 +85,8 @@ export default function AccountScreen() {
       // Offline fallback: create guest authenticated profile
       const guestUser = {
         id: `guest-${Date.now()}`,
-        name: provider === "apple" ? "Apple Member" : "Google Member",
-        email: `${provider}@carbonloop.app`,
+        name: "Google Member",
+        email: "google@carbonloop.app",
         circularity_score: 642,
         impact_points: 0,
         streak_days: 1,
@@ -163,18 +150,7 @@ export default function AccountScreen() {
         >
           <ArrowLeft size={18} color="rgb(28,42,36)" />
         </Pressable>
-
-        <Pressable
-          onPress={() => {
-            startDemo();
-            router.replace("/(tabs)");
-          }}
-          hitSlop={8}
-        >
-          <Text size="xs" bold className="text-muted-foreground font-body">
-            Explore demo
-          </Text>
-        </Pressable>
+        <Box className="w-10 h-10" />
       </HStack>
 
       <ScrollView
@@ -201,21 +177,10 @@ export default function AccountScreen() {
           </Box>
         ) : null}
 
-        {/* Primary Social Options */}
-        <VStack space="sm" className="mt-2">
+        {/* Primary Social Option */}
+        <Box className="mt-2">
           <Pressable
-            onPress={() => handleContinueWithSocial("apple")}
-            disabled={loading}
-            className="w-full h-13 rounded-2xl bg-card border border-border flex-row items-center justify-center gap-3 active:bg-secondary/40"
-          >
-            <AppleLogo />
-            <Text bold size="sm" className="text-foreground font-body">
-              Continue with Apple
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => handleContinueWithSocial("google")}
+            onPress={handleContinueWithGoogle}
             disabled={loading}
             className="w-full h-13 rounded-2xl bg-card border border-border flex-row items-center justify-center gap-3 active:bg-secondary/40"
           >
@@ -224,7 +189,7 @@ export default function AccountScreen() {
               Continue with Google
             </Text>
           </Pressable>
-        </VStack>
+        </Box>
 
         {/* Divider */}
         <HStack className="items-center gap-3 my-1">

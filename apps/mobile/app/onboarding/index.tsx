@@ -22,7 +22,6 @@ export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const setOnboardingStep = useAuthStore((s) => s.setOnboardingStep);
-  const startDemo = useAuthStore((s) => s.startDemo);
 
   function handleGetStarted() {
     setOnboardingStep("account");
@@ -31,11 +30,6 @@ export default function WelcomeScreen() {
 
   function handleSignIn() {
     router.push("/auth/signin" as import("expo-router").Href);
-  }
-
-  function handleExploreDemo() {
-    startDemo();
-    router.replace("/(tabs)");
   }
 
   return (
@@ -62,12 +56,6 @@ export default function WelcomeScreen() {
               Carbon Loop
             </Text>
           </HStack>
-
-          <Pressable onPress={handleExploreDemo} hitSlop={12}>
-            <Text size="xs" bold className="text-muted-foreground font-body">
-              Explore demo
-            </Text>
-          </Pressable>
         </HStack>
 
         <VStack space="xs" className="mt-4">

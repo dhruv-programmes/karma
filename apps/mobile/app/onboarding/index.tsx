@@ -50,8 +50,8 @@ export default function WelcomeScreen() {
       <VStack space="lg">
         <HStack className="items-center justify-between">
           <Image
-            source={require("@/assets/karma-logo.png")}
-            style={{ width: 130, height: 138 }}
+            source={require("@/assets/karma-text.png")}
+            style={{ width: 120, height: 35 }}
             contentFit="contain"
           />
         </HStack>

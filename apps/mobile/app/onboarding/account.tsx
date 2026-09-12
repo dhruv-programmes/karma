@@ -152,8 +152,8 @@ export default function AccountScreen() {
           <ArrowLeft size={18} color="rgb(28,42,36)" />
         </Pressable>
         <Image
-          source={require("@/assets/karma-logo.png")}
-          style={{ width: 44, height: 46 }}
+          source={require("@/assets/karma-text.png")}
+          style={{ width: 90, height: 26 }}
           contentFit="contain"
         />
         <Box className="w-10 h-10" />

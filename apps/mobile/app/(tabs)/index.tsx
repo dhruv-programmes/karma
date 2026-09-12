@@ -1,6 +1,7 @@
 import React from "react";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Image } from "expo-image";
 import {
   ArrowRight,
   Camera,
@@ -90,9 +91,11 @@ export default function HomeScreen() {
       {/* Brand & Greeting Header */}
       <Box className="flex-row items-center justify-between">
         <VStack space="xs" className="flex-1">
-          <Text size="xs" bold className="text-primary tracking-widest uppercase font-mono">
-            Carbon Loop
-          </Text>
+          <Image
+            source={require("@/assets/karma-text.png")}
+            style={{ width: 80, height: 23 }}
+            contentFit="contain"
+          />
           <Heading size="2xl" className="font-heading text-foreground">
             {greeting()}, {displayName.split(" ")[0]}
           </Heading>

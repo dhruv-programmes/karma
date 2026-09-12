@@ -221,8 +221,8 @@ export default function SignInScreen() {
         </Pressable>
 
         <Image
-          source={require("@/assets/karma-logo.png")}
-          style={{ width: 44, height: 46 }}
+          source={require("@/assets/karma-text.png")}
+          style={{ width: 90, height: 26 }}
           contentFit="contain"
         />
 

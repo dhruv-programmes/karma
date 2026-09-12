@@ -53,8 +53,8 @@ export default function ToolsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#F8FAF8" },
-  title: { fontSize: 28, fontFamily: "Schoolbell_400Regular", color: "#0D1811" },
-  subtitle: { marginTop: 4, fontSize: 14, lineHeight: 20, fontFamily: "Schoolbell_400Regular", color: "#7A9082" },
+  title: { fontSize: 28, fontFamily: "Nunito_800ExtraBold", color: "#0D1811" },
+  subtitle: { marginTop: 4, fontSize: 14, lineHeight: 20, fontFamily: "Nunito_400Regular", color: "#7A9082" },
   grid: { marginTop: 24, gap: 14 },
   card: {
     minHeight: 112,
@@ -78,6 +78,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 12,
   },
-  cardTitle: { fontSize: 16, fontFamily: "Schoolbell_400Regular", color: "#183222" },
-  cardDetail: { marginTop: 3, fontSize: 12, fontFamily: "Schoolbell_400Regular", color: "#7A9082" },
+  cardTitle: { fontSize: 16, fontFamily: "Nunito_700Bold", color: "#183222" },
+  cardDetail: { marginTop: 3, fontSize: 12, fontFamily: "Nunito_400Regular", color: "#7A9082" },
 });

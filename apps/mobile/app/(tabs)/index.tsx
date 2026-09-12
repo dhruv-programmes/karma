@@ -65,7 +65,7 @@ function greeting() {
   return "Good evening";
 }
 
-/** Ring + label palette tuned for the forest-green hero (Apple-widget contrast). */
+/** Punchy ring palette that still sits cleanly on the forest-green hero. */
 function ratingInfo(score: number): {
   color: string;
   glowColor: string;
@@ -77,27 +77,27 @@ function ratingInfo(score: number): {
   const pct = kcsProgress(score);
   if (pct < 0.45) {
     return {
-      color: "#F5D08A",
-      glowColor: "#FFE4A8",
-      trackColor: "rgba(255,255,255,0.22)",
+      color: "#FFC857",
+      glowColor: "#FFE29A",
+      trackColor: "rgba(255,255,255,0.28)",
       label: "Needs Attention",
       message: "High Carbon Intensity",
       gradient: ["#0B3D2E", "#126B4A"],
     };
   } else if (pct < 0.70) {
     return {
-      color: "#C8F07A",
-      glowColor: "#E2FFA8",
-      trackColor: "rgba(255,255,255,0.22)",
+      color: "#C6FF4D",
+      glowColor: "#E7FF9A",
+      trackColor: "rgba(255,255,255,0.28)",
       label: "Making Progress",
       message: "On The Right Path",
       gradient: ["#0B3D2E", "#126B4A"],
     };
   } else {
     return {
-      color: "#8EF5C8",
-      glowColor: "#B8FFE0",
-      trackColor: "rgba(255,255,255,0.24)",
+      color: "#5EFFC0",
+      glowColor: "#B5FFE0",
+      trackColor: "rgba(255,255,255,0.3)",
       label: "Carbon Champion",
       message: "Great Sustainable Pace",
       gradient: ["#0B3D2E", "#1A8F5C"],
@@ -108,7 +108,7 @@ function ratingInfo(score: number): {
 function ScoreRing({
   score,
   color,
-  glowColor = "#5EEAD4",
+  glowColor = "#5EFFC0",
   trackColor,
   insight,
   label,
@@ -120,12 +120,15 @@ function ScoreRing({
   insight: string;
   label: string;
 }) {
-  const size = 260;
-  const stroke = 2.2;
-  const r = (size - 6) / 2;
+  // Outer box is larger than the stroke radius so glow/bead never get clipped.
+  const size = 272;
+  const strokeMax = 14;
+  const stroke = 2.6;
+  const r = (size - strokeMax) / 2;
   const c = 2 * Math.PI * r;
   const cx = size / 2;
   const cy = size / 2;
+  const disc = size - 18;
 
   // Match historical ring fill (f68d78f): animate to score/850 so mid-range
   // scores like 480 still show a visible progressing arc (KCS band mapping
@@ -166,78 +169,69 @@ function ScoreRing({
   });
 
   return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: "rgba(6, 32, 24, 0.42)",
-        borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.18)",
-        alignItems: "center",
-        justifyContent: "center",
-        shadowColor: "#041A12",
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.28,
-        shadowRadius: 24,
-        elevation: 8,
-      }}
-    >
-      {/* SVG Streak + Track */}
+    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+      {/* Fill disc only — keeps borderRadius from clipping the SVG stroke */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          width: disc,
+          height: disc,
+          borderRadius: disc / 2,
+          backgroundColor: "rgba(6, 32, 24, 0.5)",
+          borderWidth: 1,
+          borderColor: "rgba(255,255,255,0.22)",
+        }}
+      />
+
       <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-        {/* Full track — soft glass rail on green */}
         <Circle
           cx={cx}
           cy={cy}
           r={r}
           stroke={trackColor}
-          strokeWidth={11}
+          strokeWidth={10}
           fill="none"
-          opacity={1}
         />
-        {/* Inner hairline rim */}
         <Circle
           cx={cx}
           cy={cy}
           r={r}
-          stroke="rgba(255, 255, 255, 0.35)"
-          strokeWidth={1.25}
+          stroke="rgba(255,255,255,0.4)"
+          strokeWidth={1.4}
           fill="none"
         />
 
-        {/* Soft brand glow */}
         <AnimatedCircle
           cx={cx}
           cy={cy}
           r={r}
           stroke={glowColor}
-          strokeWidth={10}
+          strokeWidth={12}
           fill="none"
           strokeDasharray={`${c} ${c}`}
           animatedProps={animatedProps}
           strokeLinecap="round"
           rotation="-90"
           origin={`${cx}, ${cy}`}
-          opacity={0.35}
+          opacity={0.45}
         />
 
-        {/* Colored bloom — mint / lime / champagne */}
         <AnimatedCircle
           cx={cx}
           cy={cy}
           r={r}
           stroke={color}
-          strokeWidth={6}
+          strokeWidth={7}
           fill="none"
           strokeDasharray={`${c} ${c}`}
           animatedProps={animatedProps}
           strokeLinecap="round"
           rotation="-90"
           origin={`${cx}, ${cy}`}
-          opacity={0.92}
+          opacity={1}
         />
 
-        {/* Bright core streak */}
         <AnimatedCircle
           cx={cx}
           cy={cy}
@@ -254,7 +248,6 @@ function ScoreRing({
         />
       </Svg>
 
-      {/* Glowing Bead at the tip of the streak */}
       <Animated.View
         style={[
           {
@@ -276,7 +269,7 @@ function ScoreRing({
             height: 18,
             borderRadius: 9,
             backgroundColor: glowColor,
-            opacity: 0.55,
+            opacity: 0.65,
           }}
         />
         <View
@@ -286,7 +279,7 @@ function ScoreRing({
             height: 11,
             borderRadius: 5.5,
             backgroundColor: "#FFFFFF",
-            opacity: 0.9,
+            opacity: 0.95,
           }}
         />
         <View
@@ -295,20 +288,19 @@ function ScoreRing({
             height: 7,
             borderRadius: 3.5,
             backgroundColor: "#FFFFFF",
-            shadowColor: glowColor,
+            shadowColor: color,
             shadowOffset: { width: 0, height: 0 },
             shadowOpacity: 1,
-            shadowRadius: 5,
+            shadowRadius: 6,
             elevation: 4,
           }}
         />
       </Animated.View>
 
-      {/* Inner orb typography — high-contrast widget hierarchy */}
       <View
         style={{
-          width: size - 28,
-          maxWidth: size - 28,
+          width: disc - 24,
+          maxWidth: disc - 24,
           alignItems: "center",
           justifyContent: "center",
           paddingHorizontal: 10,
@@ -894,7 +886,13 @@ const styles = StyleSheet.create({
   hero: {
     paddingHorizontal: 24,
     paddingBottom: 32,
-    overflow: "hidden",
+    overflow: "visible",
+  },
+  ringContainer: {
+    alignItems: "center",
+    marginBottom: 28,
+    gap: 12,
+    overflow: "visible",
   },
 
   headerRow: {
@@ -937,11 +935,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontFamily: "Nunito_800ExtraBold",
     color: "#FFFFFF",
-  },
-  ringContainer: {
-    alignItems: "center",
-    marginBottom: 28,
-    gap: 12,
   },
   heroPillRow: {
     flexDirection: "row",

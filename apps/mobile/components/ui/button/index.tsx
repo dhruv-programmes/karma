@@ -49,15 +49,16 @@ export function Button({
   children,
   ...props
 }: ButtonProps) {
+  const isDisabled = Boolean(disabled || loading);
   return (
     <RNPressable
       accessibilityRole="button"
-      disabled={disabled || loading}
+      disabled={isDisabled}
       className={[
         "items-center justify-center flex-row min-w-0 overflow-hidden active:opacity-90",
         variantMap[variant],
         sizeMap[size],
-        disabled || loading ? "opacity-45" : "",
+        isDisabled ? "opacity-70" : "",
         className,
       ]
         .filter(Boolean)
@@ -65,7 +66,13 @@ export function Button({
       {...props}
     >
       {loading ? (
-        <ActivityIndicator color="rgb(var(--primary-foreground))" />
+        <ActivityIndicator
+          color={
+            variant === "outline" || variant === "ghost" || variant === "link"
+              ? "rgb(24, 50, 34)"
+              : "rgb(var(--primary-foreground))"
+          }
+        />
       ) : typeof children === "string" ? (
         <Text
           bold

@@ -4,6 +4,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Pressable,
   Image,
   Platform,
 } from "react-native";
@@ -386,14 +387,15 @@ function ToolCard({
   onPress: () => void;
 }) {
   return (
-    <TouchableOpacity
-      style={styles.toolCard}
+    <Pressable
+      style={({ pressed }) => [styles.toolCard, pressed && { opacity: 0.88 }]}
       onPress={onPress}
-      activeOpacity={0.85}
     >
       <View style={styles.toolIconBox}>{icon}</View>
-      <Text style={styles.toolLabel}>{label}</Text>
-    </TouchableOpacity>
+      <Text style={styles.toolLabel} numberOfLines={2}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -447,7 +449,7 @@ export default function HomeScreen() {
   const rating = ratingInfo(displayScore ?? KCS_MIN);
   const impactPoints = me.data?.impact_points ?? user?.impact_points ?? 0;
   const stepData = steps.data;
-  const isWeb = false;
+  const isWeb = Platform.OS === "web";
   const hasNativeStepData = !!stepData;
   const stepProgress = stepData
     ? Math.min(100, Math.round((stepData.todaySteps / stepData.targetSteps) * 100))
@@ -519,7 +521,7 @@ export default function HomeScreen() {
           <View
             style={[
               StyleSheet.absoluteFill,
-              { backgroundColor: "rgba(0,0,0,0.06)", pointerEvents: "none" },
+              { backgroundColor: "rgba(0,0,0,0.06)" },
             ]}
           />
 
@@ -651,14 +653,18 @@ export default function HomeScreen() {
                   <Footprints size={20} color="#2EA86E" strokeWidth={2} />
                 </View>
                 <View style={styles.walkHeaderCopy}>
-                  <Text style={styles.walkTitle}>Turn steps into Karma Coins</Text>
-                  <Text style={styles.walkRating}>
+                  <Text style={styles.walkTitle} numberOfLines={2}>
+                    Turn steps into Impact Points
+                  </Text>
+                  <Text style={styles.walkRating} numberOfLines={1}>
                     {hasNativeStepData ? stepData.rating : "Phone-only metric"}
                   </Text>
                 </View>
                 {hasNativeStepData ? (
                   <View style={styles.walkPointsBadge}>
-                    <Text style={styles.walkPointsText}>+{stepData.todayPoints} Karma Coins</Text>
+                    <Text style={styles.walkPointsText}>
+                      +{stepData.todayPoints} pts
+                    </Text>
                   </View>
                 ) : null}
               </View>
@@ -666,13 +672,23 @@ export default function HomeScreen() {
               {hasNativeStepData ? (
                 <>
                   <View style={styles.walkStepRow}>
-                    <Text style={styles.walkSteps}>{stepData.todaySteps.toLocaleString()}</Text>
-                    <Text style={styles.walkTarget}> / {stepData.targetSteps.toLocaleString()} steps</Text>
+                    <Text style={styles.walkSteps}>
+                      {stepData.todaySteps.toLocaleString()}
+                    </Text>
+                    <Text style={styles.walkTarget}>
+                      {" "}
+                      / {stepData.targetSteps.toLocaleString()} steps
+                    </Text>
                   </View>
                   <View style={styles.walkProgressTrack}>
-                    <View style={[styles.walkProgressFill, { width: `${stepProgress}%` }]} />
+                    <View
+                      style={[
+                        styles.walkProgressFill,
+                        { width: `${stepProgress}%` },
+                      ]}
+                    />
                   </View>
-                  <Text style={styles.walkDetail}>
+                  <Text style={styles.walkDetail} numberOfLines={2}>
                     {stepData.nextThreshold === null
                       ? "Daily walking reward unlocked."
                       : `${Math.max(0, stepData.nextThreshold - stepData.todaySteps).toLocaleString()} steps to your next reward`}
@@ -680,14 +696,25 @@ export default function HomeScreen() {
                   {stepData.series.length > 0 ? (
                     <View style={styles.stepSeries}>
                       {stepData.series.slice(-7).map((point) => (
-                        <View key={`${point.date}-${point.label}`} style={styles.stepSeriesItem}>
+                        <View
+                          key={`${point.date}-${point.label}`}
+                          style={styles.stepSeriesItem}
+                        >
                           <View
                             style={[
                               styles.stepSeriesBar,
-                              { height: 6 + Math.round((point.steps / maxSeriesSteps) * 24) },
+                              {
+                                height:
+                                  6 +
+                                  Math.round(
+                                    (point.steps / maxSeriesSteps) * 24
+                                  ),
+                              },
                             ]}
                           />
-                          <Text style={styles.stepSeriesLabel}>{point.label}</Text>
+                          <Text style={styles.stepSeriesLabel}>
+                            {point.label}
+                          </Text>
                         </View>
                       ))}
                     </View>
@@ -695,16 +722,25 @@ export default function HomeScreen() {
                 </>
               ) : null}
 
-              <Text style={styles.walkNotice}>{stepNotice}</Text>
-              <TouchableOpacity
-                style={[styles.walkCta, (isWeb || stepTracking.isSyncing) && styles.walkCtaMuted]}
+              <Text style={styles.walkNotice} numberOfLines={3}>
+                {stepNotice}
+              </Text>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.walkCta,
+                  (isWeb || stepTracking.isSyncing) && styles.walkCtaMuted,
+                  pressed && { opacity: 0.9 },
+                ]}
                 onPress={stepTracking.enableOrSync}
                 disabled={stepTracking.isSyncing}
-                activeOpacity={0.82}
               >
-                <Text style={styles.walkCtaText}>{stepCta}</Text>
-                {!isWeb ? <ArrowRight size={14} color="#FFFFFF" strokeWidth={2.5} /> : null}
-              </TouchableOpacity>
+                <Text style={styles.walkCtaText} numberOfLines={1}>
+                  {stepCta}
+                </Text>
+                {!isWeb ? (
+                  <ArrowRight size={14} color="#FFFFFF" strokeWidth={2.5} />
+                ) : null}
+              </Pressable>
             </View>
           </View>
 
@@ -843,8 +879,11 @@ export default function HomeScreen() {
           {/* ── NEXT BEST ACTION ── */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Your Next Best Action</Text>
-            <TouchableOpacity
-              style={styles.actionCard}
+            <Pressable
+              style={({ pressed }) => [
+                styles.actionCard,
+                pressed && { opacity: 0.92 },
+              ]}
               onPress={() =>
                 router.push({
                   pathname: "/map",
@@ -855,7 +894,6 @@ export default function HomeScreen() {
                   },
                 })
               }
-              activeOpacity={0.9}
             >
               <View style={styles.actionImpactBadge}>
                 <Text style={styles.actionImpactText}>
@@ -866,49 +904,52 @@ export default function HomeScreen() {
                 <View style={styles.actionIconBox}>
                   <Wrench size={20} color="#2EA86E" strokeWidth={2} />
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.actionTitle}>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={styles.actionTitle} numberOfLines={2}>
                     {best?.title || "Repair your old headphones"}
                   </Text>
-                  <Text style={styles.actionSubtitle}>
-                    {best?.subtitle || "Keep durable audio hardware out of landfills"}
+                  <Text style={styles.actionSubtitle} numberOfLines={2}>
+                    {best?.subtitle ||
+                      "Keep durable audio hardware out of landfills"}
                   </Text>
                 </View>
               </View>
               <View style={styles.actionCTA}>
-                <Text style={styles.actionCTAText}>Find a repair partner</Text>
-                <ArrowRight size={14} color="#0D1811" strokeWidth={2.5} />
+                <Text style={styles.actionCTAText} numberOfLines={1}>
+                  Find a repair partner
+                </Text>
+                <ArrowRight size={14} color="#FFFFFF" strokeWidth={2.5} />
               </View>
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
           {/* ── STAT TILES ── */}
           <View style={styles.tileRow}>
-            <View style={[styles.tile, { flex: 1 }]}>
-              <Text style={styles.tileLabel}>Karma Coins</Text>
-              <Text style={[styles.tileValue, { color: "#2EA86E" }]}>
-                {me.data?.impact_points ?? user?.impact_points ?? "—"}
-              </Text>
-              <Text style={styles.tileHint}>karma coins</Text>
+            <View style={[styles.tile, styles.tilePrimary]}>
+              <Text style={styles.tileLabelOnPrimary}>Karma Coins</Text>
+              <Text style={styles.tileValueOnPrimary}>{impactPoints}</Text>
+              <Text style={styles.tileHintOnPrimary}>available to redeem</Text>
             </View>
-            <View style={[styles.tile, { flex: 1 }]}>
+            <View style={styles.tile}>
               <Text style={styles.tileLabel}>Residual</Text>
-              <Text style={[styles.tileValue, { color: "#FFFFFF" }]}>
+              <Text style={styles.tileValue}>
                 ~{Math.round(impact.data?.residual_kg ?? 58)}
               </Text>
-              <Text style={styles.tileHint}>kg left this month</Text>
+              <Text style={styles.tileHint}>kg left</Text>
             </View>
-            <TouchableOpacity
-              style={[styles.tile, { flex: 1 }]}
+            <Pressable
+              style={({ pressed }) => [
+                styles.tile,
+                pressed && { opacity: 0.88 },
+              ]}
               onPress={() => router.push("/rewards")}
-              activeOpacity={0.8}
             >
               <Text style={styles.tileLabel}>Rewards</Text>
               <Text style={[styles.tileValue, { color: "#E8A838" }]}>2</Text>
-              <Text style={[styles.tileHint, { color: "#E8A838" }]}>
+              <Text style={[styles.tileHint, { color: "#C48A2A" }]}>
                 unlocked
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
           {/* ── FOOTPRINT TREND ── */}
@@ -930,37 +971,48 @@ export default function HomeScreen() {
           {(closet.data ?? []).length > 0 && (
             <View style={styles.section}>
               <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionLabel}>Loop Closet</Text>
-                <TouchableOpacity
+                <Text style={styles.sectionLabel} numberOfLines={1}>
+                  Loop Closet
+                </Text>
+                <Pressable
                   onPress={() => router.push("/(tabs)/actions")}
                   style={styles.seeAllBtn}
+                  hitSlop={8}
                 >
                   <Text style={styles.seeAllText}>See all</Text>
                   <ChevronRight size={13} color="#2EA86E" />
-                </TouchableOpacity>
+                </Pressable>
               </View>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 12 }}
+                contentContainerStyle={{ gap: 12, paddingRight: 4 }}
               >
                 {(closet.data ?? []).map((item) => (
-                  <TouchableOpacity
+                  <Pressable
                     key={item.id}
                     onPress={() => router.push(`/product/${item.id}`)}
-                    activeOpacity={0.85}
-                    style={styles.closetCard}
+                    style={({ pressed }) => [
+                      styles.closetCard,
+                      pressed && { opacity: 0.9 },
+                    ]}
                   >
-                    <ProductImage uri={item.image_url} size="full" radius={12} />
+                    <View style={styles.closetImageWrap}>
+                      <ProductImage
+                        uri={item.image_url}
+                        size="full"
+                        radius={12}
+                      />
+                    </View>
                     <Text style={styles.closetName} numberOfLines={2}>
                       {item.name}
                     </Text>
                     <View style={styles.closetChip}>
-                      <Text style={styles.closetChipText}>
+                      <Text style={styles.closetChipText} numberOfLines={1}>
                         {item.next_action_label || item.category}
                       </Text>
                     </View>
-                  </TouchableOpacity>
+                  </Pressable>
                 ))}
               </ScrollView>
             </View>
@@ -981,10 +1033,12 @@ export default function HomeScreen() {
                         : undefined,
                     ]}
                   >
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.activityTitle}>{ev.title}</Text>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={styles.activityTitle} numberOfLines={1}>
+                        {ev.title}
+                      </Text>
                       {ev.subtitle ? (
-                        <Text style={styles.activitySubtitle}>
+                        <Text style={styles.activitySubtitle} numberOfLines={1}>
                           {ev.subtitle}
                         </Text>
                       ) : null}
@@ -1020,7 +1074,7 @@ export default function HomeScreen() {
               />
               <ToolCard
                 icon={<Receipt size={20} color="#2EA86E" strokeWidth={1.8} />}
-                label="Import bill / receipt"
+                label="Import receipt"
                 onPress={() => router.push("/receipt")}
               />
               <ToolCard
@@ -1046,7 +1100,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#F8FAF8",
+    backgroundColor: "#F4FAF6",
   },
   hero: {
     paddingHorizontal: 24,
@@ -1194,13 +1248,13 @@ const styles = StyleSheet.create({
 
   // Sheet
   sheet: {
-    backgroundColor: "#F8FAF8",
+    backgroundColor: "#F4FAF6",
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     marginTop: -12,
     paddingHorizontal: 20,
     paddingTop: 24,
-    gap: 24,
+    gap: 22,
   },
   leagueMiniCard: {
     backgroundColor: "#FFF9EC",
@@ -1222,56 +1276,110 @@ const styles = StyleSheet.create({
 
   // Walking rewards
   walkCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.92)",
+    borderRadius: 22,
     padding: 16,
-    gap: 10,
-    borderWidth: 1,
+    gap: 12,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(46,168,110,0.16)",
-    boxShadow: "0px 2px 10px rgba(0,0,0,0.05)",
-    elevation: 2,
   },
   walkHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
   walkIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 13,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(46,168,110,0.11)",
+    backgroundColor: "rgba(46,168,110,0.12)",
   },
   walkHeaderCopy: { flex: 1, minWidth: 0 },
-  walkTitle: { fontSize: 14, fontFamily: "Nunito_700Bold", color: "#183222" },
-  walkRating: { marginTop: 1, fontSize: 11, fontFamily: "Nunito_600SemiBold", color: "#2EA86E" },
+  walkTitle: { fontSize: 15, fontFamily: "Nunito_700Bold", color: "#183222" },
+  walkRating: {
+    marginTop: 2,
+    fontSize: 11,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#2EA86E",
+  },
   walkPointsBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 10,
-    backgroundColor: "rgba(46,168,110,0.1)",
+    backgroundColor: "rgba(46,168,110,0.12)",
   },
-  walkPointsText: { fontSize: 11, fontFamily: "Nunito_700Bold", color: "#2EA86E" },
+  walkPointsText: {
+    fontSize: 11,
+    fontFamily: "Nunito_700Bold",
+    color: "#1B7A4E",
+  },
   walkStepRow: { flexDirection: "row", alignItems: "baseline" },
-  walkSteps: { fontSize: 28, fontFamily: "Nunito_800ExtraBold", color: "#183222" },
-  walkTarget: { fontSize: 12, fontFamily: "Nunito_600SemiBold", color: "#8BA898" },
-  walkProgressTrack: { height: 6, borderRadius: 3, overflow: "hidden", backgroundColor: "#E5EDE8" },
-  walkProgressFill: { height: "100%", borderRadius: 3, backgroundColor: "#2EA86E" },
-  walkDetail: { fontSize: 11, fontFamily: "Nunito_600SemiBold", color: "#6A8372" },
-  stepSeries: { height: 42, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", paddingHorizontal: 2 },
-  stepSeriesItem: { flex: 1, alignItems: "center", justifyContent: "flex-end", gap: 3 },
+  walkSteps: {
+    fontSize: 28,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#183222",
+  },
+  walkTarget: {
+    fontSize: 12,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#6B8576",
+  },
+  walkProgressTrack: {
+    height: 8,
+    borderRadius: 4,
+    overflow: "hidden",
+    backgroundColor: "#E5EDE8",
+  },
+  walkProgressFill: {
+    height: "100%",
+    borderRadius: 4,
+    backgroundColor: "#2EA86E",
+  },
+  walkDetail: {
+    fontSize: 12,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#6B8576",
+  },
+  stepSeries: {
+    height: 42,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    paddingHorizontal: 2,
+  },
+  stepSeriesItem: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 3,
+  },
   stepSeriesBar: { width: 12, borderRadius: 6, backgroundColor: "#A7E5C2" },
-  stepSeriesLabel: { fontSize: 9, fontFamily: "Nunito_600SemiBold", color: "#8BA898" },
-  walkNotice: { fontSize: 11, lineHeight: 16, fontFamily: "Nunito_400Regular", color: "#7A9082" },
+  stepSeriesLabel: {
+    fontSize: 9,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#6B8576",
+  },
+  walkNotice: {
+    fontSize: 12,
+    lineHeight: 17,
+    fontFamily: "Nunito_400Regular",
+    color: "#6B8576",
+  },
   walkCta: {
-    height: 38,
-    borderRadius: 12,
+    minHeight: 46,
+    paddingHorizontal: 14,
+    borderRadius: 14,
     backgroundColor: "#2EA86E",
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
-    gap: 7,
+    gap: 8,
   },
   walkCtaMuted: { backgroundColor: "#6C8374" },
-  walkCtaText: { fontSize: 12, fontFamily: "Nunito_700Bold", color: "#FFFFFF" },
+  walkCtaText: {
+    flexShrink: 1,
+    fontSize: 14,
+    fontFamily: "Nunito_700Bold",
+    color: "#FFFFFF",
+  },
 
   // Commute Card
   commuteCard: {
@@ -1368,8 +1476,8 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 11,
-    fontFamily: "Nunito_700Bold",
-    color: "#8BA898",
+    fontFamily: "IBMPlexMono_500Medium",
+    color: "#2EA86E",
     textTransform: "uppercase",
     letterSpacing: 1.2,
   },
@@ -1377,11 +1485,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: 8,
   },
   seeAllBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 2,
+    flexShrink: 0,
   },
   seeAllText: {
     fontSize: 12,
@@ -1391,16 +1501,16 @@ const styles = StyleSheet.create({
 
   // Action card
   actionCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.92)",
+    borderRadius: 22,
     padding: 16,
     gap: 14,
-    boxShadow: "0px 2px 12px rgba(0,0,0,0.06)",
-    elevation: 3,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(46,168,110,0.16)",
   },
   actionImpactBadge: {
     alignSelf: "flex-start",
-    backgroundColor: "rgba(46,168,110,0.1)",
+    backgroundColor: "rgba(46,168,110,0.12)",
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -1408,7 +1518,7 @@ const styles = StyleSheet.create({
   actionImpactText: {
     fontSize: 11,
     fontFamily: "Nunito_700Bold",
-    color: "#2EA86E",
+    color: "#1B7A4E",
   },
   actionBody: {
     flexDirection: "row",
@@ -1419,7 +1529,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: "rgba(46,168,110,0.1)",
+    backgroundColor: "rgba(46,168,110,0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1432,7 +1542,7 @@ const styles = StyleSheet.create({
   actionSubtitle: {
     fontSize: 12,
     fontFamily: "Nunito_400Regular",
-    color: "#7A9082",
+    color: "#6B8576",
     lineHeight: 17,
   },
   actionCTA: {
@@ -1441,10 +1551,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#2EA86E",
     borderRadius: 14,
-    height: 44,
+    minHeight: 46,
+    paddingHorizontal: 14,
     gap: 8,
   },
   actionCTAText: {
+    flexShrink: 1,
     fontSize: 14,
     fontFamily: "Nunito_700Bold",
     color: "#FFFFFF",
@@ -1456,49 +1568,80 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   tile: {
-    backgroundColor: "#FFFFFF",
+    flex: 1,
+    minWidth: 0,
+    backgroundColor: "rgba(255,255,255,0.92)",
     borderRadius: 18,
-    padding: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
     gap: 2,
-    boxShadow: "0px 1px 8px rgba(0,0,0,0.05)",
-    elevation: 2,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(46,168,110,0.14)",
+  },
+  tilePrimary: {
+    backgroundColor: "#2EA86E",
+    borderColor: "transparent",
   },
   tileLabel: {
     fontSize: 10,
     fontFamily: "Nunito_600SemiBold",
-    color: "#8BA898",
+    color: "#6B8576",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  tileLabelOnPrimary: {
+    fontSize: 10,
+    fontFamily: "Nunito_600SemiBold",
+    color: "rgba(255,255,255,0.85)",
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
   tileValue: {
     fontSize: 22,
-    fontFamily: "Nunito_800ExtraBold",
+    fontFamily: "IBMPlexMono_600SemiBold",
     color: "#0D1811",
+  },
+  tileValueOnPrimary: {
+    fontSize: 22,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#FFFFFF",
   },
   tileHint: {
     fontSize: 10,
     fontFamily: "Nunito_400Regular",
-    color: "#8BA898",
+    color: "#6B8576",
+  },
+  tileHintOnPrimary: {
+    fontSize: 10,
+    fontFamily: "Nunito_400Regular",
+    color: "rgba(255,255,255,0.8)",
   },
 
   // Trend chart wrapper
   trendCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.92)",
+    borderRadius: 22,
     overflow: "hidden",
-    boxShadow: "0px 2px 10px rgba(0,0,0,0.05)",
-    elevation: 2,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(46,168,110,0.14)",
   },
 
   // Closet
   closetCard: {
-    width: 140,
-    backgroundColor: "#FFFFFF",
+    width: 164,
+    backgroundColor: "rgba(255,255,255,0.95)",
     borderRadius: 18,
     padding: 12,
     gap: 8,
-    boxShadow: "0px 1px 8px rgba(0,0,0,0.05)",
-    elevation: 2,
+    overflow: "hidden",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(46,168,110,0.14)",
+  },
+  closetImageWrap: {
+    width: "100%",
+    height: 120,
+    borderRadius: 12,
+    overflow: "hidden",
   },
   closetName: {
     fontSize: 13,
@@ -1507,7 +1650,8 @@ const styles = StyleSheet.create({
   },
   closetChip: {
     alignSelf: "flex-start",
-    backgroundColor: "rgba(46,168,110,0.1)",
+    maxWidth: "100%",
+    backgroundColor: "rgba(46,168,110,0.12)",
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -1515,42 +1659,43 @@ const styles = StyleSheet.create({
   closetChipText: {
     fontSize: 10,
     fontFamily: "Nunito_600SemiBold",
-    color: "#2EA86E",
+    color: "#1B7A4E",
   },
 
   // Activity
   activityCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.92)",
+    borderRadius: 22,
     overflow: "hidden",
-    boxShadow: "0px 2px 10px rgba(0,0,0,0.05)",
-    elevation: 2,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(46,168,110,0.14)",
   },
   activityRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 13,
+    gap: 10,
   },
   activityRowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E8F0EA",
+    borderBottomColor: "rgba(46,168,110,0.12)",
   },
   activityTitle: {
-    fontSize: 13,
-    fontFamily: "Nunito_600SemiBold",
+    fontSize: 14,
+    fontFamily: "Nunito_700Bold",
     color: "#0D1811",
   },
   activitySubtitle: {
-    fontSize: 11,
+    marginTop: 2,
+    fontSize: 12,
     fontFamily: "Nunito_400Regular",
-    color: "#8BA898",
-    marginTop: 1,
+    color: "#6B8576",
   },
   activityPoints: {
-    fontSize: 14,
-    fontFamily: "Nunito_800ExtraBold",
-    marginLeft: 12,
+    fontSize: 13,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    flexShrink: 0,
   },
 
   // Loop tools
@@ -1560,26 +1705,27 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   toolCard: {
-    width: "47%",
+    width: "48%",
     flexGrow: 1,
-    backgroundColor: "#FFFFFF",
+    minWidth: "46%",
+    backgroundColor: "rgba(255,255,255,0.92)",
     borderRadius: 18,
     padding: 14,
     gap: 10,
-    boxShadow: "0px 1px 8px rgba(0,0,0,0.05)",
-    elevation: 2,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(46,168,110,0.14)",
   },
   toolIconBox: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    backgroundColor: "rgba(46,168,110,0.1)",
+    borderRadius: 13,
+    backgroundColor: "rgba(46,168,110,0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
   toolLabel: {
     fontSize: 13,
     fontFamily: "Nunito_700Bold",
-    color: "#0D1811",
+    color: "#183222",
   },
 });

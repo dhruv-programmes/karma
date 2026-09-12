@@ -10,16 +10,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Coins,
   ArrowRight,
-  Sparkles,
-  Zap,
   Leaf,
-  Layers,
 } from "lucide-react-native";
 import { BackButton } from "@/components/custom/back-button";
 import { RecommendationCard } from "@/components/custom/recommendation-card";
 import { SkeletonCard } from "@/components/custom/skeleton-card";
 import { Text } from "@/components/ui/text";
-import { useRecommendations, useScore } from "@/src/hooks/queries";
+import { useRecommendations } from "@/src/hooks/queries";
 import type { Recommendation } from "@/src/types/api";
 import { useTabBarClearance } from "@/src/theme/layout";
 
@@ -36,8 +33,6 @@ export default function ActionsScreen() {
   const tabClearance = useTabBarClearance();
   const router = useRouter();
   const recs = useRecommendations();
-  const score = useScore();
-
   const [activeCategory, setActiveCategory] = useState("ALL");
 
   const allItems = recs.data ?? [];

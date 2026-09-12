@@ -1,241 +1,47 @@
 import React, { useState } from "react";
-import { Image, TextInput } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, { FadeInRight } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
+import { Award, UserRound } from "lucide-react-native";
 import { BackButton } from "@/components/custom/back-button";
 import { CircularityScore } from "@/components/custom/circularity-score";
 import { Badge } from "@/components/ui/badge";
-import { Box } from "@/components/ui/box";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Heading } from "@/components/ui/heading";
-import { HStack } from "@/components/ui/hstack";
-import { ScrollView } from "@/components/ui/scroll-view";
-import { Text } from "@/components/ui/text";
-import { VStack } from "@/components/ui/vstack";
 import { useBadges, useLeague, useMe, useScore } from "@/src/hooks/queries";
 import { api } from "@/src/lib/api";
 import { useAuthStore } from "@/src/store/auth";
 import { useTabBarClearance } from "@/src/theme/layout";
 import { formatLeagueNumber, leagueBadgeSource } from "@/src/lib/league";
 
+const C = { ink: "#0D1811", muted: "#6B8576", primary: "#2EA86E", deep: "#1B7A4E" };
+function initials(name: string) { const p = name.trim().split(/\s+/).filter(Boolean); return (p.length > 1 ? `${p[0]![0]}${p[1]![0]}` : p[0]?.slice(0, 2) || "K").toUpperCase(); }
+
 export default function ProfileScreen() {
-  const insets = useSafeAreaInsets();
-  const tabClearance = useTabBarClearance();
-  const router = useRouter();
-  const me = useMe();
-  const score = useScore();
-  const badges = useBadges();
-  const league = useLeague();
-  const user = useAuthStore((s) => s.user);
-  const logout = useAuthStore((s) => s.logout);
-  const resetOnboarding = useAuthStore((s) => s.resetOnboarding);
-
-  const [query, setQuery] = useState("");
-  const [answer, setAnswer] = useState<string | null>(null);
-
-  async function ask() {
-    try {
-      const res = await api.ask(query);
-      setAnswer(res.answer);
-    } catch {
-      setAnswer(
-        "Your best next action: Repair your old phone (~120 kg CO₂e avoided)."
-      );
-    }
-  }
-
-  function handleReplayOnboarding() {
-    resetOnboarding();
-    router.replace("/onboarding");
-  }
-
-  function handleLogout() {
-    logout();
-    router.replace("/onboarding");
-  }
-
-  const displayName = me.data?.name || user?.name || "Aisha Sharma";
-  const displayEmail = me.data?.email || user?.email || "aisha@example.com";
-  const displayScore =
-    score.data?.state === "verified" && score.data.verified !== null
-      ? score.data.verified
-      : score.data?.provisional ?? null;
-  const scoreTitle =
-    score.data === undefined
-      ? "Loading score"
-      : score.data.state === "verified" && score.data.verified !== null
-        ? "Verified score"
-        : "Provisional estimate";
-  const scoreDetail =
-    score.data === undefined
-      ? "Loading your Carbon Credit Score."
-      : score.data.state === "verified" && score.data.verified !== null
-      ? "Calculated from your recorded footprint data."
-      : "Questionnaire-based estimate until enough real footprint data is available.";
-  const displayPoints = me.data?.impact_points ?? user?.impact_points ?? null;
-
-  return (
-    <ScrollView
-      className="flex-1 bg-background"
-      contentContainerStyle={{
-        paddingTop: insets.top + 16,
-        paddingBottom: tabClearance,
-        paddingHorizontal: 24,
-        gap: 20,
-      }}
-      showsVerticalScrollIndicator={false}
-    >
-      <BackButton label="Home" fallbackRoute="/(tabs)" />
-      <Heading size="2xl" className="font-heading -mt-2">Profile</Heading>
-      <CircularityScore
-        score={displayScore}
-        minScore={480}
-        maxScore={820}
-        title={scoreTitle}
-        detail={scoreDetail}
-      />
-
-      <Card variant="soft" className="p-4 border border-border">
-        <HStack className="justify-between items-start">
-          <VStack space="xs" className="flex-1 pr-2">
-            <Text size="xs" bold className="text-primary uppercase tracking-wider font-mono">
-              Active Member
-            </Text>
-            <Heading size="xl" className="font-heading">{displayName}</Heading>
-            <Text size="xs" className="text-muted-foreground font-mono">
-              {displayEmail}
-            </Text>
-          </VStack>
-          <HStack className="gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onPress={() => router.push("/auth/signin" as import("expo-router").Href)}
-            >
-              Switch User
-            </Button>
-          </HStack>
-        </HStack>
-
-        <HStack className="gap-2 mt-4 pt-3 border-t border-border/60">
-          <Button
-            size="sm"
-            variant="ghost"
-            className="flex-1"
-            onPress={handleReplayOnboarding}
-          >
-            Replay Onboarding
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="flex-1"
-            onPress={handleLogout}
-          >
-            Sign Out
-          </Button>
-        </HStack>
-      </Card>
-
-      <Card variant="soft" className="p-4 border border-border">
-        <Text size="xs" bold className="text-muted-foreground uppercase tracking-wider font-mono">
-          Karma Coins
-        </Text>
-        <Text size="4xl" bold className="font-mono mt-1 text-foreground">
-          {displayPoints ?? "—"}
-        </Text>
-        <Text size="xs" className="text-muted-foreground mt-1 font-body">
-          Loop Level {me.data?.loop_level ?? user?.loop_level ?? "—"} · Streak{" "}
-          {me.data?.streak_days ?? user?.streak_days ?? "—"} days · Offsets ~
-          {me.data?.offset_kg_total == null && user?.offset_kg_total == null
-            ? "—"
-            : `${Math.round(me.data?.offset_kg_total ?? user?.offset_kg_total ?? 0)} kg`}
-        </Text>
-      </Card>
-
-      <Card variant="soft" className="p-4 border border-border">
-        <HStack className="items-center justify-between gap-3">
-          <HStack className="items-center gap-3 flex-1">
-            <Box className="h-10 w-10 rounded-xl bg-amber-100 items-center justify-center">
-              {league.data ? (
-                <Image source={leagueBadgeSource(league.data.tier)} style={{ width: 32, height: 32 }} resizeMode="contain" />
-              ) : (
-                <Text className="text-amber-700 font-bold">{league.isLoading ? "…" : "—"}</Text>
-              )}
-            </Box>
-            <VStack space="xs" className="flex-1">
-              <Text size="xs" bold className="text-muted-foreground uppercase tracking-wider font-mono">Karma League</Text>
-              <Text bold className="font-heading">
-                {league.data ? `${league.data.league_name} · ${formatLeagueNumber(league.data.league_points)} pts` : league.isLoading ? "Checking your league…" : "League unavailable"}
-              </Text>
-              <Text size="xs" className="text-muted-foreground font-body">
-                {league.data
-                  ? league.data.promotion_threshold == null
-                    ? `${formatLeagueNumber(league.data.weekly_actions_completed)} verified actions this week`
-                    : `${formatLeagueNumber(Math.max(0, Number(league.data.promotion_threshold) - Number(league.data.league_points)))} points to next · ${formatLeagueNumber(league.data.weekly_actions_completed)}/${formatLeagueNumber(league.data.weekly_actions_target)} actions`
-                  : "Your current league will appear when the server responds."}
-              </Text>
-            </VStack>
-          </HStack>
-          <Button size="sm" variant="outline" onPress={() => router.push("/league")}>View</Button>
-        </HStack>
-      </Card>
-
-      <VStack space="sm">
-        <Text bold size="sm" className="font-heading">Badges</Text>
-        <Box className="flex-row flex-wrap gap-2">
-          {(badges.data ?? []).map((b, i) => (
-            <Animated.View key={b.id} entering={FadeInRight.delay(i * 40)}>
-              <Badge
-                action={b.unlocked ? "playful" : "muted"}
-                label={b.unlocked ? b.title : `Locked · ${b.title}`}
-              />
-            </Animated.View>
-          ))}
-        </Box>
-      </VStack>
-
-      <Box className="flex-row gap-3">
-        <Button
-          variant="outline"
-          className="flex-1"
-          onPress={() => router.push("/rewards")}
-        >
-          Rewards
-        </Button>
-        <Button
-          variant="outline"
-          className="flex-1"
-          onPress={() => router.push("/community")}
-        >
-          Community
-        </Button>
-        <Button
-          className="flex-1"
-          onPress={() => router.push("/offsets" as import("expo-router").Href)}
-        >
-          Offsets
-        </Button>
-      </Box>
-
-      <VStack space="sm">
-        <Text size="sm" bold className="font-heading">
-          Ask (tools only)
-        </Text>
-        <TextInput
-          className="h-12 rounded-2xl border border-border bg-card px-4 text-foreground font-body text-sm"
-          placeholder="Offsets? Streak? Energy hotspot?"
-          placeholderTextColor="rgb(100,120,110)"
-          value={query}
-          onChangeText={setQuery}
-        />
-        <Button onPress={() => void ask()}>Ask</Button>
-        {answer ? (
-          <Text className="text-muted-foreground text-xs font-body mt-1">{answer}</Text>
-        ) : null}
-      </VStack>
-    </ScrollView>
-  );
+  const insets = useSafeAreaInsets(); const router = useRouter(); const clearance = useTabBarClearance();
+  const me = useMe(); const score = useScore(); const badges = useBadges(); const league = useLeague();
+  const user = useAuthStore((s) => s.user); const logout = useAuthStore((s) => s.logout); const resetOnboarding = useAuthStore((s) => s.resetOnboarding);
+  const [query, setQuery] = useState(""); const [answer, setAnswer] = useState<string | null>(null);
+  const name = me.data?.name || user?.name || "Karma member"; const email = me.data?.email || user?.email || "";
+  const displayScore = score.data?.state === "verified" && score.data.verified !== null ? score.data.verified : score.data?.provisional ?? null;
+  const scoreTitle = score.data?.state === "verified" && score.data.verified !== null ? "Verified score" : "Provisional estimate";
+  const scoreDetail = score.data?.state === "verified" ? "Calculated from your recorded footprint data." : "Questionnaire-based estimate until enough real footprint data is available.";
+  const points = me.data?.impact_points ?? user?.impact_points ?? null; const streak = me.data?.streak_days ?? user?.streak_days ?? null; const offsets = me.data?.offset_kg_total ?? user?.offset_kg_total ?? null;
+  async function ask() { if (!query.trim()) return; try { setAnswer((await api.ask(query)).answer); } catch { setAnswer("Your best next action: repair something you already own."); } }
+  return <ScrollView style={styles.root} contentContainerStyle={{ paddingTop: insets.top + 14, paddingBottom: clearance + 24, paddingHorizontal: 20, gap: 16 }} showsVerticalScrollIndicator={false}>
+    <BackButton label="Home" fallbackRoute="/(tabs)" />
+    <Animated.View entering={FadeInDown.duration(320)}><Text style={styles.eyebrow}>ACCOUNT</Text><Text style={styles.title}>Profile</Text><Text style={styles.subtitle}>Your Karma snapshot, {name.split(/\s+/)[0]} — score, impact, and settings.</Text></Animated.View>
+    <Animated.View entering={FadeInDown.delay(40).duration(320)}><LinearGradient colors={["#1B7A4E", "#2EA86E", "#3BC98A"]} style={styles.hero}><View style={styles.heroTop}><View style={styles.avatar}><Text style={styles.avatarText}>{initials(name)}</Text></View><View style={styles.heroCopy}><Text style={styles.heroBadge}>ACTIVE MEMBER</Text><Text style={styles.heroName} numberOfLines={1}>{name}</Text><Text style={styles.heroEmail} numberOfLines={1}>{email}</Text></View></View><Pressable style={styles.heroBtn} onPress={() => router.push("/auth/signin" as import("expo-router").Href)}><UserRound size={16} color={C.deep} /><Text style={styles.heroBtnText}>Switch account</Text></Pressable></LinearGradient></Animated.View>
+    <Card variant="soft" style={styles.scoreCard}><CircularityScore score={displayScore} minScore={480} maxScore={820} title={scoreTitle} detail={scoreDetail} /></Card>
+    <View style={styles.metrics}><View style={[styles.metric, styles.metricPrimary]}><Text style={styles.light}>Karma Coins</Text><Text style={styles.valueLight}>{points ?? "—"}</Text><Text style={styles.hintLight}>rewards balance</Text></View><View style={styles.metric}><Text style={styles.label}>Streak</Text><Text style={styles.value}>{streak ?? "—"}</Text><Text style={styles.hint}>days active</Text></View><View style={styles.metric}><Text style={styles.label}>Offsets</Text><Text style={styles.value}>{offsets == null ? "—" : Math.round(offsets)}</Text><Text style={styles.hint}>kg CO₂e</Text></View></View>
+    <Card variant="soft" style={styles.card}><View style={styles.leagueRow}>{league.data ? <Image source={leagueBadgeSource(league.data.tier)} style={styles.leagueBadge} resizeMode="contain" /> : <Text style={styles.leagueIcon}>♛</Text>}<View style={{ flex: 1 }}><Text style={styles.eyebrow}>KARMA LEAGUE</Text><Text style={styles.cardTitle}>{league.data ? `${league.data.league_name} · ${formatLeagueNumber(league.data.league_points)} pts` : league.isLoading ? "Checking your league…" : "League unavailable"}</Text><Text style={styles.hint}>{league.data ? `${formatLeagueNumber(league.data.weekly_actions_completed)} verified actions this week` : "Your current league will appear when the server responds."}</Text></View><Button size="sm" variant="outline" onPress={() => router.push("/league")}>View</Button></View></Card>
+    <Card variant="soft" style={styles.card}><View style={styles.sectionHead}><Award size={16} color={C.primary} /><Text style={styles.sectionTitle}>Badges</Text></View><View style={styles.badges}>{(badges.data ?? []).length === 0 ? <Text style={styles.hint}>Earn badges as you scan, repair, and offset.</Text> : (badges.data ?? []).map((b, i) => <Animated.View key={b.id} entering={FadeInRight.delay(i * 35)}><Badge action={b.unlocked ? "playful" : "muted"} label={b.unlocked ? b.title : `Locked · ${b.title}`} /></Animated.View>)}</View></Card>
+    <View style={styles.actions}><Button variant="outline" style={styles.action} onPress={() => router.push("/rewards")}>Rewards</Button><Button variant="outline" style={styles.action} onPress={() => router.push("/leaderboard")}>Leaderboard</Button><Button style={styles.action} onPress={() => router.push("/offsets" as import("expo-router").Href)}>Offsets</Button></View>
+    <Card variant="soft" style={styles.card}><Text style={styles.sectionTitle}>Ask Karma</Text><TextInput value={query} onChangeText={setQuery} onSubmitEditing={() => void ask()} placeholder="Offsets? Streak? Energy hotspot?" placeholderTextColor="#91A59A" style={styles.input} /><Button onPress={() => void ask()}>Ask</Button>{answer ? <Text style={styles.hint}>{answer}</Text> : null}</Card>
+    <View style={styles.account}><Button variant="ghost" onPress={() => { resetOnboarding(); router.replace("/onboarding"); }}>Replay onboarding</Button><Button variant="ghost" onPress={() => { logout(); router.replace("/onboarding"); }}>Sign out</Button></View>
+  </ScrollView>;
 }
+
+const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: "#F4FAF6" }, eyebrow: { color: C.primary, letterSpacing: 1.4, fontWeight: "800", fontSize: 11 }, title: { color: C.ink, fontSize: 30, fontWeight: "900", marginTop: 3 }, subtitle: { color: C.muted, fontSize: 13, marginTop: 4 }, hero: { borderRadius: 24, padding: 18, gap: 18 }, heroTop: { flexDirection: "row", alignItems: "center", gap: 12 }, avatar: { width: 52, height: 52, borderRadius: 18, backgroundColor: "rgba(255,255,255,.22)", alignItems: "center", justifyContent: "center" }, avatarText: { color: "#fff", fontSize: 19, fontWeight: "900" }, heroCopy: { flex: 1 }, heroBadge: { color: "#D8F8E5", fontSize: 10, letterSpacing: 1.2, fontWeight: "800" }, heroName: { color: "#fff", fontSize: 21, fontWeight: "900", marginTop: 3 }, heroEmail: { color: "#D8F8E5", fontSize: 12, marginTop: 2 }, heroBtn: { alignSelf: "flex-start", flexDirection: "row", gap: 6, alignItems: "center", backgroundColor: "#fff", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9 }, heroBtnText: { color: C.deep, fontWeight: "800", fontSize: 12 }, scoreCard: { padding: 10 }, metrics: { flexDirection: "row", gap: 10 }, metric: { flex: 1, borderRadius: 17, padding: 13, backgroundColor: "#fff", borderWidth: 1, borderColor: "#D8E9DF" }, metricPrimary: { backgroundColor: C.primary, borderColor: C.primary }, label: { color: C.muted, fontSize: 11, fontWeight: "800" }, light: { color: "#E1F7EA", fontSize: 11, fontWeight: "800" }, value: { color: C.ink, fontSize: 21, fontWeight: "900", marginTop: 5 }, valueLight: { color: "#fff", fontSize: 21, fontWeight: "900", marginTop: 5 }, hint: { color: C.muted, fontSize: 11, marginTop: 3 }, hintLight: { color: "#D8F8E5", fontSize: 10, marginTop: 2 }, card: { padding: 16, borderRadius: 20, borderWidth: 1, borderColor: "#D8E9DF", backgroundColor: "rgba(255,255,255,.88)" }, leagueRow: { flexDirection: "row", alignItems: "center", gap: 11 }, leagueBadge: { width: 38, height: 38 }, leagueIcon: { fontSize: 27, color: "#B7791F", width: 38, textAlign: "center" }, cardTitle: { color: C.ink, fontSize: 15, fontWeight: "800", marginTop: 3 }, sectionHead: { flexDirection: "row", gap: 7, alignItems: "center", marginBottom: 10 }, sectionTitle: { color: C.ink, fontSize: 16, fontWeight: "900" }, badges: { flexDirection: "row", flexWrap: "wrap", gap: 8 }, actions: { flexDirection: "row", gap: 8 }, action: { flex: 1 }, input: { minHeight: 44, borderWidth: 1, borderColor: "#CDE2D5", borderRadius: 12, paddingHorizontal: 12, color: C.ink, marginVertical: 10 }, account: { flexDirection: "row", justifyContent: "center", gap: 10 } });

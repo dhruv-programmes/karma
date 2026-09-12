@@ -11,6 +11,10 @@ from app.seed.data import DOCUMENT_EXAMPLES
 
 @pytest.fixture(autouse=True)
 def setup_database():
+    # A document import deliberately persists replay keys. Recreate the
+    # temporary test schema per test so each test begins with a fresh document
+    # while still exercising replay protection within that test.
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     seed_database_if_empty(db)
@@ -58,6 +62,17 @@ def test_process_high_confidence_auto_imports(client_and_token):
     assert body["needs_review"] == []
     assert len(body["transactions"]) == 2
     assert "receipt_ranger" in (body.get("badges_unlocked") or []) or body["imported"] == 2
+
+    # Replaying the same document must remain safe: document/line source keys
+    # keep its reward and carbon evidence from being counted twice.
+    replay = client.post(
+        "/api/v1/documents/process",
+        headers=headers,
+        json={"example_id": "doc-croma-receipt"},
+    )
+    assert replay.status_code == 200
+    assert replay.json()["imported"] == 0
+    assert replay.json()["duplicate_count"] == 2
 
 
 def test_process_bescom_requires_review_no_import(client_and_token):

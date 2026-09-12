@@ -13,6 +13,9 @@ from app.schemas import AuthResponse
 
 @pytest.fixture(autouse=True)
 def setup_database():
+    # Seed assertions describe the baseline demo account, not mutations left
+    # by a different API test.
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     seed_database_if_empty(db)

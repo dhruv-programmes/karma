@@ -366,6 +366,10 @@ class DocumentProcessResult(BaseModel):
     badges_unlocked: list[str] = Field(default_factory=list)
     requires_review: bool = False
     is_mock: bool = True
+    co2e_kg_added: float = 0.0
+    reward_points_awarded: int = 0
+    duplicate_count: int = 0
+    reward_formula_version: str = "receipt-reward-v1"
 
 
 class DocumentConfirmItem(BaseModel):

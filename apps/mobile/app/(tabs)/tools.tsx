@@ -5,21 +5,50 @@ import {
   Camera,
   CheckCircle2,
   Leaf,
+  MessageCircle,
   Receipt,
   Recycle,
   ShieldCheck,
   Zap,
 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { FadeInDown } from "react-native-reanimated";
+import { ScreenHeader } from "@/components/custom/screen-header";
 import { Text } from "@/components/ui/text";
 import { useTabBarClearance } from "@/src/theme/layout";
 import { useSustainablePurchaseStore } from "@/src/store/sustainable-purchase";
 
 const tools = [
-  { label: "Scan Product", detail: "Check a product's circular options", icon: Camera, route: "/scan" },
-  { label: "Import Receipt", detail: "Add a purchase to your footprint", icon: Receipt, route: "/receipt" },
-  { label: "Recycling Hubs", detail: "Find a nearby drop-off point", icon: Recycle, route: "/map?type=recycling" },
-  { label: "Offset Carbon", detail: "Support a verified offset project", icon: Leaf, route: "/offsets" },
+  {
+    label: "Scan Product",
+    hint: "Check a product's circular options",
+    icon: Camera,
+    route: "/scan",
+  },
+  {
+    label: "Import Receipt",
+    hint: "Add a purchase to your footprint",
+    icon: Receipt,
+    route: "/receipt",
+  },
+  {
+    label: "Recycling Hubs",
+    hint: "Find a nearby drop-off point",
+    icon: Recycle,
+    route: "/map?type=recycling",
+  },
+  {
+    label: "Offset Carbon",
+    hint: "Support a verified offset project",
+    icon: Leaf,
+    route: "/offsets",
+  },
+  {
+    label: "Support",
+    hint: "Ask about Karma, your score, and the app",
+    icon: MessageCircle,
+    route: "/support",
+  },
 ] as const;
 
 export default function ToolsScreen() {
@@ -40,124 +69,125 @@ export default function ToolsScreen() {
       style={styles.root}
       contentContainerStyle={{
         paddingTop: insets.top + 16,
-        paddingHorizontal: 24,
+        paddingHorizontal: 20,
         paddingBottom: tabClearance,
+        gap: 16,
       }}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.title}>Tools</Text>
-      <Text style={styles.subtitle}>Practical ways to measure, reduce, and offset your footprint.</Text>
+      <ScreenHeader
+        eyebrow="TOOLS"
+        title="Tools"
+        subtitle="Practical ways to measure, reduce, and offset your footprint."
+      />
 
-      {/* Reward-based Sustainable Purchase Verification Card */}
-      <TouchableOpacity
-        style={[
-          styles.verificationCard,
-          verified && styles.verificationCardVerified,
-        ]}
-        onPress={() => router.push("/tools/verify-sustainable-purchase")}
-        activeOpacity={0.88}
-      >
-        <View
+      <Animated.View entering={FadeInDown.delay(60).duration(320)}>
+        <TouchableOpacity
           style={[
-            styles.verificationGlow,
-            verified && styles.verificationGlowVerified,
+            styles.verificationCard,
+            verified && styles.verificationCardVerified,
           ]}
-        />
-        <View style={styles.verificationIconRow}>
+          onPress={() => router.push("/tools/verify-sustainable-purchase")}
+          activeOpacity={0.88}
+        >
           <View
             style={[
-              styles.verificationIconBox,
-              verified && styles.verificationIconBoxVerified,
+              styles.verificationGlow,
+              verified && styles.verificationGlowVerified,
             ]}
-          >
-            {verified ? (
-              <CheckCircle2 size={24} color="#5EEAD4" strokeWidth={2.2} />
-            ) : (
-              <Zap size={23} color="#F7C948" fill="#F7C948" strokeWidth={1.8} />
-            )}
-          </View>
-          <View
-            style={[
-              styles.verificationTag,
-              verified && styles.verificationTagVerified,
-            ]}
-          >
-            <ShieldCheck size={13} color={verified ? "#5EEAD4" : "#BFF7D8"} />
-            <Text
+          />
+          <View style={styles.verificationIconRow}>
+            <View
               style={[
-                styles.verificationTagText,
-                verified && { color: "#5EEAD4" },
+                styles.verificationIconBox,
+                verified && styles.verificationIconBoxVerified,
               ]}
             >
-              {verified ? "✓ VERIFIED" : "REWARD TOOL"}
-            </Text>
+              {verified ? (
+                <CheckCircle2 size={24} color="#5EEAD4" strokeWidth={2.2} />
+              ) : (
+                <Zap size={23} color="#F7C948" fill="#F7C948" strokeWidth={1.8} />
+              )}
+            </View>
+            <View
+              style={[
+                styles.verificationTag,
+                verified && styles.verificationTagVerified,
+              ]}
+            >
+              <ShieldCheck size={13} color={verified ? "#5EEAD4" : "#BFF7D8"} />
+              <Text
+                style={[
+                  styles.verificationTagText,
+                  verified && { color: "#5EEAD4" },
+                ]}
+              >
+                {verified ? "VERIFIED" : "REWARD TOOL"}
+              </Text>
+            </View>
           </View>
+
+          {verified ? (
+            <>
+              <Text style={styles.verificationTitle}>{vehicleType || "Sustainable purchase"}</Text>
+              <View style={styles.verifiedBadgeRow}>
+                <Text style={styles.verifiedStatusText}>Verified</Text>
+                <Text style={styles.verifiedCarModel}>{vehicleMakeModel || "Document verified"}</Text>
+              </View>
+              <Text style={styles.verificationDetail}>
+                Your verified purchase is recorded in your Impact timeline.
+              </Text>
+              <View style={styles.verificationFooter}>
+                <Text style={styles.verificationRewardEarned}>
+                  {rewardPoints > 0
+                    ? `Reward earned: +${rewardPoints.toLocaleString()} Karma Coins`
+                    : "Already verified · no new reward"}
+                </Text>
+                <Text style={styles.verificationCta}>View certificate ›</Text>
+              </View>
+            </>
+          ) : (
+            <>
+              <Text style={styles.verificationTitle}>Verify Sustainable Purchase</Text>
+              <Text style={styles.verificationDetail}>
+                Upload a purchase document to calculate a Green Reward from its verified details.
+              </Text>
+              <View style={styles.verificationMeta}>
+                <Text style={styles.verificationSupport}>Document-based verification</Text>
+                <Text style={styles.verificationType}>A reward is calculated after review</Text>
+              </View>
+              <View style={styles.verificationFooter}>
+                <Text style={styles.verificationReward}>No fixed reward amount</Text>
+                <Text style={styles.verificationCta}>Start verification ›</Text>
+              </View>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <View style={styles.grid}>
+          {tools.map(({ label, hint, icon: Icon, route }) => (
+            <TouchableOpacity
+              key={label}
+              style={styles.toolCard}
+              onPress={() => router.push(route as import("expo-router").Href)}
+              activeOpacity={0.82}
+            >
+              <View style={styles.iconBox}>
+                <Icon size={22} color="#2EA86E" strokeWidth={1.9} />
+              </View>
+              <Text style={styles.cardTitle}>{label}</Text>
+              <Text style={styles.cardDetail}>{hint}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
-
-        {verified ? (
-          <>
-            <Text style={styles.verificationTitle}>⚡ {vehicleType}</Text>
-            <View style={styles.verifiedBadgeRow}>
-              <Text style={styles.verifiedStatusText}>✓ Verified</Text>
-              <Text style={styles.verifiedCarModel}>{vehicleMakeModel}</Text>
-            </View>
-            <Text style={styles.verificationDetail}>
-              Major sustainable purchase verified and recorded to your Impact timeline.
-            </Text>
-            <View style={styles.verificationFooter}>
-              <Text style={styles.verificationRewardEarned}>
-                {rewardPoints > 0
-                  ? `Reward earned: +${rewardPoints.toLocaleString()} Karma Coins`
-                  : "Already verified · no new reward"}
-              </Text>
-              <Text style={styles.verificationCta}>View Certificate ›</Text>
-            </View>
-          </>
-        ) : (
-          <>
-            <Text style={styles.verificationTitle}>Verify Sustainable Purchase</Text>
-            <Text style={styles.verificationDetail}>
-              Verify documents for sustainable purchases and unlock Green Rewards.
-            </Text>
-            <View style={styles.verificationMeta}>
-              <Text style={styles.verificationSupport}>Supported demo verification</Text>
-              <Text style={styles.verificationType}>⚡ Electric Vehicle</Text>
-            </View>
-            <View style={styles.verificationFooter}>
-              <Text style={styles.verificationReward}>
-                Reward calculated after verification
-              </Text>
-              <Text style={styles.verificationCta}>Start verification  ›</Text>
-            </View>
-          </>
-        )}
-      </TouchableOpacity>
-
-      <View style={styles.grid}>
-        {tools.map(({ label, detail, icon: Icon, route }) => (
-          <TouchableOpacity
-            key={label}
-            style={styles.card}
-            onPress={() => router.push(route)}
-            activeOpacity={0.82}
-          >
-            <View style={styles.iconBox}>
-              <Icon size={22} color="#2EA86E" strokeWidth={1.9} />
-            </View>
-            <Text style={styles.cardTitle}>{label}</Text>
-            <Text style={styles.cardDetail}>{detail}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      </Animated.View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#F8FAF8" },
-  title: { fontSize: 28, fontFamily: "Nunito_800ExtraBold", color: "#0D1811" },
-  subtitle: { marginTop: 4, fontSize: 14, lineHeight: 20, fontFamily: "Nunito_400Regular", color: "#7A9082" },
-  grid: { marginTop: 24, gap: 14 },
+  grid: { marginTop: 16, gap: 14 },
   verificationCard: {
     marginTop: 22,
     minHeight: 222,
@@ -236,11 +266,10 @@ const styles = StyleSheet.create({
   verificationReward: { color: "#FFFFFF", fontSize: 12, fontFamily: "Nunito_700Bold" },
   verificationRewardEarned: { color: "#5EEAD4", fontSize: 13, fontFamily: "Nunito_800ExtraBold" },
   verificationCta: { color: "#8AF0B8", fontSize: 12, fontFamily: "Nunito_800ExtraBold" },
-  card: {
-    minHeight: 112,
-    borderRadius: 20,
-    padding: 16,
+  toolCard: {
     backgroundColor: "#FFFFFF",
+    borderRadius: 22,
+    padding: 16,
     borderWidth: 1,
     borderColor: "rgba(46,168,110,0.16)",
     boxShadow: "0px 2px 10px rgba(0,0,0,0.05)",
@@ -249,12 +278,22 @@ const styles = StyleSheet.create({
   iconBox: {
     width: 42,
     height: 42,
-    borderRadius: 13,
-    backgroundColor: "rgba(46,168,110,0.12)",
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
+    backgroundColor: "#EAF8F0",
   },
-  cardTitle: { fontSize: 16, fontFamily: "Nunito_700Bold", color: "#183222" },
-  cardDetail: { marginTop: 3, fontSize: 12, fontFamily: "Nunito_400Regular", color: "#7A9082" },
+  cardTitle: {
+    marginTop: 12,
+    color: "#0D1811",
+    fontSize: 15,
+    fontFamily: "Nunito_800ExtraBold",
+  },
+  cardDetail: {
+    marginTop: 4,
+    color: "#7A9082",
+    fontSize: 12,
+    lineHeight: 17,
+    fontFamily: "Nunito_400Regular",
+  },
 });

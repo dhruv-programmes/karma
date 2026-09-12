@@ -16,8 +16,8 @@ export function DecorativeBackground() {
         zIndex: 0,
       }}
     >
-      {/* Top right warm blush/peach organic circle */}
-      <Box className="absolute -top-12 -right-16 w-72 h-72 rounded-full bg-accent/30" />
+      {/* Top right warm blush/peach organic circle - framed in top right corner behind actions, clear of logo */}
+      <Box className="absolute -top-8 -right-12 w-44 h-44 rounded-full bg-accent/30" />
       {/* Mid-left calm sage-mint organic circle */}
       <Box className="absolute top-52 -left-24 w-64 h-64 rounded-full bg-primary/20" />
     </View>

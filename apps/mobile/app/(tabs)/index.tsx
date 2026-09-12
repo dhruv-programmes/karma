@@ -187,8 +187,7 @@ function ScoreRing({
           strokeDasharray={`${c} ${c}`}
           animatedProps={animatedProps}
           strokeLinecap="round"
-          rotation="-90"
-          origin={`${cx}, ${cy}`}
+          transform={`rotate(-90 ${cx} ${cy})`}
           opacity={0.22}
         />
 
@@ -203,8 +202,7 @@ function ScoreRing({
           strokeDasharray={`${c} ${c}`}
           animatedProps={animatedProps}
           strokeLinecap="round"
-          rotation="-90"
-          origin={`${cx}, ${cy}`}
+          transform={`rotate(-90 ${cx} ${cy})`}
           opacity={0.55}
         />
 
@@ -219,8 +217,7 @@ function ScoreRing({
           strokeDasharray={`${c} ${c}`}
           animatedProps={animatedProps}
           strokeLinecap="round"
-          rotation="-90"
-          origin={`${cx}, ${cy}`}
+          transform={`rotate(-90 ${cx} ${cy})`}
           opacity={0.96}
         />
       </Svg>

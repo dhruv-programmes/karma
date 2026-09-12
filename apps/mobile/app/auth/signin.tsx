@@ -30,7 +30,7 @@ import { ScrollView } from "@/components/ui/scroll-view";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 import { api } from "@/src/lib/api";
-import { useAuthStore } from "@/src/store/auth";
+import { type OnboardingStep, useAuthStore } from "@/src/store/auth";
 import type { DemoUserSummary } from "@/src/types/api";
 
 function GoogleLogo() {
@@ -96,7 +96,7 @@ export default function SignInScreen() {
   const setAuth = useAuthStore((s) => s.setAuth);
   const startDemo = useAuthStore((s) => s.startDemo);
   const onboardingStep = useAuthStore((s) => s.onboardingStep);
-  const hasCompletedOnboarding = useAuthStore((s) => s.hasCompletedOnboarding);
+  const setOnboardingStep = useAuthStore((s) => s.setOnboardingStep);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -154,7 +154,7 @@ export default function SignInScreen() {
     }
   }
 
-  async function handleSignIn(targetEmail = email, targetPassword = password, forceComplete = true) {
+  async function handleSignIn(targetEmail = email, targetPassword = password, forceComplete = false) {
     if (!targetEmail.trim() || !targetPassword.trim()) {
       setError("Please enter your email and password.");
       return;
@@ -163,17 +163,27 @@ export default function SignInScreen() {
     setError(null);
     setLoading(true);
     try {
-      const res = await api.signin(targetEmail.trim().toLowerCase(), targetPassword);
-      // Existing user whose onboarding is complete goes directly to home
-      const isComplete = forceComplete || hasCompletedOnboarding;
+      const res = await api.signin(
+        targetEmail.trim().toLowerCase(),
+        targetPassword.trim()
+      );
+      // The server returns a baseline timestamp only after the questionnaire
+      // has been saved. Do not send a returning, unfinished account into tabs.
+      const needsBaseline = res.user.baseline_total_kg == null;
+      const isComplete = forceComplete || !needsBaseline;
       setAuth(res.user, res.access_token, isComplete);
       queryClient.invalidateQueries();
 
       if (isComplete) {
         router.replace("/(tabs)");
       } else {
-        // Resume incomplete step
-        const step = onboardingStep;
+        // Resume the locally known step when possible; a fresh device can
+        // safely resume from the first server-verifiable missing step.
+        const step: OnboardingStep =
+          onboardingStep === "welcome" || onboardingStep === "account"
+            ? "baseline"
+            : onboardingStep;
+        setOnboardingStep(step);
         if (step === "baseline") router.replace("/onboarding/baseline");
         else if (step === "goal") router.replace("/onboarding/goal");
         else if (step === "reveal") router.replace("/onboarding/reveal");

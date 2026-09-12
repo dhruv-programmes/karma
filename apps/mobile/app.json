@@ -12,6 +12,12 @@
       "expo-router",
       "expo-font",
       [
+        "expo-sensors",
+        {
+          "motionPermission": "Allow Carbon Loop to access motion activity so it can track steps and award walking points."
+        }
+      ],
+      [
         "expo-camera",
         {
           "cameraPermission": "Allow Carbon Loop to scan product barcodes."
@@ -42,6 +48,7 @@
       "usesCleartextTraffic": true,
       "permissions": [
         "CAMERA",
+        "ACTIVITY_RECOGNITION",
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION"
       ],

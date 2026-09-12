@@ -20,23 +20,28 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
+api = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-app.include_router(router)
+api.include_router(router)
 
 
-@app.get("/")
+@api.get("/")
 def root():
     return {
         "name": settings.app_name,
         "docs": "/docs",
         "health": "/api/v1/health",
     }
+
+
+# Keep CORS outside FastAPI's error middleware. Otherwise an unhandled 500 is
+# returned by Starlette before the CORS middleware can add its headers, which
+# makes the browser report a misleading "CORS missing" error. The response is
+# still a real 500; it just remains observable from the web client.
+app = CORSMiddleware(
+    api,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)

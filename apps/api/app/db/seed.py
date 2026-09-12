@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -25,6 +26,7 @@ from app.db.models import (
     ensure_kcs_columns,
 )
 from app.engines.carbon import estimate_from_spend
+from app.engines.scoring import provisional_kcs
 from app.schemas import ProductCategory
 from app.seed.data import (
     BASE_RECOMMENDATIONS,
@@ -48,6 +50,89 @@ from app.seed.data import (
 )
 
 
+DEMO_USER_DEFAULTS = (
+    {
+        "id": str(settings.demo_user_id),
+        "name": "Aisha Sharma",
+        "email": "aisha@example.com",
+        "circularity_score": 74,
+        "impact_points": 420,
+        "streak_days": 5,
+        "trend_delta": 6,
+        "loop_level": 2,
+        "offset_kg_total": 0.0,
+        "monthly_budget_kg": 90.0,
+        "preferences_json": json.dumps({"budget_goal": "on_track", "persona": "balanced_commuter"}),
+        "provisional_score": 681,
+        "score_confidence": 0.4,
+        "score_state": "provisional",
+        "baseline_total_kg": 96.0,
+        "baseline_created_at": "2026-03-01T00:00:00Z",
+    },
+    {
+        "id": "11111111-1111-1111-1111-111111111112",
+        "name": "Rohan Patel",
+        "email": "rohan@example.com",
+        "circularity_score": 88,
+        "impact_points": 850,
+        "streak_days": 19,
+        "trend_delta": 9,
+        "loop_level": 4,
+        "offset_kg_total": 25.0,
+        "monthly_budget_kg": 60.0,
+        "preferences_json": json.dumps({"budget_goal": "strict", "persona": "low_carbon_minimalist"}),
+        "provisional_score": 740,
+        "score_confidence": 0.4,
+        "score_state": "provisional",
+        "baseline_created_at": "2026-03-01T00:00:00Z",
+    },
+    {
+        "id": "11111111-1111-1111-1111-111111111113",
+        "name": "Maya Sen",
+        "email": "maya@example.com",
+        "circularity_score": 52,
+        "impact_points": 110,
+        "streak_days": 2,
+        "trend_delta": 2,
+        "loop_level": 1,
+        "offset_kg_total": 0.0,
+        "monthly_budget_kg": 140.0,
+        "preferences_json": json.dumps({"budget_goal": "starter", "persona": "convenience_shopper"}),
+        "provisional_score": 562,
+        "score_confidence": 0.4,
+        "score_state": "provisional",
+        "baseline_created_at": "2026-03-01T00:00:00Z",
+    },
+)
+
+
+def _repair_demo_accounts(db: Session) -> None:
+    """Make a partially seeded demo database sign-in-ready without touching members.
+
+    The demo account password is documented as ``password123``. We only add a
+    missing demo persona or repair a missing/corrupt demo credential; accounts
+    belonging to real users are never assigned a guessed password.
+    """
+    existing_by_email = {
+        user.email.lower(): user
+        for user in db.query(UserModel)
+        .filter(UserModel.email.in_([item["email"] for item in DEMO_USER_DEFAULTS]))
+        .all()
+    }
+    changed = False
+    for defaults in DEMO_USER_DEFAULTS:
+        user = existing_by_email.get(defaults["email"])
+        if user is None:
+            user = UserModel(**defaults, password_hash=hash_password("password123"))
+            db.add(user)
+            changed = True
+        elif not user.password_hash:
+            user.password_hash = hash_password("password123")
+            changed = True
+    if changed:
+        db.commit()
+
+
 def _backfill_kcs_users(db: Session) -> None:
     """Backfill KCS defaults for pre-KCS rows (nullable-safe)."""
     try:
@@ -60,16 +145,20 @@ def _backfill_kcs_users(db: Session) -> None:
             if getattr(u, "provisional_score", None) is None:
                 email = (u.email or "").lower()
                 if email == "aisha@example.com":
-                    u.provisional_score = 680
+                    u.provisional_score = 681
                 elif email == "rohan@example.com":
-                    u.provisional_score = 680
+                    u.provisional_score = 740
                 elif email == "maya@example.com":
                     u.provisional_score = 562
                 else:
                     u.provisional_score = 650
                 changed = True
             if getattr(u, "score_state", None) is None:
-                u.score_state = "provisional"
+                u.score_state = (
+                    "verified"
+                    if getattr(u, "verified_score", None) is not None
+                    else "provisional"
+                )
                 changed = True
             if getattr(u, "score_confidence", None) is None:
                 u.score_confidence = 0.4
@@ -83,6 +172,22 @@ def _backfill_kcs_users(db: Session) -> None:
             if (u.email or "").lower() == "aisha@example.com" and getattr(u, "baseline_total_kg", None) is None:
                 u.baseline_total_kg = 96.0
                 changed = True
+
+            # Legacy provisional rows may still contain the retired 680 cap.
+            # Recompute only provisional users with a real stored baseline;
+            # verified users and users without a baseline stay untouched.
+            baseline_total = getattr(u, "baseline_total_kg", None)
+            is_verified = (
+                getattr(u, "score_state", None) == "verified"
+                or getattr(u, "verified_score", None) is not None
+            )
+            if not is_verified and baseline_total is not None:
+                baseline_kg = float(baseline_total)
+                if math.isfinite(baseline_kg):
+                    expected_provisional = provisional_kcs(baseline_kg)
+                    if getattr(u, "provisional_score", None) != expected_provisional:
+                        u.provisional_score = expected_provisional
+                        changed = True
         except Exception:
             continue
     if changed:
@@ -96,7 +201,7 @@ def _backfill_kcs_users(db: Session) -> None:
 
 
 def seed_database_if_empty(db: Session) -> None:
-    # 0. Ensure KCS columns exist on pre-KCS SQLite files
+    # 0. Ensure auth and KCS columns exist on legacy SQLite files.
     try:
         ensure_kcs_columns(db)
     except Exception:
@@ -203,14 +308,12 @@ def seed_database_if_empty(db: Session) -> None:
 
     # 6. Seed the 3 User Personas if empty
     if db.query(UserModel).count() == 0:
-        default_pwd_hash = hash_password("password123")
-
         # --- USER 1: AISHA SHARMA ---
         aisha = UserModel(
             id=str(settings.demo_user_id),
             name="Aisha Sharma",
             email="aisha@example.com",
-            password_hash=default_pwd_hash,
+            password_hash=hash_password("password123"),
             circularity_score=74,
             impact_points=420,
             streak_days=5,
@@ -219,7 +322,7 @@ def seed_database_if_empty(db: Session) -> None:
             offset_kg_total=0.0,
             monthly_budget_kg=90.0,
             preferences_json=json.dumps({"budget_goal": "on_track", "persona": "balanced_commuter"}),
-            provisional_score=680,
+            provisional_score=681,
             verified_score=None,
             score_confidence=0.4,
             score_state="provisional",
@@ -263,7 +366,7 @@ def seed_database_if_empty(db: Session) -> None:
             id=rohan_id,
             name="Rohan Patel",
             email="rohan@example.com",
-            password_hash=default_pwd_hash,
+            password_hash=hash_password("password123"),
             circularity_score=88,
             impact_points=850,
             streak_days=19,
@@ -272,7 +375,7 @@ def seed_database_if_empty(db: Session) -> None:
             offset_kg_total=25.0,
             monthly_budget_kg=60.0,
             preferences_json=json.dumps({"budget_goal": "strict", "persona": "low_carbon_minimalist"}),
-            provisional_score=680,
+            provisional_score=740,
             verified_score=None,
             score_confidence=0.4,
             score_state="provisional",
@@ -331,7 +434,7 @@ def seed_database_if_empty(db: Session) -> None:
             id=maya_id,
             name="Maya Sen",
             email="maya@example.com",
-            password_hash=default_pwd_hash,
+            password_hash=hash_password("password123"),
             circularity_score=52,
             impact_points=110,
             streak_days=2,
@@ -393,3 +496,8 @@ def seed_database_if_empty(db: Session) -> None:
         db.add(ActivityEventModel(user_id=maya.id, kind="streak", title="2-day streak started", subtitle="Targeting first repair milestone", points_delta=0, created_at="2026-03-26T09:00:00Z"))
 
         db.commit()
+
+    # Existing installations may contain only a subset of demo accounts or a
+    # pre-auth demo row with no credential. Repair those known fixtures after
+    # the full seed path without assigning passwords to non-demo accounts.
+    _repair_demo_accounts(db)

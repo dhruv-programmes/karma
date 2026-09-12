@@ -13,7 +13,7 @@ import { HStack } from "@/components/ui/hstack";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
-import { useBadges, useMe } from "@/src/hooks/queries";
+import { useBadges, useMe, useScore } from "@/src/hooks/queries";
 import { api } from "@/src/lib/api";
 import { useAuthStore } from "@/src/store/auth";
 import { useTabBarClearance } from "@/src/theme/layout";
@@ -23,6 +23,7 @@ export default function ProfileScreen() {
   const tabClearance = useTabBarClearance();
   const router = useRouter();
   const me = useMe();
+  const score = useScore();
   const badges = useBadges();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
@@ -54,7 +55,22 @@ export default function ProfileScreen() {
 
   const displayName = me.data?.name || user?.name || "Aisha Sharma";
   const displayEmail = me.data?.email || user?.email || "aisha@example.com";
-  const displayScore = me.data?.circularity_score ?? user?.circularity_score ?? 74;
+  const displayScore =
+    score.data?.state === "verified" && score.data.verified !== null
+      ? score.data.verified
+      : score.data?.provisional ?? null;
+  const scoreTitle =
+    score.data === undefined
+      ? "Loading score"
+      : score.data.state === "verified" && score.data.verified !== null
+        ? "Verified score"
+        : "Provisional estimate";
+  const scoreDetail =
+    score.data === undefined
+      ? "Loading your Carbon Credit Score."
+      : score.data.state === "verified" && score.data.verified !== null
+      ? "Calculated from your recorded footprint data."
+      : "Questionnaire-based estimate until enough real footprint data is available.";
   const displayPoints = me.data?.impact_points ?? user?.impact_points ?? 420;
 
   return (
@@ -71,7 +87,10 @@ export default function ProfileScreen() {
       <Heading size="2xl" className="font-heading">Profile</Heading>
       <CircularityScore
         score={displayScore}
-        trendDelta={me.data?.trend_delta ?? 6}
+        minScore={480}
+        maxScore={820}
+        title={scoreTitle}
+        detail={scoreDetail}
       />
 
       <Card variant="soft" className="p-4 border border-border">

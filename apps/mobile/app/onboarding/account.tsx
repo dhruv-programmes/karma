@@ -110,7 +110,7 @@ export default function AccountScreen() {
       setError("Please enter your email and password.");
       return;
     }
-    if (password.length < 6) {
+    if (password.trim().length < 6) {
       setError("Password must be at least 6 characters.");
       return;
     }
@@ -128,7 +128,12 @@ export default function AccountScreen() {
       setOnboardingStep("baseline");
       router.push("/onboarding/baseline" as import("expo-router").Href);
     } catch (err: any) {
-      setError(err?.message || "Could not create account. Please try again.");
+      const message = String(err?.message || "");
+      setError(
+        /account with this email already exists/i.test(message)
+          ? "An account with this email already exists. Sign in below to continue."
+          : message || "Could not create account. Please try again."
+      );
     } finally {
       setLoading(false);
     }

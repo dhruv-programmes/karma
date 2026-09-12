@@ -13,6 +13,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
 
@@ -69,6 +70,9 @@ class UserModel(Base):
     )
     activity_events = relationship(
         "ActivityEventModel", back_populates="user", cascade="all, delete-orphan"
+    )
+    daily_steps = relationship(
+        "UserDailyStepsModel", back_populates="user", cascade="all, delete-orphan"
     )
 
     @property
@@ -288,10 +292,35 @@ class ActivityEventModel(Base):
         self.meta_json = json.dumps(value)
 
 
-# --- Lightweight SQLite migration for KCS columns (no alembic) ---
-# Base.metadata.create_all() does not ADD columns to existing tables,
-# so Rosa DB files created before KCS need ALTER TABLE backfill.
-KCS_USER_COLUMNS: dict[str, str] = {
+class UserDailyStepsModel(Base):
+    """A user's reported walking total and earned reward points for one day."""
+
+    __tablename__ = "user_daily_steps"
+    __table_args__ = (
+        UniqueConstraint("user_id", "date", name="uq_user_daily_steps_user_date"),
+    )
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    # ISO local date (YYYY-MM-DD). The API only writes the server's current date.
+    date = Column(String(10), nullable=False, index=True)
+    steps = Column(Integer, default=0, nullable=False)
+    points_awarded = Column(Integer, default=0, nullable=False)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    user = relationship("UserModel", back_populates="daily_steps")
+
+
+# --- Lightweight SQLite migrations (no Alembic) ---
+# Base.metadata.create_all() does not ADD columns to an existing table. Keep
+# user-account migrations alongside the KCS backfill so a database created
+# before authentication can still accept a newly signed-up user.
+USER_MIGRATION_COLUMNS: dict[str, str] = {
+    # SQLite cannot add a NOT NULL column without a default to a populated
+    # table. The ORM still requires this for all new rows; seed repairs the
+    # known demo accounts below, while legacy non-demo accounts must use a
+    # password-reset flow rather than silently receiving a password.
+    "password_hash": "VARCHAR(255)",
     "provisional_score": "INTEGER",
     "verified_score": "INTEGER",
     "score_confidence": "FLOAT",
@@ -303,8 +332,8 @@ KCS_USER_COLUMNS: dict[str, str] = {
 }
 
 
-def ensure_kcs_columns(engine_or_conn) -> None:
-    """Add missing KCS columns to users table if needed (SQLite compatible).
+def ensure_user_columns(engine_or_conn) -> None:
+    """Add missing auth and KCS columns to ``users`` (SQLite compatible).
 
     Accepts an Engine, Connection, or Session. No-op if columns exist.
     """
@@ -334,7 +363,7 @@ def ensure_kcs_columns(engine_or_conn) -> None:
         except Exception:
             return
 
-        for col, coltype in KCS_USER_COLUMNS.items():
+        for col, coltype in USER_MIGRATION_COLUMNS.items():
             if col not in existing:
                 try:
                     conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} {coltype}"))
@@ -351,3 +380,8 @@ def ensure_kcs_columns(engine_or_conn) -> None:
                 conn.close()
             except Exception:
                 pass
+
+
+# Compatibility alias for callers introduced with the KCS-only migration.
+def ensure_kcs_columns(engine_or_conn) -> None:
+    ensure_user_columns(engine_or_conn)

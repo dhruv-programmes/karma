@@ -13,7 +13,6 @@ from app.seed.data import demo_state, unlock_badge
 REF_KG = 110.0
 BASE_SCORE = 650
 SLOPE = 2.2
-PROVISIONAL_CAP = 680
 MIN_SCORE = 480
 MAX_SCORE = 820
 
@@ -185,11 +184,8 @@ def kcs_from_kg(kg: float) -> int:
 
 
 def provisional_kcs(totalKg: float) -> int:
-    """Provisional (baseline-estimate) score: capped at 680.
-
-    Shown = min(kcs_from_kg(totalKg), PROVISIONAL_CAP).
-    """
-    return min(kcs_from_kg(totalKg), PROVISIONAL_CAP)
+    """Provisional questionnaire estimate on the standard 480–820 KCS range."""
+    return kcs_from_kg(totalKg)
 
 
 def verified_kcs(actual_monthly_kg: float) -> int:

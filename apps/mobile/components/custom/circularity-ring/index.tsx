@@ -13,22 +13,35 @@ import { ringColors } from "@/src/theme/ring";
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 type Props = {
-  score: number;
+  score: number | null;
   size?: number;
   label?: string;
+  minScore?: number;
+  maxScore?: number;
 };
 
-export function CircularityRing({ score, size = 120, label }: Props) {
+export function CircularityRing({
+  score,
+  size = 120,
+  label,
+  minScore = 0,
+  maxScore = 100,
+}: Props) {
   const stroke = 10;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const progress = useSharedValue(0);
 
   useEffect(() => {
-    progress.value = withTiming(Math.min(100, Math.max(0, score)) / 100, {
+    const range = maxScore - minScore;
+    const normalized =
+      score === null || range <= 0
+        ? 0
+        : Math.min(1, Math.max(0, (score - minScore) / range));
+    progress.value = withTiming(normalized, {
       duration: 900,
     });
-  }, [score, progress]);
+  }, [score, minScore, maxScore, progress]);
 
   const animatedProps = useAnimatedProps(() => ({
     strokeDashoffset: c * (1 - progress.value),
@@ -67,7 +80,7 @@ export function CircularityRing({ score, size = 120, label }: Props) {
       </Svg>
       <View className="absolute items-center">
         <Text size="3xl" bold className="font-mono text-foreground">
-          {Math.round(score)}
+          {score === null ? "—" : Math.round(score)}
         </Text>
         {label ? (
           <Text size="xs" className="text-muted-foreground">

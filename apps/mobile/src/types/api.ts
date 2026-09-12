@@ -86,6 +86,9 @@ export interface UserProfile {
   owned_product_ids?: string[];
   unlocked_badge_ids?: string[];
   monthly_budget_kg?: number;
+  /** Present after the user has finished the baseline questionnaire. */
+  baseline_total_kg?: number | null;
+  baseline_created_at?: string | null;
 }
 
 export interface ImpactBreakdown {
@@ -176,6 +179,28 @@ export interface ImpactTimeseries {
   energy_kg: number;
   this_month_kg: number;
   previous_month_kg: number;
+}
+
+/** Daily walking rewards returned by the step-rewards API. */
+export interface StepSeriesPoint {
+  label: string;
+  date: string;
+  steps: number;
+  points: number;
+}
+
+/**
+ * Walking is an Impact Points metric, never a Carbon Credit/KCS input.
+ * The API accepts either its snake_case contract or these camelCase fields.
+ */
+export interface StepSummary {
+  todaySteps: number;
+  todayPoints: number;
+  targetSteps: number;
+  nextThreshold: number | null;
+  rating: string;
+  status: string;
+  series: StepSeriesPoint[];
 }
 
 export interface Badge {

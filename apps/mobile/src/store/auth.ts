@@ -151,8 +151,8 @@ export function computeBaselineFootprint(rawAnswers: any): {
 
   const totalKg = transportKg + shoppingKg + homeKg;
 
-  // Karma Credit Score (provisional shown): raw=round(650+(110-totalKg)*2.2),
-  // clamped to [480,820], provisional display capped at 680.
+  // Karma Credit Score provisional estimate: raw=round(650+(110-totalKg)*2.2),
+  // clamped to [480,820].
   const score = provisionalKcs(totalKg);
 
   return { totalKg, transportKg, shoppingKg, homeKg, score };
@@ -164,17 +164,15 @@ export const KCS_BASE = 650;
 export const KCS_SLOPE = 2.2;
 export const KCS_MIN = 480;
 export const KCS_MAX = 820;
-export const KCS_PROVISIONAL_CAP = 680;
 
 /** Unclamped Karma Credit Score for a monthly footprint. */
 export function rawKcs(totalKg: number): number {
   return Math.round(KCS_BASE + (KCS_REF - totalKg) * KCS_SLOPE);
 }
 
-/** Provisional KCS shown in UI: clamped to [480,820], display-capped at 680. */
+/** Provisional KCS estimate: clamped to [480,820]. */
 export function provisionalKcs(totalKg: number): number {
-  const clamped = Math.min(KCS_MAX, Math.max(KCS_MIN, rawKcs(totalKg)));
-  return Math.min(clamped, KCS_PROVISIONAL_CAP);
+  return Math.min(KCS_MAX, Math.max(KCS_MIN, rawKcs(totalKg)));
 }
 
 /** Alias for UI teammate convenience: provisional KCS from monthly kg. */

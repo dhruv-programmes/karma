@@ -1,4 +1,5 @@
 import type {
+  CommuteSummary,
   Facility,
   ImpactBreakdown,
   Product,
@@ -243,4 +244,21 @@ export const fallbackScore: ScoreResponse = {
     "We need more data to calculate your Carbon Score (Upload electricity, shopping, food + travel bills to improve accuracy)",
   baselineTotalKg: 96,
   targetKg: 82,
+};
+
+export const fallbackCommuteSummary: CommuteSummary = {
+  date: "2026-09-12",
+  todayDistanceKm: 0,
+  todayPoints: 0,
+  dailyRewardCap: 150,
+  tripsToday: 0,
+  series: [
+    { date: "2026-09-06", label: "Sun", distance_km: 1.8, points_awarded: 18, trips: 1 },
+    { date: "2026-09-07", label: "Mon", distance_km: 3.2, points_awarded: 25, trips: 2 },
+    { date: "2026-09-08", label: "Tue", distance_km: 0.0, points_awarded: 0, trips: 0 },
+    { date: "2026-09-09", label: "Wed", distance_km: 4.5, points_awarded: 35, trips: 2 },
+    { date: "2026-09-10", label: "Thu", distance_km: 2.1, points_awarded: 20, trips: 1 },
+    { date: "2026-09-11", label: "Fri", distance_km: 5.0, points_awarded: 40, trips: 2 },
+    { date: "2026-09-12", label: "Today", distance_km: 0.0, points_awarded: 0, trips: 0 },
+  ],
 };

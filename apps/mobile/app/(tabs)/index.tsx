@@ -12,9 +12,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   ArrowRight,
+  Award,
+  Bike,
+  CheckCircle2,
   ChevronRight,
   Footprints,
   Leaf,
+  Navigation,
+  Play,
+  Square,
   TrendingUp,
   Wrench,
 } from "lucide-react-native";
@@ -32,13 +38,14 @@ import {
   useCloset,
   useImpact,
   useImpactTimeseries,
-  useLeaderboard,
   useMe,
   useRecommendations,
   useScore,
   useSteps,
+  useCommuteSummary,
 } from "@/src/hooks/queries";
 import { useStepTracking } from "@/src/hooks/use-step-tracking";
+import { useCommuteTracking } from "@/src/hooks/use-commute-tracking";
 import { useAuthStore } from "@/src/store/auth";
 import { DEMO_REPAIR_ACTION_ID } from "@/src/types/api";
 import { useTabBarClearance } from "@/src/theme/layout";
@@ -396,6 +403,8 @@ export default function HomeScreen() {
   const activity = useActivity();
   const steps = useSteps();
   const stepTracking = useStepTracking(steps.data?.todaySteps ?? 0);
+  const commuteSummary = useCommuteSummary();
+  const commuteTracking = useCommuteTracking();
   const best = recs.data?.[0];
 
   const displayName = me.data?.name || user?.name || "Member";
@@ -479,7 +488,7 @@ export default function HomeScreen() {
             locations={[0, 0.45, 1]}
             start={{ x: 0.05, y: 0 }}
             end={{ x: 0.75, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
           {/* Thin bright ray crossing from upper-right */}
@@ -488,7 +497,7 @@ export default function HomeScreen() {
             locations={[0, 0.5, 1]}
             start={{ x: 0.85, y: 0 }}
             end={{ x: 0.15, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
           {/* Bottom highlight — bright white fade up for depth */}
@@ -496,13 +505,13 @@ export default function HomeScreen() {
             colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.15)"]}
             start={{ x: 0.5, y: 0.4 }}
             end={{ x: 0.5, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
           {/* Frosted softness — very light, keeps green dominant */}
           <View
             style={[
-              StyleSheet.absoluteFillObject,
+              StyleSheet.absoluteFill,
               { backgroundColor: "rgba(255,255,255,0.08)" },
             ]}
             pointerEvents="none"
@@ -681,6 +690,138 @@ export default function HomeScreen() {
                 <Text style={styles.walkCtaText}>{stepCta}</Text>
                 {!isWeb ? <ArrowRight size={14} color="#FFFFFF" strokeWidth={2.5} /> : null}
               </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* ── GREEN COMMUTE (GPS TRACKING) ── */}
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Green Commute (GPS)</Text>
+            <View style={styles.commuteCard}>
+              <View style={styles.commuteHeader}>
+                <View style={styles.commuteIconBox}>
+                  {commuteTracking.isTracking ? (
+                    <Bike size={20} color="#2EA86E" strokeWidth={2} />
+                  ) : (
+                    <Navigation size={20} color="#2EA86E" strokeWidth={2} />
+                  )}
+                </View>
+                <View style={styles.commuteHeaderCopy}>
+                  <Text style={styles.commuteTitle}>
+                    {commuteTracking.isTracking
+                      ? "Recording Commute..."
+                      : "Walk or Cycle to Earn"}
+                  </Text>
+                  <Text style={styles.commuteSubtitle}>
+                    {commuteTracking.isTracking
+                      ? `${commuteTracking.currentSpeedKmh.toFixed(1)} km/h • Auto-detecting mode`
+                      : "No motor vehicle • GPS verified speed"}
+                  </Text>
+                </View>
+                <View style={styles.commutePointsBadge}>
+                  <Text style={styles.commutePointsText}>
+                    +{commuteSummary.data?.todayPoints ?? 0} pts today
+                  </Text>
+                </View>
+              </View>
+
+              {/* Trip Result Banner */}
+              {commuteTracking.lastResult ? (
+                <View style={styles.tripResultBanner}>
+                  <View style={styles.tripResultHeader}>
+                    <CheckCircle2 size={16} color="#2EA86E" />
+                    <Text style={styles.tripResultTitle}>
+                      {commuteTracking.lastResult.mode === "walk"
+                        ? "🚶 Walk Logged"
+                        : commuteTracking.lastResult.mode === "cycle"
+                        ? "🚴 Cycle Logged"
+                        : "🚗 Motor Transit"}
+                    </Text>
+                  </View>
+                  <Text style={styles.tripResultDesc}>
+                    {commuteTracking.lastResult.message}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={commuteTracking.dismissResult}
+                    style={styles.tripResultDismiss}
+                  >
+                    <Text style={styles.tripResultDismissText}>Dismiss</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+
+              {/* Active Trip Telemetry */}
+              {commuteTracking.isTracking ? (
+                <View style={styles.liveTelemetryBox}>
+                  <View style={styles.telemetryItem}>
+                    <Text style={styles.telemetryValue}>
+                      {commuteTracking.distanceKm.toFixed(2)}
+                    </Text>
+                    <Text style={styles.telemetryLabel}>km traveled</Text>
+                  </View>
+                  <View style={styles.telemetryDivider} />
+                  <View style={styles.telemetryItem}>
+                    <Text style={styles.telemetryValue}>
+                      {Math.floor(commuteTracking.elapsedSec / 60)}:
+                      {(commuteTracking.elapsedSec % 60).toString().padStart(2, "0")}
+                    </Text>
+                    <Text style={styles.telemetryLabel}>duration</Text>
+                  </View>
+                  <View style={styles.telemetryDivider} />
+                  <View style={styles.telemetryItem}>
+                    <Text style={styles.telemetryValue}>
+                      {commuteTracking.currentSpeedKmh.toFixed(1)}
+                    </Text>
+                    <Text style={styles.telemetryLabel}>km/h speed</Text>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.commuteStatsRow}>
+                  <View>
+                    <Text style={styles.commuteDistanceText}>
+                      {(commuteSummary.data?.todayDistanceKm ?? 0).toFixed(2)} km
+                    </Text>
+                    <Text style={styles.commuteDistanceLabel}>
+                      Clean distance today ({commuteSummary.data?.tripsToday ?? 0} trips)
+                    </Text>
+                  </View>
+                  <View style={styles.commuteTiersPill}>
+                    <Text style={styles.commuteTiersText}>
+                      Walk: 10 pts/km • Cycle: 5 pts/km
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Action Button */}
+              {commuteTracking.isTracking ? (
+                <TouchableOpacity
+                  style={[styles.commuteCta, styles.commuteCtaStop]}
+                  onPress={commuteTracking.stopTracking}
+                  activeOpacity={0.85}
+                >
+                  <Square size={16} color="#FFFFFF" fill="#FFFFFF" />
+                  <Text style={styles.commuteCtaText}>End Trip & Claim Points</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[
+                    styles.commuteCta,
+                    (isWeb || commuteTracking.isSyncing) && styles.walkCtaMuted,
+                  ]}
+                  onPress={commuteTracking.startTracking}
+                  disabled={isWeb || commuteTracking.isSyncing}
+                  activeOpacity={0.85}
+                >
+                  <Play size={16} color="#FFFFFF" fill="#FFFFFF" />
+                  <Text style={styles.commuteCtaText}>
+                    {commuteTracking.isSyncing
+                      ? "Saving Trip..."
+                      : isWeb
+                      ? "Phone GPS Required"
+                      : "Start Commute Tracking"}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
 
@@ -1053,6 +1194,98 @@ const styles = StyleSheet.create({
   },
   walkCtaMuted: { backgroundColor: "#6C8374" },
   walkCtaText: { fontSize: 12, fontFamily: "Nunito_700Bold", color: "#FFFFFF" },
+
+  // Commute Card
+  commuteCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: "rgba(46,168,110,0.16)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  commuteHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
+  commuteIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(46,168,110,0.11)",
+  },
+  commuteHeaderCopy: { flex: 1, minWidth: 0 },
+  commuteTitle: { fontSize: 14, fontFamily: "Nunito_700Bold", color: "#183222" },
+  commuteSubtitle: { marginTop: 1, fontSize: 11, fontFamily: "Nunito_600SemiBold", color: "#2EA86E" },
+  commutePointsBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    backgroundColor: "rgba(46,168,110,0.1)",
+  },
+  commutePointsText: { fontSize: 11, fontFamily: "Nunito_700Bold", color: "#2EA86E" },
+  commuteStatsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#F4FAF6",
+    borderRadius: 14,
+    padding: 12,
+  },
+  commuteDistanceText: { fontSize: 20, fontFamily: "Nunito_800ExtraBold", color: "#183222" },
+  commuteDistanceLabel: { fontSize: 11, fontFamily: "Nunito_600SemiBold", color: "#7A9082", marginTop: 2 },
+  commuteTiersPill: {
+    backgroundColor: "rgba(46,168,110,0.12)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  commuteTiersText: { fontSize: 10, fontFamily: "Nunito_700Bold", color: "#2EA86E" },
+  liveTelemetryBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+    backgroundColor: "#EBF7F0",
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: "#A7E5C2",
+  },
+  telemetryItem: { alignItems: "center" },
+  telemetryValue: { fontSize: 20, fontFamily: "Nunito_800ExtraBold", color: "#183222" },
+  telemetryLabel: { fontSize: 10, fontFamily: "Nunito_600SemiBold", color: "#6A8372", marginTop: 2 },
+  telemetryDivider: { width: 1, height: 28, backgroundColor: "#C3EBD4" },
+  commuteCta: {
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#2EA86E",
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  commuteCtaStop: {
+    backgroundColor: "#E04F4F",
+  },
+  commuteCtaText: { fontSize: 13, fontFamily: "Nunito_700Bold", color: "#FFFFFF" },
+  tripResultBanner: {
+    backgroundColor: "#EBF7F0",
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#A7E5C2",
+    gap: 6,
+  },
+  tripResultHeader: { flexDirection: "row", alignItems: "center", gap: 6 },
+  tripResultTitle: { fontSize: 13, fontFamily: "Nunito_700Bold", color: "#183222" },
+  tripResultDesc: { fontSize: 12, fontFamily: "Nunito_400Regular", color: "#45614F", lineHeight: 16 },
+  tripResultDismiss: { alignSelf: "flex-end", paddingVertical: 2, paddingHorizontal: 6 },
+  tripResultDismissText: { fontSize: 11, fontFamily: "Nunito_700Bold", color: "#2EA86E" },
 
   // Sections
   section: {

@@ -7,6 +7,9 @@ import type {
   Badge,
   BaselineSyncPayload,
   CircularOptionsResponse,
+  CommuteSummary,
+  CommuteTripRequest,
+  CommuteTripResult,
   CompletedActionResult,
   DemoUserSummary,
   Facility,
@@ -217,6 +220,31 @@ export function normalizeStepSummary(raw: any): StepSummary {
   };
 }
 
+/** Normalize commute summary payload to camelCase */
+export function normalizeCommuteSummary(raw: any): CommuteSummary {
+  const src = raw && typeof raw === "object" ? raw : {};
+  const num = (v: unknown, dflt = 0): number =>
+    typeof v === "number" && Number.isFinite(v) ? v : dflt;
+  const rawSeries = src.series;
+
+  return {
+    date: String(src.date ?? ""),
+    todayDistanceKm: num(src.todayDistanceKm ?? src.today_distance_km, 0),
+    todayPoints: num(src.todayPoints ?? src.today_points, 0),
+    dailyRewardCap: num(src.dailyRewardCap ?? src.daily_reward_cap, 150),
+    tripsToday: num(src.tripsToday ?? src.trips_today, 0),
+    series: Array.isArray(rawSeries)
+      ? rawSeries.map((item: any) => ({
+          date: String(item.date ?? ""),
+          label: String(item.label ?? ""),
+          distance_km: num(item.distance_km ?? item.distanceKm, 0),
+          points_awarded: num(item.points_awarded ?? item.pointsAwarded, 0),
+          trips: num(item.trips, 0),
+        }))
+      : [],
+  };
+}
+
 export const api = {  // Authentication
   signin: (email: string, password = "password123") =>
     request<AuthResponse>("/api/v1/auth/signin", {
@@ -263,6 +291,13 @@ export const api = {  // Authentication
       method: "POST",
       body: JSON.stringify({ steps: Math.max(0, Math.round(steps)) }),
     }).then(normalizeStepSummary),
+  getCommuteSummary: () =>
+    request<any>("/api/v1/commute/summary").then(normalizeCommuteSummary),
+  logCommute: (payload: CommuteTripRequest) =>
+    request<CommuteTripResult>("/api/v1/commute/log", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   syncBaseline: (payload: BaselineSyncPayload) =>
     request<any>("/api/v1/onboarding/baseline", {
       method: "POST",

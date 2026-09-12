@@ -21,6 +21,7 @@ from app.db.models import (
     TransactionModel,
     UserBadgeModel,
     UserCompletedActionModel,
+    UserCommuteTripModel,
     UserDailyStepsModel,
     UserModel,
     UserOffsetPurchaseModel,
@@ -29,6 +30,11 @@ from app.db.models import (
 )
 from app.db.session import SessionLocal
 from app.engines.carbon import estimate_from_spend
+from app.engines.commute import (
+    TOTAL_COMMUTE_DAILY_CAP_POINTS,
+    calculate_commute_points,
+    classify_commute_mode,
+)
 from app.engines.scoring import (
     ACTION_POINTS,
     ACTION_SCORE_BUMP,
@@ -192,6 +198,138 @@ def sync_steps(steps: int, user: UserModel, db: Session) -> dict:
     db.commit()
     db.refresh(user)
     return build_steps_metric(user, db, today)
+
+
+def log_commute_trip(
+    distance_km: float,
+    duration_min: float,
+    avg_speed_kmh: float,
+    user: UserModel,
+    db: Session,
+) -> dict:
+    """Log an individual GPS-detected commute trip, classify mode, award points, and record activity."""
+    today = _local_today()
+    date_key = today.isoformat()
+
+    mode = classify_commute_mode(avg_speed_kmh)
+
+    # Calculate today's existing commute points to respect daily cap
+    todays_trips = (
+        db.query(UserCommuteTripModel)
+        .filter(
+            UserCommuteTripModel.user_id == user.id,
+            UserCommuteTripModel.date == date_key,
+        )
+        .all()
+    )
+    current_daily_points = sum(int(t.points_awarded) for t in todays_trips)
+
+    points_awarded, message = calculate_commute_points(
+        mode=mode,
+        distance_km=distance_km,
+        current_daily_points=current_daily_points,
+    )
+
+    trip = UserCommuteTripModel(
+        id=str(uuid4()),
+        user_id=user.id,
+        date=date_key,
+        mode=mode,
+        distance_km=round(distance_km, 3),
+        duration_min=round(duration_min, 1),
+        avg_speed_kmh=round(avg_speed_kmh, 1),
+        points_awarded=points_awarded,
+    )
+    db.add(trip)
+
+    if points_awarded > 0:
+        user.impact_points = int(user.impact_points) + points_awarded
+        mode_title = "Walked" if mode == "walk" else "Cycled"
+        log_activity_event(
+            user,
+            db,
+            "commute",
+            f"{mode_title} {distance_km:.2f} km",
+            f"Earned {points_awarded} Impact Points for green commute.",
+            points_delta=points_awarded,
+            meta={
+                "date": date_key,
+                "trip_id": trip.id,
+                "mode": mode,
+                "distance_km": round(distance_km, 3),
+                "duration_min": round(duration_min, 1),
+                "avg_speed_kmh": round(avg_speed_kmh, 1),
+            },
+        )
+
+    db.commit()
+    db.refresh(user)
+
+    daily_total = current_daily_points + points_awarded
+
+    return {
+        "trip_id": trip.id,
+        "mode": mode,
+        "distance_km": round(distance_km, 3),
+        "duration_min": round(duration_min, 1),
+        "avg_speed_kmh": round(avg_speed_kmh, 1),
+        "points_awarded": points_awarded,
+        "daily_total_points": daily_total,
+        "daily_cap": TOTAL_COMMUTE_DAILY_CAP_POINTS,
+        "message": message,
+    }
+
+
+def build_commute_summary(user: UserModel, db: Session, today: date | None = None) -> dict:
+    """Return today's commute stats and 7-day distance & points history."""
+    current_day = today or _local_today()
+    first_day = current_day - timedelta(days=6)
+    start = first_day.isoformat()
+    end = current_day.isoformat()
+
+    trips = (
+        db.query(UserCommuteTripModel)
+        .filter(
+            UserCommuteTripModel.user_id == user.id,
+            UserCommuteTripModel.date >= start,
+            UserCommuteTripModel.date <= end,
+        )
+        .all()
+    )
+
+    by_date: dict[str, list[UserCommuteTripModel]] = {}
+    for t in trips:
+        by_date.setdefault(t.date, []).append(t)
+
+    series = []
+    for offset in range(7):
+        day = first_day + timedelta(days=offset)
+        day_str = day.isoformat()
+        day_trips = by_date.get(day_str, [])
+        total_dist = sum(float(t.distance_km) for t in day_trips if t.mode in ("walk", "cycle"))
+        total_pts = sum(int(t.points_awarded) for t in day_trips)
+        series.append(
+            {
+                "date": day_str,
+                "label": day.strftime("%a") if offset < 6 else "Today",
+                "distance_km": round(total_dist, 2),
+                "points_awarded": total_pts,
+                "trips": len(day_trips),
+            }
+        )
+
+    today_trips = by_date.get(end, [])
+    today_dist = sum(float(t.distance_km) for t in today_trips if t.mode in ("walk", "cycle"))
+    today_pts = sum(int(t.points_awarded) for t in today_trips)
+
+    return {
+        "date": end,
+        "today_distance_km": round(today_dist, 2),
+        "today_points": today_pts,
+        "daily_reward_cap": TOTAL_COMMUTE_DAILY_CAP_POINTS,
+        "trips_today": len(today_trips),
+        "series": series,
+    }
 
 
 def haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:

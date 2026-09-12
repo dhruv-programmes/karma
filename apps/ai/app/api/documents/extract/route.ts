@@ -1,5 +1,6 @@
-import { streamObject } from "ai";
-import { getModel, requireApiKey } from "@/lib/ai";
+import { generateObject } from "ai";
+import { NextResponse } from "next/server";
+import { getModel, googleProviderOptions, requireApiKey } from "@/lib/ai";
 import { jsonError, optionsResponse, withCors } from "@/lib/cors";
 import {
   documentExtractionSchema,
@@ -88,29 +89,36 @@ export async function POST(req: Request) {
     payload.hint?.trim() ||
     "Extract all footprint-relevant line items from this document.";
 
-  const result = streamObject({
-    model: getModel(),
-    schema: documentExtractionSchema,
-    system: EXTRACT_SYSTEM_PROMPT,
-    messages: [
-      {
-        role: "user",
-        content: [
-          { type: "text", text: userText },
-          isPdf
-            ? {
-                type: "file" as const,
-                data: payload.bytes,
-                mediaType: "application/pdf",
-              }
-            : {
-                type: "image" as const,
-                image: payload.bytes,
-              },
-        ],
-      },
-    ],
-  });
+  try {
+    const { object } = await generateObject({
+      model: getModel(),
+      schema: documentExtractionSchema,
+      system: EXTRACT_SYSTEM_PROMPT,
+      providerOptions: googleProviderOptions,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: userText },
+            isPdf
+              ? {
+                  type: "file" as const,
+                  data: payload.bytes,
+                  mediaType: "application/pdf",
+                }
+              : {
+                  type: "image" as const,
+                  image: payload.bytes,
+                },
+          ],
+        },
+      ],
+    });
 
-  return withCors(result.toTextStreamResponse(), req);
+    return withCors(NextResponse.json(object), req);
+  } catch (e) {
+    const message =
+      e instanceof Error ? e.message : "Document extraction failed";
+    return jsonError(502, message, req);
+  }
 }

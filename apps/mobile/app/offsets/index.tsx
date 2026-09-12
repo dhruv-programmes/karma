@@ -14,7 +14,12 @@ import { Pressable } from "@/components/ui/pressable";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
-import { useImpact, useOffsets, usePurchaseOffset } from "@/src/hooks/queries";
+import { useImpact, useMe, useOffsets, usePurchaseOffset } from "@/src/hooks/queries";
+import { useAuthStore } from "@/src/store/auth";
+
+function offsetPointsCost(priceInr: number) {
+  return Math.max(50, Math.floor(Math.max(0, priceInr) / 20 + 0.5) * 10);
+}
 
 export default function OffsetsScreen() {
   const insets = useSafeAreaInsets();
@@ -22,9 +27,12 @@ export default function OffsetsScreen() {
   const offsets = useOffsets();
   const purchase = usePurchaseOffset();
   const impact = useImpact();
+  const me = useMe();
+  const authUser = useAuthStore((state) => state.user);
   const [note, setNote] = useState<string | null>(null);
 
   const items = offsets.data ?? [];
+  const pointsBalance = me.data?.impact_points ?? authUser?.impact_points ?? null;
 
   async function buy(id: string) {
     try {
@@ -37,8 +45,12 @@ export default function OffsetsScreen() {
       } catch {
         /* sim */
       }
-    } catch {
-      setNote("Could not complete demo offset purchase.");
+    } catch (error) {
+      setNote(
+        error instanceof Error
+          ? error.message
+          : "Could not complete demo offset purchase."
+      );
     }
   }
 
@@ -52,13 +64,18 @@ export default function OffsetsScreen() {
         gap: 16,
       }}
     >
-      <BackButton label="Back" fallbackRoute="/(tabs)" />
-      <Heading size="2xl">Verified offsets</Heading>
+      <HStack className="items-center gap-3">
+        <BackButton label="Home" fallbackRoute="/(tabs)" />
+        <Heading size="2xl" className="flex-1">Verified offsets</Heading>
+      </HStack>
       <Text className="text-muted-foreground -mt-2">
         Optional after circular actions. Prefer repair/reuse first. Demo data.
       </Text>
 
       <Card variant="softPop">
+        <Text bold>
+          Karma Coins: {pointsBalance == null ? "—" : pointsBalance.toLocaleString()}
+        </Text>
         <Text bold>
           Offset so far ~{Math.round(impact.data?.offset_kg_total ?? 0)} kg
         </Text>
@@ -107,9 +124,10 @@ export default function OffsetsScreen() {
               size="sm"
               variant="secondary"
               loading={purchase.isPending}
+              disabled={pointsBalance != null && pointsBalance < offsetPointsCost(o.price_inr)}
               onPress={() => void buy(o.id)}
             >
-              Demo purchase
+              {`Purchase · ${offsetPointsCost(o.price_inr)} coins`}
             </Button>
           </VStack>
         </Card>

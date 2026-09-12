@@ -12,7 +12,6 @@ import {
   ArrowRight,
   Leaf,
 } from "lucide-react-native";
-import { BackButton } from "@/components/custom/back-button";
 import { RecommendationCard } from "@/components/custom/recommendation-card";
 import { SkeletonCard } from "@/components/custom/skeleton-card";
 import { Text } from "@/components/ui/text";
@@ -87,13 +86,7 @@ export default function ActionsScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        {/* ========================================================= */}
-        {/* Top Header: BackButton + Title & Subtitle                 */}
-        {/* ========================================================= */}
         <View style={styles.header}>
-          <View style={styles.headerTopRow}>
-            <BackButton label="Home" fallbackRoute="/(tabs)" />
-          </View>
           <Text style={styles.title}>Actions</Text>
           <Text style={styles.subtitle}>
             High-impact circular choices tailored to your lifestyle
@@ -202,9 +195,6 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: 4,
-  },
-  headerTopRow: {
-    marginBottom: 4,
   },
   title: {
     fontSize: 28,

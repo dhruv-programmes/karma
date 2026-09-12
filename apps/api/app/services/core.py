@@ -476,6 +476,24 @@ REWARD_CATEGORY_BASE_COSTS: tuple[tuple[tuple[str, ...], int], ...] = (
     (("e-waste", "ewaste", "recycling", "recycle", "packaging", "metro", "pass"), 250),
 )
 
+# Offset donations use the same Karma Coin wallet as partner rewards. The
+# listed INR amount remains visible for transparency; the coin cost is a
+# bounded local conversion so every offset has a predictable wallet impact.
+OFFSET_POINTS_FORMULA_VERSION = "offset-points-v1"
+
+
+def offset_points_cost(price_inr: float) -> int:
+    """Convert an offset's listed INR price into a stable 10-coin tier."""
+    try:
+        price = max(0.0, float(price_inr))
+    except (TypeError, ValueError):
+        return 0
+    if price <= 0:
+        return 0
+    # Use explicit half-up rounding so Python and JavaScript clients agree
+    # (e.g. ₹450 becomes 230 coins rather than Python's banker-rounded 220).
+    return max(50, int(price / 20.0 + 0.5) * 10)
+
 
 def effective_reward_cost(
     listed_points: int,
@@ -2004,7 +2022,15 @@ def purchase_offset(
     if not project:
         raise ValueError("Offset not found")
 
+    points_cost = offset_points_cost(project.price_inr)
+    if int(user.impact_points or 0) < points_cost:
+        raise ValueError(
+            f"Not enough Karma Coins (need {points_cost}, have {int(user.impact_points or 0)})"
+        )
+
     user.offset_kg_total = round(user.offset_kg_total + project.co2e_kg, 1)
+    user.impact_points = int(user.impact_points or 0) - points_cost
+    user.loop_level = max(1, user.impact_points // 250 + 1)
     purchase = UserOffsetPurchaseModel(
         user_id=user.id,
         offset_id=str(offset_id),
@@ -2025,13 +2051,16 @@ def purchase_offset(
         user,
         db,
         "offset",
-        f"Offset +{int(project.co2e_kg)} kg",
-        project.name,
+        f"Offset purchase: {project.name}",
+        f"−{points_cost} Karma Coins · +{int(project.co2e_kg)} kg offset",
+        points_delta=-points_cost,
         meta={
             "purchase_id": purchase.id,
             "offset_id": str(offset_id),
             "co2e_kg": float(project.co2e_kg),
             "amount_inr": float(project.price_inr),
+            "points_spent": points_cost,
+            "points_formula_version": OFFSET_POINTS_FORMULA_VERSION,
             "status": "purchased",
         },
     )
@@ -2042,11 +2071,13 @@ def purchase_offset(
         "offset_id": offset_id,
         "co2e_kg": project.co2e_kg,
         "price_inr": project.price_inr,
+        "points_spent": points_cost,
+        "points_remaining": int(user.impact_points),
         "offset_kg_total": user.offset_kg_total,
         "residual_kg": impact["residual_kg"],
         "message": (
-            f"Demo purchase: +{int(project.co2e_kg)} kg offset. "
-            f"Residual footprint ~{impact['residual_kg']} kg."
+            f"Demo purchase: −{points_cost} Karma Coins for +{int(project.co2e_kg)} kg offset. "
+            f"{int(user.impact_points)} coins remain. Residual footprint ~{impact['residual_kg']} kg."
         ),
         "badges_unlocked": badges,
         "is_mock": True,

@@ -279,6 +279,8 @@ class OffsetPurchaseResult(BaseModel):
     offset_id: UUID
     co2e_kg: float
     price_inr: float
+    points_spent: int = 0
+    points_remaining: int = 0
     offset_kg_total: float
     residual_kg: float
     message: str

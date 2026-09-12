@@ -7,8 +7,14 @@ from uuid import UUID, uuid4
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.db.models import ActivityEventModel, Base, RewardModel, UserModel
-from app.services.core import effective_reward_cost, list_points_ledger, redeem_reward
+from app.db.models import ActivityEventModel, Base, OffsetProjectModel, RewardModel, UserModel
+from app.services.core import (
+    effective_reward_cost,
+    list_points_ledger,
+    offset_points_cost,
+    purchase_offset,
+    redeem_reward,
+)
 
 
 def _db():
@@ -130,4 +136,27 @@ def test_redemption_rejects_insufficient_balance_without_ledger_entry():
         raise AssertionError("insufficient balance should reject redemption")
     assert user.impact_points == 100
     assert list_points_ledger(user, db)["entries"] == []
+    db.close()
+
+
+def test_offset_purchase_debits_wallet_and_records_spend():
+    db = _db()
+    user = _user(db)
+    user.impact_points = 300
+    project = OffsetProjectModel(
+        id=str(uuid4()), name="Mangrove test", provider="Demo", co2e_kg=100,
+        price_inr=450, verification_status="Verified", geography="IN",
+        description="test", methodology="test", cover_image_url="demo://mangrove",
+    )
+    db.add(project)
+    db.commit()
+
+    result = purchase_offset(UUID(project.id), user, db)
+    expected_cost = offset_points_cost(450)
+    assert result["points_spent"] == expected_cost == 230
+    assert result["points_remaining"] == 70
+    assert user.impact_points == 70
+    ledger = list_points_ledger(user, db)
+    assert ledger["entries"][0]["source"] == "offset"
+    assert ledger["entries"][0]["points_delta"] == -expected_cost
     db.close()

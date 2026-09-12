@@ -378,6 +378,8 @@ export interface OffsetPurchaseResult {
   offset_id: string;
   co2e_kg: number;
   price_inr: number;
+  points_spent: number;
+  points_remaining: number;
   offset_kg_total: number;
   residual_kg: number;
   message: string;

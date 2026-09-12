@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" width="110" alt="Karma Brand Logo"/>
+  <img src="assets/app-icon.png" width="140" alt="Karma Full App Icon"/>
 </p>
 
 <h1 align="center">Karma</h1>

@@ -4,10 +4,8 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { ProductImage } from "@/components/custom/product-image";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Chip } from "@/components/ui/chip";
 import { Heading } from "@/components/ui/heading";
 import { HStack } from "@/components/ui/hstack";
 import { Pressable } from "@/components/ui/pressable";
@@ -97,17 +95,9 @@ export default function OffsetsScreen() {
             <ProductImage uri={o.cover_image_url} size="full" radius={0} />
           ) : null}
           <VStack space="sm" className="p-4">
-            <HStack className="justify-between gap-3 items-start">
-              <Text bold className="flex-1">
-                {o.name}
-              </Text>
-              <Badge
-                action={
-                  o.verification_status === "Verified" ? "success" : "warning"
-                }
-                label={o.verification_status}
-              />
-            </HStack>
+            <Text bold className="flex-1">
+              {o.name}
+            </Text>
             <Text size="xs" className="text-muted-foreground">
               {o.provider} · {o.geography}
               {o.methodology ? ` · ${o.methodology}` : ""}
@@ -115,7 +105,6 @@ export default function OffsetsScreen() {
             <Text size="sm" className="text-muted-foreground">
               {o.description}
             </Text>
-            <Chip tone="info" label="Demo listing only" />
             <HStack space="xl">
               <Text className="font-mono">~{o.co2e_kg} kg CO₂e</Text>
               <Text className="font-mono">₹{o.price_inr}</Text>

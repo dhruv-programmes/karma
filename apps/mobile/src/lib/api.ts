@@ -470,6 +470,8 @@ export const api = {  // Authentication
     filename: string;
     mime_type?: string | null;
     size_bytes?: number | null;
+    vehicle_make_model?: string | null;
+    registration_number?: string | null;
   }) =>
     request<import("@/src/types/api").SustainablePurchaseVerification>(
       "/api/v1/sustainable-purchases/verify",
@@ -480,6 +482,25 @@ export const api = {  // Authentication
       "/api/v1/sustainable-purchases/reset",
       { method: "POST" }
     ),
+  verifyEvidence: (payload: {
+    analysis: import("@/src/types/api").VerificationAnalysis;
+    image_base64?: string;
+    filename?: string;
+  }) =>
+    request<import("@/src/types/api").UniversalVerificationResponse>(
+      "/api/v1/evidence/verify",
+      { method: "POST", body: JSON.stringify(payload) }
+    ),
+  getSustainabilityAssets: () =>
+    request<import("@/src/types/api").SustainabilityAsset[]>(
+      "/api/v1/evidence/assets"
+    ),
+  getSustainabilityCredit: () =>
+    request<import("@/src/types/api").SustainabilityCreditStatus>(
+      "/api/v1/evidence/credit"
+    ),
+  getSustainabilityHistory: () =>
+    request<any[]>("/api/v1/evidence/history"),
   syncBaseline: (payload: BaselineSyncPayload) =>
     request<any>("/api/v1/onboarding/baseline", {
       method: "POST",

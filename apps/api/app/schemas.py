@@ -541,6 +541,8 @@ class SustainablePurchaseVerifyRequest(BaseModel):
     filename: str = Field(min_length=1, max_length=255)
     mime_type: str | None = Field(default=None, max_length=120)
     size_bytes: int | None = Field(default=None, ge=0)
+    vehicle_make_model: str | None = Field(default=None, max_length=100)
+    registration_number: str | None = Field(default=None, max_length=50)
 
 
 class SustainablePurchaseVerifyResponse(BaseModel):
@@ -892,3 +894,171 @@ class SolarImpactResponse(BaseModel):
     recommendations: list[SolarRecommendation]
     comparison: SolarImpactComparison
     timeline: list[SolarTimelineEvent]
+
+
+# ============================================================================
+# Universal Sustainability Verification Engine Schemas (EcoProof / EcoScan)
+# ============================================================================
+
+class VerificationQualityEnum(str, Enum):
+    HIGH = "HIGH"
+    MEDIUM = "MEDIUM"
+    LOW = "LOW"
+
+
+class RoutingHintEnum(str, Enum):
+    EV_SECTION = "ev_section"
+    SOLAR_SECTION = "solar_section"
+    GENERIC = "generic"
+
+
+class VerificationBlock(BaseModel):
+    legitimate: bool
+    evidence_type: str
+    evidence_quality: str = "HIGH"
+    confidence: float = 1.0
+    sufficient_for_claim: bool = True
+    reason: str = ""
+    routing_hint: str = "generic"
+
+
+class AssetBlock(BaseModel):
+    type: str  # solar_pv, electric_vehicle, etc.
+    subtype: str | None = None
+    identifier: str | None = None
+    ownership_verified: bool = False
+
+
+class ObservationField(BaseModel):
+    field_name: str
+    value: Any = None
+    confidence: float | None = None
+
+
+class MeasurementItem(BaseModel):
+    metric_type: str
+    value: float
+    unit: str
+
+
+class ObservationsBlock(BaseModel):
+    fields: list[ObservationField] = Field(default_factory=list)
+    visible_text: list[str] = Field(default_factory=list)
+    measurements: list[MeasurementItem] = Field(default_factory=list)
+
+
+class TemporalBlock(BaseModel):
+    evidence_date: str | None = None
+    billing_period_start: str | None = None
+    billing_period_end: str | None = None
+    recency_status: str = "CURRENT"
+
+
+class FraudBlock(BaseModel):
+    duplicate_risk: float = 0.0
+    screen_photo_risk: float = 0.0
+    manipulation_risk: float = 0.0
+    identity_mismatch_risk: float = 0.0
+    measurement_anomaly_risk: float = 0.0
+    needs_manual_review: bool = False
+
+
+class ImpactInputsBlock(BaseModel):
+    capacity_kw: float | None = None
+    generation_kwh: float | None = None
+    distance_km: float | None = None
+    energy_consumption_kwh: float | None = None
+
+
+class ShortRunBlock(BaseModel):
+    eligible: bool = True
+    reward_type: str = "ADOPTION"  # ADOPTION, GENERATION, USAGE, NONE
+
+
+class LongRunBlock(BaseModel):
+    eligible: bool = True
+    measurement_type: str = "GENERATION"  # GENERATION, USAGE, ADOPTION, NONE
+
+
+class VerificationAnalysis(BaseModel):
+    verification: VerificationBlock
+    asset: AssetBlock
+    observations: ObservationsBlock = Field(default_factory=ObservationsBlock)
+    temporal: TemporalBlock = Field(default_factory=TemporalBlock)
+    fraud: FraudBlock = Field(default_factory=FraudBlock)
+    impact_inputs: ImpactInputsBlock = Field(default_factory=ImpactInputsBlock)
+    short_run: ShortRunBlock = Field(default_factory=ShortRunBlock)
+    long_run: LongRunBlock = Field(default_factory=LongRunBlock)
+    explanation: str = ""
+
+
+class ImpactBreakdown(BaseModel):
+    overall: int
+    carbon_reduction: int
+    pollution_reduction: int
+    energy_efficiency: int
+    resource_efficiency: int
+    ecological_risk: int
+    co2_saved_kg: float = 0.0
+
+
+class RewardsBreakdown(BaseModel):
+    adoption_points: int = 0
+    usage_points: int = 0
+    generation_points: int = 0
+    performance_bonus: int = 0
+    total_points: int = 0
+
+
+class LongTermCredit(BaseModel):
+    sustainability_credit: int  # 0 - 100
+    trend: str  # IMPROVING, STABLE, DECLINING
+    consistency_factor: float = 1.0
+    total_verified_kwh: float = 0.0
+    total_verified_adoptions: int = 0
+
+
+class UniversalVerificationResponse(BaseModel):
+    status: str  # VERIFIED, PROVISIONALLY_VERIFIED, DUPLICATE, SUSPICIOUS, REJECTED
+    verification_status: str
+    already_claimed: bool = False
+    submission_id: str | None = None
+    asset_id: str | None = None
+    routing_hint: str = "generic"
+    analysis: VerificationAnalysis
+    impact: ImpactBreakdown
+    rewards: RewardsBreakdown
+    long_term: LongTermCredit
+    message: str = ""
+
+
+class VerifyEvidenceRequest(BaseModel):
+    analysis: VerificationAnalysis | None = None
+    image_base64: str | None = None
+    mime_type: str | None = "image/jpeg"
+    filename: str | None = None
+    evidence_type_hint: str | None = None
+
+
+class SustainabilityAssetResponse(BaseModel):
+    id: str
+    asset_type: str
+    subtype: str | None = None
+    identifier: str | None = None
+    capacity_kw: float | None = None
+    ownership_verified: bool
+    ownership_verified_at: datetime | None = None
+    adoption_reward_claimed: bool
+    meta: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime
+
+
+class SustainabilityCreditResponse(BaseModel):
+    credit_score: int
+    trend: str
+    consistency_factor: float
+    total_verified_generation_kwh: float
+    total_verified_adoption_count: int
+    summary: dict[str, Any] = Field(default_factory=dict)
+    recorded_at: datetime
+

@@ -7,6 +7,7 @@ export default function AiHome() {
         <li>POST /api/documents/extract</li>
         <li>POST /api/documents/chat</li>
         <li>POST /api/documents/confirm</li>
+        <li>POST /api/documents/verify — Universal Sustainability Verification (Local VLM)</li>
         <li>POST /api/support/chat — UIMessage stream (useChat) + tools</li>
       </ul>
     </main>

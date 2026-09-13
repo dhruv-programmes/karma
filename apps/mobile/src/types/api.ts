@@ -620,3 +620,154 @@ export interface LeagueSummary {
   demotion_note: string;
   standings: LeagueStanding[];
 }
+
+// ============================================================================
+// UNIVERSAL SUSTAINABILITY VERIFICATION (EcoProof / EcoScan)
+// ============================================================================
+
+export type VerificationQuality = "HIGH" | "MEDIUM" | "LOW";
+export type RoutingHint = "ev_section" | "solar_section" | "generic";
+
+export interface VerificationBlock {
+  legitimate: boolean;
+  evidence_type: string;
+  evidence_quality: VerificationQuality;
+  confidence: number;
+  sufficient_for_claim: boolean;
+  reason: string;
+  routing_hint: RoutingHint;
+}
+
+export interface AssetBlock {
+  type: "solar_pv" | "electric_vehicle" | "solar_water_heater" | "energy_efficient_appliance" | "other";
+  subtype?: string | null;
+  identifier?: string | null;
+  ownership_verified: boolean;
+}
+
+export interface ObservationField {
+  field_name: string;
+  value: string | number | null;
+  confidence?: number;
+}
+
+export interface MeasurementItem {
+  metric_type: string;
+  value: number;
+  unit: string;
+}
+
+export interface ObservationsBlock {
+  fields: ObservationField[];
+  visible_text: string[];
+  measurements: MeasurementItem[];
+}
+
+export interface TemporalBlock {
+  evidence_date?: string | null;
+  billing_period_start?: string | null;
+  billing_period_end?: string | null;
+  recency_status: "CURRENT" | "RECENT" | "EXPIRED" | "UNKNOWN";
+}
+
+export interface FraudBlock {
+  duplicate_risk: number;
+  screen_photo_risk: number;
+  manipulation_risk: number;
+  identity_mismatch_risk: number;
+  measurement_anomaly_risk: number;
+  needs_manual_review: boolean;
+}
+
+export interface ImpactInputsBlock {
+  capacity_kw?: number | null;
+  generation_kwh?: number | null;
+  distance_km?: number | null;
+  energy_consumption_kwh?: number | null;
+}
+
+export interface ShortRunBlock {
+  eligible: boolean;
+  reward_type: "ADOPTION" | "GENERATION" | "USAGE" | "NONE";
+}
+
+export interface LongRunBlock {
+  eligible: boolean;
+  measurement_type: "GENERATION" | "USAGE" | "ADOPTION" | "NONE";
+}
+
+export interface VerificationAnalysis {
+  verification: VerificationBlock;
+  asset: AssetBlock;
+  observations: ObservationsBlock;
+  temporal: TemporalBlock;
+  fraud: FraudBlock;
+  impact_inputs: ImpactInputsBlock;
+  short_run: ShortRunBlock;
+  long_run: LongRunBlock;
+  explanation: string;
+}
+
+export interface VerificationImpactBreakdown {
+  overall: number;
+  carbon_reduction: number;
+  pollution_reduction: number;
+  energy_efficiency: number;
+  resource_efficiency: number;
+  ecological_risk: number;
+  co2_saved_kg: number;
+}
+
+export interface RewardsBreakdown {
+  adoption_points: number;
+  usage_points: number;
+  generation_points: number;
+  performance_bonus: number;
+  total_points: number;
+}
+
+export interface LongTermCredit {
+  sustainability_credit: number;
+  trend: "IMPROVING" | "STABLE" | "DECLINING";
+  consistency_factor: number;
+  total_verified_kwh: number;
+  total_verified_adoptions: number;
+}
+
+export interface UniversalVerificationResponse {
+  status: "VERIFIED" | "PROVISIONALLY_VERIFIED" | "DUPLICATE" | "SUSPICIOUS" | "REJECTED";
+  verification_status: string;
+  already_claimed: boolean;
+  submission_id?: string | null;
+  asset_id?: string | null;
+  routing_hint: RoutingHint;
+  analysis: VerificationAnalysis;
+  impact: VerificationImpactBreakdown;
+  rewards: RewardsBreakdown;
+  long_term: LongTermCredit;
+  message: string;
+}
+
+export interface SustainabilityAsset {
+  id: string;
+  asset_type: string;
+  subtype?: string | null;
+  identifier?: string | null;
+  capacity_kw?: number | null;
+  ownership_verified: boolean;
+  ownership_verified_at?: string | null;
+  adoption_reward_claimed: boolean;
+  meta: Record<string, any>;
+  created_at: string;
+}
+
+export interface SustainabilityCreditStatus {
+  credit_score: number;
+  trend: string;
+  consistency_factor: number;
+  total_verified_generation_kwh: number;
+  total_verified_adoption_count: number;
+  summary: Record<string, any>;
+  recorded_at: string;
+}
+

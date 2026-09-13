@@ -552,3 +552,37 @@ export function useTransactions() {
       ]),
   });
 }
+
+export function useSustainabilityAssets() {
+  return useQuery({
+    queryKey: ["sustainability-assets"],
+    queryFn: () => api.getSustainabilityAssets(),
+  });
+}
+
+export function useSustainabilityCredit() {
+  return useQuery({
+    queryKey: ["sustainability-credit"],
+    queryFn: () => api.getSustainabilityCredit(),
+  });
+}
+
+export function useVerifyEvidence() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: {
+      analysis: import("@/src/types/api").VerificationAnalysis;
+      image_base64?: string;
+      filename?: string;
+    }) => api.verifyEvidence(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sustainability-assets"] });
+      qc.invalidateQueries({ queryKey: ["sustainability-credit"] });
+      qc.invalidateQueries({ queryKey: ["me"] });
+      qc.invalidateQueries({ queryKey: ["activity"] });
+      qc.invalidateQueries({ queryKey: ["points-ledger"] });
+      qc.invalidateQueries({ queryKey: ["league"] });
+    },
+  });
+}
+

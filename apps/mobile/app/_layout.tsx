@@ -84,6 +84,9 @@ export default function RootLayout() {
             <Stack.Screen name="leaderboard/index" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="offsets/index" />
             <Stack.Screen name="tools/verify-sustainable-purchase" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="verify/index" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="verify/capture" options={{ presentation: "fullScreenModal" }} />
+            <Stack.Screen name="verify/result" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="receipt/index" />
             <Stack.Screen name="receipt/review" />
             <Stack.Screen name="receipt/result" />

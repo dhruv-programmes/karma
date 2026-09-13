@@ -466,3 +466,41 @@ export function createChatMessage(
 ): DocumentChatMessage {
   return { id: newChatId(role), role, text };
 }
+
+/** Verify sustainability evidence using the local VLM endpoint. */
+export async function verifyEvidenceWithVlm(input: {
+  uri: string;
+  name?: string;
+  kind?: "image" | "pdf";
+  hint?: string;
+}): Promise<{ analysis: import("@/src/types/api").VerificationAnalysis; imageBase64: string }> {
+  const kind = input.kind || "image";
+  const name = input.name || "evidence.jpg";
+  const mediaType = guessMediaType(name, kind);
+  const dataBase64 = await fileUriToBase64(input.uri, kind);
+
+  const res = await fetchAi(
+    `${getAiBaseUrl()}/api/documents/verify`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: authHeader(),
+      },
+      body: JSON.stringify({
+        mediaType,
+        dataBase64,
+        hint: input.hint,
+      }),
+    },
+    "evidence verification"
+  );
+
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Evidence verification failed"));
+  }
+
+  const analysis = (await res.json()) as import("@/src/types/api").VerificationAnalysis;
+  return { analysis, imageBase64: dataBase64 };
+}
+

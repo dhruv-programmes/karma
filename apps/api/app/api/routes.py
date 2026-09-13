@@ -67,7 +67,11 @@ from app.schemas import (
     StepsSyncRequest,
     SustainablePurchaseVerifyRequest,
     SustainablePurchaseVerifyResponse,
+    SustainabilityAssetResponse,
+    SustainabilityCreditResponse,
+    UniversalVerificationResponse,
     UserPreferences,
+    VerifyEvidenceRequest,
     SolarImpactResponse,
     SolarRecommendationActionResponse,
 )
@@ -669,6 +673,8 @@ def verify_sustainable_purchase(
         size_bytes=body.size_bytes,
         user=current_user,
         db=db,
+        vehicle_make_model=body.vehicle_make_model,
+        registration_number=body.registration_number,
     )
     if result.get("reward_points", 0):
         try:
@@ -694,6 +700,90 @@ def reset_sustainable_purchase(
 ):
     """Reset the demo EV verification so judges/evaluators can replay the flow."""
     return services.reset_sustainable_purchase(user=current_user, db=db)
+
+
+# ============================================================================
+# UNIVERSAL SUSTAINABILITY VERIFICATION (EcoProof / EcoScan)
+# ============================================================================
+
+
+@router.post(
+    "/evidence/verify",
+    response_model=UniversalVerificationResponse,
+)
+def verify_sustainability_evidence(
+    body: VerifyEvidenceRequest,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Verify sustainability evidence using deterministic scoring & fraud engine."""
+    if not body.analysis:
+        raise HTTPException(
+            status_code=400,
+            detail="Verification analysis payload is required. Please run the local VLM extractor first.",
+        )
+
+    res = services.verify_evidence(
+        user=current_user,
+        analysis=body.analysis,
+        db=db,
+        image_base64=body.image_base64,
+    )
+
+    if res.rewards.total_points > 0 and res.status == "VERIFIED":
+        try:
+            league_service.record_action(
+                db, current_user,
+                action_key=f"evidence-verify:{res.submission_id}",
+                action_type="sustainable_evidence_verification",
+                source="universal_scanner",
+                reward_points=res.rewards.total_points,
+                evidence={
+                    "asset_type": res.analysis.asset.type,
+                    "evidence_type": res.analysis.verification.evidence_type,
+                    "submission_id": res.submission_id,
+                },
+            )
+        except Exception:
+            db.rollback()
+
+    return res
+
+
+@router.get(
+    "/evidence/assets",
+    response_model=list[SustainabilityAssetResponse],
+)
+def get_user_assets(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get all registered sustainability assets for the current user."""
+    return services.get_user_sustainability_assets(current_user, db)
+
+
+@router.get(
+    "/evidence/credit",
+    response_model=SustainabilityCreditResponse,
+)
+def get_user_credit(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get current longitudinal Sustainability Credit status."""
+    return services.get_user_sustainability_credit(current_user, db)
+
+
+@router.get(
+    "/evidence/history",
+)
+def get_user_evidence_history(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get recent verification submissions and reward history."""
+    return services.get_user_sustainability_history(current_user, db)
+
 
 
 

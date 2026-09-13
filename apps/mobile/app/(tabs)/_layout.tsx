@@ -257,7 +257,7 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
               accessibilityRole="button"
               accessibilityLabel="Scan product"
               style={styles.scanButton}
-              onPress={() => router.push("/scan")}
+              onPress={() => router.push("/verify/capture" as any)}
               activeOpacity={0.85}
             >
               <ScanLine size={22} color="#FFFFFF" strokeWidth={2.2} />

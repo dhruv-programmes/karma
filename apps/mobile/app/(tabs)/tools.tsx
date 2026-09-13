@@ -8,7 +8,9 @@ import {
   MessageCircle,
   Receipt,
   Recycle,
+  ScanLine,
   ShieldCheck,
+  Sparkles,
   Zap,
 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -85,13 +87,42 @@ export default function ToolsScreen() {
         subtitle="Practical ways to measure, reduce, and offset your footprint."
       />
 
-      <Animated.View entering={FadeInDown.delay(60).duration(320)}>
+      {/* Universal Sustainability Verification Engine Card */}
+      <Animated.View entering={FadeInDown.delay(40).duration(320)}>
+        <TouchableOpacity
+          style={styles.universalCard}
+          onPress={() => router.push("/verify" as any)}
+          activeOpacity={0.88}
+        >
+          <View style={styles.universalGlow} />
+          <View style={styles.verificationIconRow}>
+            <View style={styles.universalIconBox}>
+              <ScanLine size={24} color="#064E3B" strokeWidth={2.2} />
+            </View>
+            <View style={styles.universalTag}>
+              <Sparkles size={12} color="#059669" />
+              <Text style={styles.universalTagText}>ECOPROOF ENGINE</Text>
+            </View>
+          </View>
+
+          <Text style={styles.universalTitle}>Universal Sustainability Verification</Text>
+          <Text style={styles.universalSubtitle}>
+            Verify solar PV generation, EV ownership, or smart appliances with multimodal local AI.
+          </Text>
+
+          <View style={styles.universalFooter}>
+            <Text style={styles.universalCtaText}>Open EcoProof Hub ›</Text>
+          </View>
+        </TouchableOpacity>
+      </Animated.View>
+
+      <Animated.View entering={FadeInDown.delay(80).duration(320)}>
         <TouchableOpacity
           style={[
             styles.verificationCard,
             verified && styles.verificationCardVerified,
           ]}
-          onPress={() => router.push("/tools/verify-sustainable-purchase")}
+          onPress={() => router.push("/tools/verify-sustainable-purchase" as any)}
           activeOpacity={0.88}
         >
           <View
@@ -300,4 +331,73 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     fontFamily: "Nunito_400Regular",
   },
+  universalCard: {
+    borderRadius: 24,
+    padding: 20,
+    overflow: "hidden",
+    backgroundColor: "#F0FDF4",
+    borderWidth: 1.5,
+    borderColor: "#A7F3D0",
+    shadowColor: "#059669",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  universalGlow: {
+    position: "absolute",
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    right: -40,
+    top: -40,
+    backgroundColor: "rgba(16, 185, 129, 0.12)",
+  },
+  universalIconBox: {
+    width: 46,
+    height: 46,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#A7F3D0",
+  },
+  universalTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(16, 185, 129, 0.15)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    gap: 4,
+  },
+  universalTagText: {
+    color: "#059669",
+    fontSize: 10,
+    letterSpacing: 1.1,
+    fontFamily: "IBMPlexMono_600SemiBold",
+  },
+  universalTitle: {
+    marginTop: 14,
+    color: "#064E3B",
+    fontSize: 19,
+    fontFamily: "Nunito_800ExtraBold",
+  },
+  universalSubtitle: {
+    marginTop: 6,
+    color: "#047857",
+    fontSize: 13,
+    lineHeight: 19,
+    fontFamily: "Nunito_400Regular",
+  },
+  universalFooter: {
+    marginTop: 14,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  universalCtaText: {
+    color: "#059669",
+    fontSize: 13,
+    fontFamily: "Nunito_800ExtraBold",
+  },
 });
+

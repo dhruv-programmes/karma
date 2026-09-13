@@ -104,6 +104,18 @@ class UserModel(Base):
     league_action_logs = relationship(
         "LeagueActionLogModel", back_populates="user", cascade="all, delete-orphan"
     )
+    sustainability_assets = relationship(
+        "SustainabilityAssetModel", back_populates="user", cascade="all, delete-orphan"
+    )
+    evidence_submissions = relationship(
+        "EvidenceSubmissionModel", back_populates="user", cascade="all, delete-orphan"
+    )
+    sustainability_rewards = relationship(
+        "SustainabilityRewardModel", back_populates="user", cascade="all, delete-orphan"
+    )
+    sustainability_credits = relationship(
+        "SustainabilityCreditHistoryModel", back_populates="user", cascade="all, delete-orphan"
+    )
 
     @property
     def preferences(self) -> dict:
@@ -539,6 +551,155 @@ class LeagueActionLogModel(Base):
     created_at = Column(DateTime, default=_utcnow, nullable=False)
 
     user = relationship("UserModel", back_populates="league_action_logs")
+
+
+class SustainabilityAssetModel(Base):
+    __tablename__ = "sustainability_assets"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    asset_type = Column(String(50), nullable=False)  # solar_pv, electric_vehicle, etc.
+    subtype = Column(String(50), nullable=True)  # rooftop_solar, 2w, 4w, etc.
+    identifier = Column(String(100), nullable=True, index=True)  # Reg plate, consumer ID, meter num
+    capacity_kw = Column(Float, nullable=True)
+    ownership_verified = Column(Boolean, default=False, nullable=False)
+    ownership_verified_at = Column(DateTime, nullable=True)
+    adoption_reward_claimed = Column(Boolean, default=False, nullable=False)
+    meta_json = Column(Text, default="{}", nullable=False)
+    created_at = Column(DateTime, default=_utcnow, nullable=False)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    user = relationship("UserModel", back_populates="sustainability_assets")
+    submissions = relationship(
+        "EvidenceSubmissionModel", back_populates="asset", cascade="all, delete-orphan"
+    )
+    rewards = relationship(
+        "SustainabilityRewardModel", back_populates="asset", cascade="all, delete-orphan"
+    )
+
+    @property
+    def meta(self) -> dict:
+        try:
+            return json.loads(self.meta_json) if self.meta_json else {}
+        except Exception:
+            return {}
+
+    @meta.setter
+    def meta(self, value: dict) -> None:
+        self.meta_json = json.dumps(value)
+
+
+class EvidenceSubmissionModel(Base):
+    __tablename__ = "evidence_submissions"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "asset_id", "metric_type", "period_key",
+            name="uq_evidence_submission_period"
+        ),
+    )
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    asset_id = Column(String(36), ForeignKey("sustainability_assets.id"), nullable=True, index=True)
+    evidence_type = Column(String(80), nullable=False)
+    image_hash = Column(String(64), nullable=True, index=True)
+    verification_status = Column(String(30), nullable=False, default="VERIFIED")
+    confidence = Column(Float, default=1.0, nullable=False)
+    sufficient_for_claim = Column(Boolean, default=True, nullable=False)
+    metric_type = Column(String(50), nullable=True)
+    metric_value = Column(Float, nullable=True)
+    period_start = Column(String(20), nullable=True)
+    period_end = Column(String(20), nullable=True)
+    period_key = Column(String(60), nullable=True, index=True)
+    extracted_data_json = Column(Text, default="{}", nullable=False)
+    fraud_checks_json = Column(Text, default="{}", nullable=False)
+    explanation = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=_utcnow, nullable=False)
+
+    user = relationship("UserModel", back_populates="evidence_submissions")
+    asset = relationship("SustainabilityAssetModel", back_populates="submissions")
+    rewards = relationship(
+        "SustainabilityRewardModel", back_populates="submission", cascade="all, delete-orphan"
+    )
+
+    @property
+    def extracted_data(self) -> dict:
+        try:
+            return json.loads(self.extracted_data_json) if self.extracted_data_json else {}
+        except Exception:
+            return {}
+
+    @extracted_data.setter
+    def extracted_data(self, value: dict) -> None:
+        self.extracted_data_json = json.dumps(value)
+
+    @property
+    def fraud_checks(self) -> dict:
+        try:
+            return json.loads(self.fraud_checks_json) if self.fraud_checks_json else {}
+        except Exception:
+            return {}
+
+    @fraud_checks.setter
+    def fraud_checks(self, value: dict) -> None:
+        self.fraud_checks_json = json.dumps(value)
+
+
+class SustainabilityRewardModel(Base):
+    __tablename__ = "sustainability_rewards"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    asset_id = Column(String(36), ForeignKey("sustainability_assets.id"), nullable=True, index=True)
+    submission_id = Column(String(36), ForeignKey("evidence_submissions.id"), nullable=True, index=True)
+    reward_type = Column(String(30), nullable=False)  # ADOPTION, GENERATION, USAGE, BONUS
+    points = Column(Integer, default=0, nullable=False)
+    co2_saved_kg = Column(Float, default=0.0, nullable=False)
+    breakdown_json = Column(Text, default="{}", nullable=False)
+    created_at = Column(DateTime, default=_utcnow, nullable=False)
+
+    user = relationship("UserModel", back_populates="sustainability_rewards")
+    asset = relationship("SustainabilityAssetModel", back_populates="rewards")
+    submission = relationship("EvidenceSubmissionModel", back_populates="rewards")
+
+    @property
+    def breakdown(self) -> dict:
+        try:
+            return json.loads(self.breakdown_json) if self.breakdown_json else {}
+        except Exception:
+            return {}
+
+    @breakdown.setter
+    def breakdown(self, value: dict) -> None:
+        self.breakdown_json = json.dumps(value)
+
+
+class SustainabilityCreditHistoryModel(Base):
+    __tablename__ = "sustainability_credit_history"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    credit_score = Column(Integer, default=50, nullable=False)
+    trend = Column(String(20), default="STABLE", nullable=False)
+    consistency_factor = Column(Float, default=1.0, nullable=False)
+    total_verified_generation_kwh = Column(Float, default=0.0, nullable=False)
+    total_verified_adoption_count = Column(Integer, default=0, nullable=False)
+    summary_json = Column(Text, default="{}", nullable=False)
+    recorded_at = Column(DateTime, default=_utcnow, nullable=False)
+
+    user = relationship("UserModel", back_populates="sustainability_credits")
+
+    @property
+    def summary(self) -> dict:
+        try:
+            return json.loads(self.summary_json) if self.summary_json else {}
+        except Exception:
+            return {}
+
+    @summary.setter
+    def summary(self, value: dict) -> None:
+        self.summary_json = json.dumps(value)
+
 
 
 

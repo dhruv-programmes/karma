@@ -51,6 +51,7 @@ export default function VerifySustainablePurchaseScreen() {
     vehicleType,
     ownership,
     documentName,
+    registrationNumber,
     setVerified,
     claimReward,
     resetDemo,
@@ -58,7 +59,7 @@ export default function VerifySustainablePurchaseScreen() {
 
   const [pickedFile, setPickedFile] = useState<UploadedFile | null>(null);
   const [phase, setPhase] = useState<"upload" | "scanning" | "lootbox" | "verified">(
-    rewardClaimed || isVerified ? "verified" : "upload"
+    rewardClaimed ? "verified" : isVerified ? "lootbox" : "upload"
   );
   const [isResetting, setIsResetting] = useState(false);
   const [verificationError, setVerificationError] = useState<string | null>(null);
@@ -86,12 +87,14 @@ export default function VerifySustainablePurchaseScreen() {
     setVerificationError(null);
 
     try {
-      // The API calculates the reward from the submitted document metadata.
+      // The API calculates the reward from the submitted document metadata and registers real asset.
       // Only reveal the lootbox after that response succeeds.
       const result = await api.verifySustainablePurchase({
         filename: pickedFile.name,
         mime_type: pickedFile.mimeType || "application/pdf",
         size_bytes: pickedFile.size,
+        vehicle_make_model: vehicleMakeModel || "Tata Nexon EV Max",
+        registration_number: registrationNumber || "MH-12-EV-2024",
       });
       if (result.status !== "verified") {
         throw new Error(result.verification || "Purchase verification was not successful.");
@@ -104,6 +107,7 @@ export default function VerifySustainablePurchaseScreen() {
         vehicleType: result.vehicle_type,
         ownership: result.ownership,
         rewardPoints: result.reward_points,
+        registrationNumber: registrationNumber || "MH-12-EV-2024",
       });
       setVerifiedBaseBalance(
         Math.max(0, result.total_points - Math.max(0, result.reward_points))
@@ -113,6 +117,8 @@ export default function VerifySustainablePurchaseScreen() {
       queryClient.invalidateQueries({ queryKey: ["score"] });
       queryClient.invalidateQueries({ queryKey: ["points-ledger"] });
       queryClient.invalidateQueries({ queryKey: ["league"] });
+      queryClient.invalidateQueries({ queryKey: ["sustainability-assets"] });
+      queryClient.invalidateQueries({ queryKey: ["sustainability-credit"] });
 
       if (result.already_claimed || result.reward_points <= 0) {
         // An idempotent retry is verified, but it does not mint a second

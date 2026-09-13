@@ -20,7 +20,7 @@
       [
         "expo-camera",
         {
-            "cameraPermission": "Allow Carbon Loop to scan products and photograph receipts."
+          "cameraPermission": "Allow Carbon Loop to scan products and photograph receipts."
         }
       ],
       [
@@ -52,7 +52,11 @@
         "CAMERA",
         "ACTIVITY_RECOGNITION",
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
       "package": "com.carbonloop.app"
     },
@@ -62,6 +66,13 @@
     },
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "81e0c211-e91e-490c-acfe-ab8dd3b4cdcc"
+      }
+    },
+    "owner": "pranshulsoni"
   }
 }

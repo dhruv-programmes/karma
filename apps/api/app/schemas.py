@@ -1026,7 +1026,7 @@ class UniversalVerificationResponse(BaseModel):
     asset_id: str | None = None
     routing_hint: str = "generic"
     analysis: VerificationAnalysis
-    impact: ImpactBreakdown
+    impact: ImpactBreakdown | None = None
     rewards: RewardsBreakdown
     long_term: LongTermCredit
     message: str = ""

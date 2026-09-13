@@ -74,6 +74,8 @@ export default function UniversalResultScreen() {
   const isVerified = result.status === "VERIFIED";
   const isDuplicate = result.status === "DUPLICATE";
   const isSuspicious = result.status === "SUSPICIOUS";
+  const isRejected = result.status === "REJECTED";
+  const hideCards = isSuspicious || isRejected;
   const totalPoints = result.rewards?.total_points ?? 0;
   const analysis = result.analysis;
   const impact = result.impact;
@@ -110,7 +112,7 @@ export default function UniversalResultScreen() {
               styles.statusBanner,
               isDuplicate
                 ? styles.statusBannerDuplicate
-                : isSuspicious
+                : hideCards
                 ? styles.statusBannerSuspicious
                 : styles.statusBannerVerified,
             ]}
@@ -119,7 +121,7 @@ export default function UniversalResultScreen() {
               <View style={styles.statusLeft}>
                 {isDuplicate ? (
                   <Copy size={24} color="#D97706" />
-                ) : isSuspicious ? (
+                ) : hideCards ? (
                   <AlertCircle size={24} color="#DC2626" />
                 ) : (
                   <CheckCircle2 size={24} color="#059669" />
@@ -130,7 +132,7 @@ export default function UniversalResultScreen() {
                       styles.statusTitle,
                       isDuplicate
                         ? { color: "#D97706" }
-                        : isSuspicious
+                        : hideCards
                         ? { color: "#DC2626" }
                         : { color: "#059669" },
                     ]}
@@ -159,7 +161,7 @@ export default function UniversalResultScreen() {
 
         {/* Short-Run Rewards Card */}
         {totalPoints > 0 ? (
-          <Animated.View entering={FadeInDown.delay(100).duration(280)}>
+          <Animated.View entering={FadeInDown.duration(280)}>
             <View style={styles.rewardCard}>
               <View style={styles.rewardTopRow}>
                 <View style={styles.rewardPointsWrap}>
@@ -193,7 +195,7 @@ export default function UniversalResultScreen() {
 
         {/* Multi-Dimensional Impact Card */}
         {impact ? (
-          <Animated.View entering={FadeInDown.delay(160).duration(280)}>
+          <Animated.View entering={FadeInDown.duration(280)}>
             <View style={styles.impactCard}>
               <View style={styles.impactHeader}>
                 <View>
@@ -267,7 +269,7 @@ export default function UniversalResultScreen() {
         ) : null}
 
         {/* Extracted Facts Card */}
-        {analysis ? (() => {
+        {analysis && !hideCards ? (() => {
           const ownerField = analysis.observations.fields.find(
             (f) => /owner|name|proprietor/i.test(f.field_name)
           );
@@ -282,7 +284,7 @@ export default function UniversalResultScreen() {
           );
 
           return (
-            <Animated.View entering={FadeInDown.delay(220).duration(280)}>
+            <Animated.View entering={FadeInDown.duration(280)}>
               {/* Owner / Identity Banner */}
               {ownerField?.value ? (
                 <View style={styles.ownerCard}>
@@ -353,8 +355,8 @@ export default function UniversalResultScreen() {
         })() : null}
 
         {/* Longitudinal Sustainability Credit Card */}
-        {credit ? (
-          <Animated.View entering={FadeInDown.delay(280).duration(280)}>
+        {credit && !hideCards ? (
+          <Animated.View entering={FadeInDown.duration(280)}>
             <View style={styles.creditStatusCard}>
               <View style={styles.creditStatusLeft}>
                 <Text style={styles.creditStatusLabel}>SUSTAINABILITY CREDIT</Text>

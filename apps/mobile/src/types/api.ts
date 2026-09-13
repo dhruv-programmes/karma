@@ -742,7 +742,7 @@ export interface UniversalVerificationResponse {
   asset_id?: string | null;
   routing_hint: RoutingHint;
   analysis: VerificationAnalysis;
-  impact: VerificationImpactBreakdown;
+  impact: VerificationImpactBreakdown | null;
   rewards: RewardsBreakdown;
   long_term: LongTermCredit;
   message: string;

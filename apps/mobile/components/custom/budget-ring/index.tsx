@@ -106,15 +106,19 @@ const styles = StyleSheet.create({
   numbersLeft: {
     flexDirection: "row",
     alignItems: "baseline",
+    paddingTop: 4,
+    paddingBottom: 2,
   },
   currentKg: {
     fontSize: 30,
+    lineHeight: 38,
     fontFamily: "IBMPlexMono_600SemiBold",
     color: "#0D1811",
     letterSpacing: -0.5,
   },
   budgetKg: {
     fontSize: 14,
+    lineHeight: 22,
     fontFamily: "IBMPlexMono_500Medium",
     color: "#94A3B8",
     marginLeft: 4,

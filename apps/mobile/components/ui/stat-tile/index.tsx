@@ -53,6 +53,7 @@ const styles = StyleSheet.create({
   },
   value: {
     fontSize: 22,
+    lineHeight: 28,
     fontFamily: "IBMPlexMono_600SemiBold",
     letterSpacing: -0.5,
   },

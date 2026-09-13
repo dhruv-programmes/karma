@@ -351,7 +351,6 @@ function ScoreRing({
             letterSpacing: -0.5,
             textAlign: "center",
             alignSelf: "center",
-            includeFontPadding: false,
             ...Platform.select({
               ios: {
                 textShadowColor: "rgba(0,0,0,0.25)",

@@ -1367,16 +1367,18 @@ def user_impact(user: UserModel | None = None, db: Session | None = None) -> dic
             prev_m += kg
 
     if this_m == 0.0 and txns:
+        latest_prefix = txns[0].date[:7]
         for t in txns:
-            kg = t.co2e_kg
-            cat_str = t.category
-            by_category[cat_str] = round(by_category.get(cat_str, 0.0) + kg, 1)
-            if cat_str == ProductCategory.TRANSPORT.value:
-                transport += kg
-            elif cat_str == ProductCategory.ENERGY.value:
-                energy += kg
-            else:
-                purchases += kg
+            if t.date.startswith(latest_prefix):
+                kg = t.co2e_kg
+                cat_str = t.category
+                by_category[cat_str] = round(by_category.get(cat_str, 0.0) + kg, 1)
+                if cat_str == ProductCategory.TRANSPORT.value:
+                    transport += kg
+                elif cat_str == ProductCategory.ENERGY.value:
+                    energy += kg
+                else:
+                    purchases += kg
         this_m = purchases + transport + energy
 
     total = purchases + transport + energy
@@ -1457,7 +1459,7 @@ def impact_timeseries(user: UserModel | None = None, db: Session | None = None) 
 
     points = [
         {"label": f"W{i+1}", "week_start": ws, "kg": weeks[ws]}
-        for i, ws in enumerate(sorted(weeks.keys()))
+        for i, ws in enumerate(sorted(weeks.keys())[-8:])
     ]
 
     return {

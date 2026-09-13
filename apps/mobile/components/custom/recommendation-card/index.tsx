@@ -215,12 +215,14 @@ const styles = StyleSheet.create({
   },
   metricValueGreen: {
     fontSize: 16,
+    lineHeight: 22,
     fontFamily: "IBMPlexMono_600SemiBold",
     color: "#059669",
     marginTop: 1,
   },
   metricValueDark: {
     fontSize: 16,
+    lineHeight: 22,
     fontFamily: "IBMPlexMono_600SemiBold",
     color: "#0D1811",
     marginTop: 1,

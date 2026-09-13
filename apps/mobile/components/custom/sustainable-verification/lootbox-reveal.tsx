@@ -968,6 +968,7 @@ const styles = StyleSheet.create({
   },
   pointsBigNumber: {
     fontSize: 58,
+    lineHeight: 68,
     fontFamily: "IBMPlexMono_600SemiBold",
     color: "#FFFFFF",
     letterSpacing: -1,
@@ -982,6 +983,7 @@ const styles = StyleSheet.create({
   },
   pointsUnitLabel: {
     fontSize: 13,
+    lineHeight: 18,
     fontFamily: "IBMPlexMono_600SemiBold",
     color: "#5EEAD4",
     letterSpacing: 2.2,

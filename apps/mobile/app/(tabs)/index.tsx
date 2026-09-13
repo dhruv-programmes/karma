@@ -11,6 +11,7 @@ import {
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
 import {
   ArrowRight,
   Award,
@@ -19,6 +20,7 @@ import {
   CheckCircle2,
   ChevronRight,
   Coins,
+  Compass,
   Flame,
   Footprints,
   Leaf,
@@ -26,6 +28,7 @@ import {
   Play,
   Receipt,
   Recycle,
+  Send,
   Square,
   Target,
   TrendingUp,
@@ -38,11 +41,10 @@ import Animated, {
   withTiming,
   Easing,
 } from "react-native-reanimated";
-import Svg, { Circle } from "react-native-svg";
+import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { Text } from "@/components/ui/text";
 import {
   useActivity,
-  useCloset,
   useImpact,
   useImpactTimeseries,
   useMe,
@@ -55,15 +57,21 @@ import {
 import { useStepTracking } from "@/src/hooks/use-step-tracking";
 import { useCommuteTracking } from "@/src/hooks/use-commute-tracking";
 import { useAuthStore } from "@/src/store/auth";
-import { DEMO_REPAIR_ACTION_ID } from "@/src/types/api";
+import { DEMO_REPAIR_ACTION_ID, LeagueTier } from "@/src/types/api";
 import { formatLeagueNumber, leagueBadgeSource } from "@/src/lib/league";
 import { useTabBarClearance } from "@/src/theme/layout";
 import { FootprintTrend } from "@/components/custom/footprint-trend";
-import { ProductImage } from "@/components/custom/product-image";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const KCS_MIN = 480;
 const KCS_MAX = 820;
+
+const NEXT_TIERS: Record<LeagueTier, { tier: LeagueTier; name: string } | null> = {
+  bronze: { tier: "silver", name: "Silver League" },
+  silver: { tier: "gold", name: "Gold League" },
+  gold: { tier: "platinum", name: "Platinum League" },
+  platinum: null,
+};
 
 function kcsProgress(score: number) {
   return Math.min(
@@ -421,6 +429,27 @@ function ToolCard({
   );
 }
 
+function WalkingPersonIcon({
+  size = 20,
+  color = "#1E5E3A",
+}: {
+  size?: number;
+  color?: string;
+}) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="13.5" cy="4.5" r="2.2" fill={color} />
+      <Path
+        d="M13 9 L10.5 13 L7 17 M10.5 13 L13.5 16.5 L16.5 21 M13 9 L15.5 11.5 L18.5 12 M13 9 L11 11 L8.5 9.5"
+        stroke={color}
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const tabClearance = useTabBarClearance();
@@ -435,7 +464,6 @@ export default function HomeScreen() {
   const impact = useImpact();
   const series = useImpactTimeseries();
   const recs = useRecommendations();
-  const closet = useCloset();
   const activity = useActivity();
   const steps = useSteps();
   const stepTracking = useStepTracking(steps.data?.todaySteps ?? 0);
@@ -443,6 +471,20 @@ export default function HomeScreen() {
   const league = useLeague();
   const commuteTracking = useCommuteTracking();
   const best = recs.data?.[0];
+
+  const leagueData = league.data;
+  const leaguePoints = Number(leagueData?.league_points ?? 0);
+  const leagueThreshold =
+    leagueData?.promotion_threshold != null
+      ? Number(leagueData.promotion_threshold)
+      : null;
+  const leaguePointsToNext =
+    leagueThreshold != null ? Math.max(0, leagueThreshold - leaguePoints) : 0;
+  const leagueProgressPct =
+    leagueThreshold != null && leagueThreshold > 0
+      ? Math.min(100, Math.max(4, Math.round((leaguePoints / leagueThreshold) * 100)))
+      : 100;
+  const nextTierInfo = leagueData ? NEXT_TIERS[leagueData.tier] : null;
 
   const displayName = me.data?.name || user?.name || "Member";
   const firstName = displayName.split(" ")[0];
@@ -472,14 +514,15 @@ export default function HomeScreen() {
   const impactPoints = me.data?.impact_points ?? user?.impact_points ?? 0;
   const stepData = steps.data;
   const isWeb = Platform.OS === "web";
-  const hasNativeStepData = !!stepData;
-  const stepProgress = stepData
-    ? Math.min(100, Math.round((stepData.todaySteps / stepData.targetSteps) * 100))
-    : 0;
-  const maxSeriesSteps = Math.max(
-    1,
-    ...(stepData?.series.map((point) => point.steps) ?? [])
+  const displayTodaySteps = stepData?.todaySteps ?? 0;
+  const displayTargetSteps = stepData?.targetSteps ?? 10000;
+  const stepProgress = Math.min(
+    100,
+    Math.max(0, Math.round((displayTodaySteps / displayTargetSteps) * 100))
   );
+  const stepAngleRad = (-90 + (stepProgress / 100) * 360) * (Math.PI / 180);
+  const stepDotX = 75 + 62 * Math.cos(stepAngleRad);
+  const stepDotY = 75 + 62 * Math.sin(stepAngleRad);
   const stepNotice = isWeb
     ? "Step tracking is available on iPhone and Android. Open Carbon Loop on your phone to enable it."
     : steps.isError
@@ -573,6 +616,13 @@ export default function HomeScreen() {
           <View style={styles.twoCardsRow}>
             {/* Left Card: Trend */}
             <View style={styles.sideCard}>
+              <BlurView intensity={Platform.OS === "ios" ? 50 : 85} tint="light" style={StyleSheet.absoluteFill} />
+              <LinearGradient
+                colors={["rgba(255,255,255,0.68)", "rgba(255,255,255,0.32)"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0.85, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
               <View style={styles.sideCardLeft}>
                 <View style={styles.sideCardIconBox}>
                   <TrendingUp size={18} color="#1E5E3A" strokeWidth={2.4} />
@@ -607,6 +657,13 @@ export default function HomeScreen() {
               onPress={() => router.push("/rewards")}
               activeOpacity={0.82}
             >
+              <BlurView intensity={Platform.OS === "ios" ? 50 : 85} tint="light" style={StyleSheet.absoluteFill} />
+              <LinearGradient
+                colors={["rgba(255,255,255,0.68)", "rgba(255,255,255,0.32)"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0.85, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
               <View style={styles.sideCardLeft}>
                 <View style={styles.sideCardIconBox}>
                   <Coins size={18} color="#1E5E3A" strokeWidth={2.4} />
@@ -624,6 +681,13 @@ export default function HomeScreen() {
 
           {/* Horizontal 3-Stat Card */}
           <View style={styles.threeStatCard}>
+            <BlurView intensity={Platform.OS === "ios" ? 50 : 85} tint="light" style={StyleSheet.absoluteFill} />
+            <LinearGradient
+              colors={["rgba(255,255,255,0.68)", "rgba(255,255,255,0.32)"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0.85, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
             {/* Footprint */}
             <View style={styles.threeStatItem}>
               <View style={styles.threeStatIconBox}>
@@ -677,6 +741,13 @@ export default function HomeScreen() {
             onPress={() => router.push("/(tabs)/offers")}
             activeOpacity={0.88}
           >
+            <BlurView intensity={Platform.OS === "ios" ? 50 : 85} tint="light" style={StyleSheet.absoluteFill} />
+            <LinearGradient
+              colors={["rgba(255,255,255,0.68)", "rgba(255,255,255,0.32)"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0.85, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
             <View style={styles.actionsBannerIconBox}>
               <Leaf size={18} color="#1E5E3A" strokeWidth={2.2} />
             </View>
@@ -695,267 +766,501 @@ export default function HomeScreen() {
         {/* ── CONTENT SHEET ─────────────────────────────── */}
         <View style={styles.sheet}>
           {/* ── LEAGUE SNAPSHOT ── */}
-          <TouchableOpacity style={styles.leagueMiniCard} onPress={() => router.push("/league")} activeOpacity={0.86}>
-            <View style={styles.leagueMiniBadge}>
-              {league.data ? (
-                <Image source={leagueBadgeSource(league.data.tier)} style={styles.leagueMiniBadgeImage} resizeMode="contain" />
+          <TouchableOpacity
+            style={styles.leagueCard}
+            onPress={() => router.push("/league")}
+            activeOpacity={0.88}
+          >
+            <Image
+              source={require("@/assets/home-hero-bg.jpg")}
+              style={styles.leagueBgImage}
+              resizeMode="cover"
+            />
+            <LinearGradient
+              colors={["#F8FCFA", "rgba(248,252,250,0.92)", "rgba(235,246,239,0.3)"]}
+              start={{ x: 0.35, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+
+            <View style={styles.leagueBadgeWrap}>
+              {leagueData ? (
+                <Image
+                  source={leagueBadgeSource(leagueData.tier)}
+                  style={styles.leagueBadgeImage}
+                  resizeMode="contain"
+                />
               ) : (
-                <Text style={styles.leagueMiniBadgePlaceholder}>
+                <Text style={styles.leagueBadgePlaceholder}>
                   {league.isLoading ? "…" : "—"}
                 </Text>
               )}
             </View>
-            <View style={styles.leagueMiniCopy}>
-              <Text style={styles.leagueMiniEyebrow}>KARMA LEAGUE</Text>
-              {league.data ? (
-                <>
-                  <Text style={styles.leagueMiniTitle} numberOfLines={1}>{league.data.league_name} · {formatLeagueNumber(league.data.league_points)} pts</Text>
-                  <Text style={styles.leagueMiniHint} numberOfLines={1}>{league.data.promotion_threshold == null ? "Top league" : `${formatLeagueNumber(Math.max(0, Number(league.data.promotion_threshold) - Number(league.data.league_points)))} points to next tier`} · {formatLeagueNumber(league.data.weekly_actions_completed)} verified actions this week</Text>
-                </>
-              ) : (
-                <>
-                  <Text style={styles.leagueMiniTitle}>{league.isLoading ? "Checking your league…" : "League unavailable"}</Text>
-                  <Text style={styles.leagueMiniHint}>{league.isLoading ? "Your current badge will appear shortly" : "Tap to try again"}</Text>
-                </>
-              )}
-            </View>
-            <ChevronRight size={18} color="#2EA86E" />
-          </TouchableOpacity>
 
-          {/* ── WALK & EARN ── */}
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Walk & Earn</Text>
-            <View style={styles.walkCard}>
-              <View style={styles.walkHeader}>
-                <View style={styles.walkIconBox}>
-                  <Footprints size={20} color="#2EA86E" strokeWidth={2} />
-                </View>
-                <View style={styles.walkHeaderCopy}>
-                  <Text style={styles.walkTitle} numberOfLines={2}>
-                    Turn steps into Impact Points
-                  </Text>
-                  <Text style={styles.walkRating} numberOfLines={1}>
-                    {hasNativeStepData ? stepData.rating : "Phone-only metric"}
-                  </Text>
-                </View>
-                {hasNativeStepData ? (
-                  <View style={styles.walkPointsBadge}>
-                    <Text style={styles.walkPointsText}>
-                      +{stepData.todayPoints} pts
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-
-              {hasNativeStepData ? (
+            <View style={styles.leagueCenterWrap}>
+              {leagueData ? (
                 <>
-                  <View style={styles.walkStepRow}>
-                    <Text style={styles.walkSteps}>
-                      {stepData.todaySteps.toLocaleString()}
+                  <View style={styles.leagueTitleRow}>
+                    <Text style={styles.leagueTitle} numberOfLines={1}>
+                      {leagueData.league_name}
                     </Text>
-                    <Text style={styles.walkTarget}>
-                      {" "}
-                      / {stepData.targetSteps.toLocaleString()} steps
-                    </Text>
+                    <View style={styles.leaguePointsChip}>
+                      <Text style={styles.leaguePointsChipText}>
+                        {formatLeagueNumber(leaguePoints)} pts
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.walkProgressTrack}>
+
+                  <View style={styles.leagueProgressTrack}>
                     <View
                       style={[
-                        styles.walkProgressFill,
-                        { width: `${stepProgress}%` },
+                        styles.leagueProgressFill,
+                        { width: `${leagueProgressPct}%` },
                       ]}
                     />
                   </View>
-                  <Text style={styles.walkDetail} numberOfLines={2}>
-                    {stepData.nextThreshold === null
-                      ? "Daily walking reward unlocked."
-                      : `${Math.max(0, stepData.nextThreshold - stepData.todaySteps).toLocaleString()} steps to your next reward`}
-                  </Text>
-                  {stepData.series.length > 0 ? (
-                    <View style={styles.stepSeries}>
-                      {stepData.series.slice(-7).map((point) => (
-                        <View
-                          key={`${point.date}-${point.label}`}
-                          style={styles.stepSeriesItem}
-                        >
-                          <View
-                            style={[
-                              styles.stepSeriesBar,
-                              {
-                                height:
-                                  6 +
-                                  Math.round(
-                                    (point.steps / maxSeriesSteps) * 24
-                                  ),
-                              },
-                            ]}
-                          />
-                          <Text style={styles.stepSeriesLabel}>
-                            {point.label}
-                          </Text>
-                        </View>
-                      ))}
-                    </View>
-                  ) : null}
+
+                  <View style={styles.leagueBottomRow}>
+                    <Text style={styles.leagueBottomLeft}>
+                      {formatLeagueNumber(leaguePoints)} / {leagueThreshold != null ? `${formatLeagueNumber(leagueThreshold)} pts` : "Max"}
+                    </Text>
+                    {nextTierInfo ? (
+                      <View style={styles.leagueBottomRight}>
+                        <Text style={styles.leagueBottomRightText}>
+                          Next: {nextTierInfo.name}
+                        </Text>
+                        <Image
+                          source={leagueBadgeSource(nextTierInfo.tier)}
+                          style={styles.leagueNextBadgeIcon}
+                          resizeMode="contain"
+                        />
+                      </View>
+                    ) : (
+                      <Text style={styles.leagueBottomRightText}>Top League ⭐</Text>
+                    )}
+                  </View>
                 </>
-              ) : null}
-
-              <Text style={styles.walkNotice} numberOfLines={3}>
-                {stepNotice}
-              </Text>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.walkCta,
-                  (isWeb || stepTracking.isSyncing) && styles.walkCtaMuted,
-                  pressed && { opacity: 0.9 },
-                ]}
-                onPress={stepTracking.enableOrSync}
-                disabled={stepTracking.isSyncing}
-              >
-                <Text style={styles.walkCtaText} numberOfLines={1}>
-                  {stepCta}
+              ) : (
+                <Text style={styles.leagueTitle}>
+                  {league.isLoading ? "Checking your league…" : "League unavailable"}
                 </Text>
-                {!isWeb ? (
-                  <ArrowRight size={14} color="#FFFFFF" strokeWidth={2.5} />
-                ) : null}
-              </Pressable>
+              )}
             </View>
-          </View>
 
-          {/* ── GREEN COMMUTE (GPS TRACKING) ── */}
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Green Commute (GPS)</Text>
-            <View style={styles.commuteCard}>
-              <View style={styles.commuteHeader}>
-                <View style={styles.commuteIconBox}>
-                  {commuteTracking.isTracking ? (
-                    <Bike size={20} color="#2EA86E" strokeWidth={2} />
-                  ) : (
-                    <Navigation size={20} color="#2EA86E" strokeWidth={2} />
-                  )}
-                </View>
-                <View style={styles.commuteHeaderCopy}>
-                  <Text style={styles.commuteTitle}>
-                    {commuteTracking.isTracking
-                      ? "Recording Commute..."
-                      : "Walk or Cycle to Earn"}
+            <View style={styles.leagueChevronCircle}>
+              <ChevronRight size={18} color="#2A5941" strokeWidth={2.4} />
+            </View>
+          </TouchableOpacity>
+
+          {/* ── WALK & EARN (STEP COUNTER) ── */}
+          <View style={styles.walkCard}>
+            <Image
+              source={require("@/assets/home-hero-bg.jpg")}
+              style={styles.walkBgLeaf}
+              resizeMode="cover"
+            />
+            {/* Top Header */}
+            <View style={styles.walkHeader}>
+              <View style={styles.walkIconBox}>
+                <Footprints size={22} color="#1E5E3A" strokeWidth={2.2} />
+              </View>
+              <View style={styles.walkHeaderCopy}>
+                <Text style={styles.walkTitle} numberOfLines={2}>
+                  Turn steps into Impact Points
+                </Text>
+                <Text style={styles.walkSubtitle}>
+                  {stepData?.rating ? stepData.rating : "Starting"}
+                </Text>
+              </View>
+              <View style={styles.walkPointsBadge}>
+                <Text style={styles.walkPointsText}>
+                  +{stepData?.todayPoints ?? 0} pts
+                </Text>
+              </View>
+            </View>
+
+            {/* Circular Gauge Center */}
+            <View style={styles.walkGaugeRow}>
+              {/* Left Column */}
+              <View style={styles.stepDecoCol}>
+                <Text style={styles.stepDecoText}>MOVE</Text>
+                <Text style={styles.stepDecoText}>CLEANER</Text>
+                <Text style={styles.stepDecoText}>LIVE</Text>
+                <Text style={styles.stepDecoText}>BRIGHTER</Text>
+                <View style={styles.stepDecoLine} />
+              </View>
+
+              {/* Circular Gauge */}
+              <View style={styles.stepRingWrap}>
+                <Svg width={150} height={150} viewBox="0 0 150 150">
+                  <Circle
+                    cx="75"
+                    cy="75"
+                    r="62"
+                    stroke="#E2EFE7"
+                    strokeWidth="6.5"
+                    fill="none"
+                  />
+                  <Circle
+                    cx="75"
+                    cy="75"
+                    r="62"
+                    stroke="#4EB782"
+                    strokeWidth="6.5"
+                    fill="none"
+                    strokeDasharray={389.5}
+                    strokeDashoffset={389.5 * (1 - Math.min(1, Math.max(0, stepProgress / 100)))}
+                    strokeLinecap="round"
+                    transform="rotate(-90 75 75)"
+                  />
+                  <Circle
+                    cx={stepDotX}
+                    cy={stepDotY}
+                    r="4.5"
+                    fill="#27643E"
+                  />
+                </Svg>
+                <View style={styles.stepRingCenter}>
+                  <Footprints size={24} color="#1E5E3A" strokeWidth={2.2} />
+                  <Text style={styles.stepRingSteps}>
+                    {displayTodaySteps.toLocaleString()}
                   </Text>
-                  <Text style={styles.commuteSubtitle}>
-                    {commuteTracking.isTracking
-                      ? `${commuteTracking.currentSpeedKmh.toFixed(1)} km/h • Auto-detecting mode`
-                      : "No motor vehicle • GPS verified speed"}
-                  </Text>
-                </View>
-                <View style={styles.commutePointsBadge}>
-                  <Text style={styles.commutePointsText}>
-                    +{commuteSummary.data?.todayPoints ?? 0} coins today
+                  <Text style={styles.stepRingTarget}>
+                    / {displayTargetSteps.toLocaleString()} steps
                   </Text>
                 </View>
               </View>
 
-              {/* Trip Result Banner */}
-              {commuteTracking.lastResult ? (
-                <View style={styles.tripResultBanner}>
-                  <View style={styles.tripResultHeader}>
-                    <CheckCircle2 size={16} color="#2EA86E" />
-                    <Text style={styles.tripResultTitle}>
-                      {commuteTracking.lastResult.mode === "walk"
-                        ? "🚶 Walk Logged"
-                        : commuteTracking.lastResult.mode === "cycle"
-                        ? "🚴 Cycle Logged"
-                        : "🚗 Motor Transit"}
+              {/* Right Column */}
+              <View style={styles.stepDecoColRight}>
+                <Text style={styles.stepDecoText}>SMALL</Text>
+                <Text style={styles.stepDecoText}>STEPS</Text>
+                <Text style={styles.stepDecoText}>BIGGER</Text>
+                <Text style={styles.stepDecoText}>CHANGE</Text>
+                <View style={styles.stepDecoLine} />
+              </View>
+            </View>
+
+            {/* Progress Track & Subtext */}
+            <View style={styles.walkProgressTrack}>
+              <View
+                style={[
+                  styles.walkProgressFill,
+                  { width: `${Math.max(4, Math.min(100, stepProgress))}%` },
+                ]}
+              />
+            </View>
+            <Text style={styles.walkDetail}>
+              {stepData?.nextThreshold != null
+                ? `${Math.max(0, stepData.nextThreshold - displayTodaySteps).toLocaleString()} steps to your next reward`
+                : "2,000 steps to your next reward"}
+            </Text>
+
+            {/* Bottom Notice */}
+            <View style={styles.walkNoticeRow}>
+              <View style={styles.walkNoticeIconBox}>
+                <Leaf size={16} color="#1E5E3A" strokeWidth={2.2} />
+              </View>
+              <Text style={styles.walkNoticeText}>
+                Enable on your phone to start earning{"\n"}Karma Coins for walking.
+              </Text>
+            </View>
+
+            {/* Action Capsule CTA */}
+            <TouchableOpacity
+              style={styles.greenCapsuleBtn}
+              onPress={stepTracking.enableOrSync}
+              disabled={stepTracking.isSyncing}
+              activeOpacity={0.88}
+            >
+              <LinearGradient
+                colors={["#275E3B", "#174428"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <View style={styles.greenCapsuleContent}>
+                <Svg
+                  width={22}
+                  height={22}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#FFFFFF"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <Path d="M4 17 L6 12 L9 11 L11.5 14.5 L16.5 12.5 L21 17 L20 19 L4 19 Z" />
+                  <Path d="M11 10.5 L9.5 13" />
+                  <Path d="M14 10 L12.5 12.5" />
+                  <Path d="M3.5 19 L21 19" />
+                </Svg>
+                <Text style={styles.greenCapsuleText}>{stepCta}</Text>
+                <ArrowRight size={17} color="#FFFFFF" strokeWidth={2.4} />
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* ── GREEN COMMUTE (GPS) ── */}
+          <View style={styles.commuteCard}>
+            <Image
+              source={require("@/assets/home-hero-bg.jpg")}
+              style={styles.commuteBgLeaf}
+              resizeMode="cover"
+            />
+            {/* Eyebrow row */}
+            <View style={styles.commuteEyebrowRow}>
+              <Text style={styles.commuteEyebrow}>GREEN COMMUTE (GPS)</Text>
+              <View style={styles.gpsPill}>
+                <View style={styles.gpsDot} />
+                <Text style={styles.gpsPillText}>
+                  {commuteTracking.isTracking ? "Tracking" : "GPS active"}
+                </Text>
+              </View>
+            </View>
+
+            {/* Decorative Route Artwork Top Right */}
+            <View style={styles.commuteRouteArt} pointerEvents="none">
+              <Svg width={88} height={42} viewBox="0 0 88 42" fill="none">
+                <Path
+                  d="M 6 36 C 24 34, 48 8, 76 10"
+                  stroke="#38B375"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                />
+                <Circle
+                  cx="7"
+                  cy="36"
+                  r="4.5"
+                  fill="#FFFFFF"
+                  stroke="#38B375"
+                  strokeWidth="2.5"
+                />
+                <Circle cx="76" cy="10" r="8.5" fill="#184A2C" />
+                <Path
+                  d="M74 13 C 72 10, 74 7, 78 7 C 78 11, 76 13, 74 13 Z"
+                  fill="#A7F3D0"
+                />
+              </Svg>
+              <View style={styles.commuteFloatingPill}>
+                <Compass size={12} color="#184A2C" strokeWidth={2.2} />
+                <Text style={styles.commuteFloatingPillText}>
+                  +{commuteSummary.data?.todayPoints ?? 0} coins today
+                </Text>
+              </View>
+            </View>
+
+            {/* Main Header Row */}
+            <View style={styles.commuteHeaderRow}>
+              <View style={styles.commuteOuterIconRing}>
+                <View style={styles.commuteIconBox}>
+                  <Send
+                    size={22}
+                    color="#1E5E3A"
+                    strokeWidth={2.2}
+                  />
+                </View>
+              </View>
+              <View style={styles.commuteHeaderCopy}>
+                <Text style={styles.commuteTitle} numberOfLines={1}>
+                  {commuteTracking.isTracking
+                    ? "Recording Commute..."
+                    : "Walk or Cycle to Earn"}
+                </Text>
+                <Text style={styles.commuteSubtitle}>
+                  {commuteTracking.isTracking
+                    ? `${commuteTracking.currentSpeedKmh.toFixed(1)} km/h • Auto-detecting`
+                    : "No motor vehicle • GPS verified"}
+                </Text>
+                <Text style={styles.commuteTagline}>
+                  Cleaner commutes, brighter tomorrows.
+                </Text>
+              </View>
+            </View>
+
+            {/* Trip Result Banner */}
+            {commuteTracking.lastResult ? (
+              <View style={styles.tripResultBanner}>
+                <View style={styles.tripResultHeader}>
+                  <CheckCircle2 size={16} color="#2EA86E" />
+                  <Text style={styles.tripResultTitle}>
+                    {commuteTracking.lastResult.mode === "walk"
+                      ? "🚶 Walk Logged"
+                      : commuteTracking.lastResult.mode === "cycle"
+                      ? "🚴 Cycle Logged"
+                      : "🚗 Motor Transit"}
+                  </Text>
+                </View>
+                <Text style={styles.tripResultDesc}>
+                  {commuteTracking.lastResult.message}
+                </Text>
+                <TouchableOpacity
+                  onPress={commuteTracking.dismissResult}
+                  style={styles.tripResultDismiss}
+                >
+                  <Text style={styles.tripResultDismissText}>Dismiss</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+
+            {/* Active Trip Telemetry */}
+            {commuteTracking.isTracking ? (
+              <View style={styles.liveTelemetryBox}>
+                <View style={styles.telemetryItem}>
+                  <Text style={styles.telemetryValue}>
+                    {commuteTracking.distanceKm.toFixed(2)}
+                  </Text>
+                  <Text style={styles.telemetryLabel}>km traveled</Text>
+                </View>
+                <View style={styles.telemetryDivider} />
+                <View style={styles.telemetryItem}>
+                  <Text style={styles.telemetryValue}>
+                    {Math.floor(commuteTracking.elapsedSec / 60)}:
+                    {(commuteTracking.elapsedSec % 60).toString().padStart(2, "0")}
+                  </Text>
+                  <Text style={styles.telemetryLabel}>duration</Text>
+                </View>
+                <View style={styles.telemetryDivider} />
+                <View style={styles.telemetryItem}>
+                  <Text style={styles.telemetryValue}>
+                    {commuteTracking.currentSpeedKmh.toFixed(1)}
+                  </Text>
+                  <Text style={styles.telemetryLabel}>km/h speed</Text>
+                </View>
+              </View>
+            ) : (
+              /* Inner White Rounded Card */
+              <View style={styles.commuteInnerWhiteCard}>
+                <View style={styles.commuteInnerTop}>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={styles.commuteDistanceBig}>
+                      {(commuteSummary.data?.todayDistanceKm ?? 0).toFixed(2)} km
+                    </Text>
+                    <Text style={styles.commuteDistanceSub} numberOfLines={1}>
+                      Clean distance today ({commuteSummary.data?.tripsToday ?? 0} trips)
                     </Text>
                   </View>
-                  <Text style={styles.tripResultDesc}>
-                    {commuteTracking.lastResult.message}
-                  </Text>
                   <TouchableOpacity
-                    onPress={commuteTracking.dismissResult}
-                    style={styles.tripResultDismiss}
+                    style={styles.viewHistoryPill}
+                    onPress={() => router.push("/rewards")}
+                    activeOpacity={0.8}
                   >
-                    <Text style={styles.tripResultDismissText}>Dismiss</Text>
+                    <Svg width={12} height={12} viewBox="0 0 14 14" fill="#184A2C">
+                      <Rect x="1" y="6.5" width="2.5" height="6.5" rx="1.2" />
+                      <Rect x="5.5" y="2.5" width="2.5" height="10.5" rx="1.2" />
+                      <Rect x="10" y="4.5" width="2.5" height="8.5" rx="1.2" />
+                    </Svg>
+                    <Text style={styles.viewHistoryText}>View History</Text>
+                    <ChevronRight size={13} color="#184A2C" strokeWidth={2.4} />
                   </TouchableOpacity>
                 </View>
-              ) : null}
 
-              {/* Active Trip Telemetry */}
-              {commuteTracking.isTracking ? (
-                <View style={styles.liveTelemetryBox}>
-                  <View style={styles.telemetryItem}>
-                    <Text style={styles.telemetryValue}>
-                      {commuteTracking.distanceKm.toFixed(2)}
-                    </Text>
-                    <Text style={styles.telemetryLabel}>km traveled</Text>
+                {/* Progress bar */}
+                <View style={styles.commuteProgressRow}>
+                  <View style={styles.commuteProgressBarTrack}>
+                    <View
+                      style={[
+                        styles.commuteProgressBarFill,
+                        {
+                          width: `${Math.min(
+                            100,
+                            Math.max(
+                              4,
+                              (((commuteSummary.data?.todayDistanceKm ?? 0) / 5) *
+                                100)
+                            )
+                          )}%`,
+                        },
+                      ]}
+                    />
                   </View>
-                  <View style={styles.telemetryDivider} />
-                  <View style={styles.telemetryItem}>
-                    <Text style={styles.telemetryValue}>
-                      {Math.floor(commuteTracking.elapsedSec / 60)}:
-                      {(commuteTracking.elapsedSec % 60).toString().padStart(2, "0")}
-                    </Text>
-                    <Text style={styles.telemetryLabel}>duration</Text>
-                  </View>
-                  <View style={styles.telemetryDivider} />
-                  <View style={styles.telemetryItem}>
-                    <Text style={styles.telemetryValue}>
-                      {commuteTracking.currentSpeedKmh.toFixed(1)}
-                    </Text>
-                    <Text style={styles.telemetryLabel}>km/h speed</Text>
-                  </View>
+                  <Text style={styles.commuteGoalText}>Daily goal: 5 km</Text>
                 </View>
-              ) : (
-                <View style={styles.commuteStatsBox}>
-                  <View style={styles.commuteStatsTop}>
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text style={styles.commuteDistanceText}>
-                        {(commuteSummary.data?.todayDistanceKm ?? 0).toFixed(2)} km
-                      </Text>
-                      <Text style={styles.commuteDistanceLabel} numberOfLines={1}>
-                        Clean distance today ({commuteSummary.data?.tripsToday ?? 0} trips)
-                      </Text>
+
+                {/* Mode boxes */}
+                <View style={styles.commuteModesRow}>
+                  <View style={styles.commuteModeBox}>
+                    <WalkingPersonIcon size={21} color="#1E5E3A" />
+                    <View>
+                      <Text style={styles.commuteModeTitle}>Walk</Text>
+                      <Text style={styles.commuteModeRate}>10 coins/km</Text>
                     </View>
                   </View>
-                  <View style={styles.commuteTiersRow}>
-                    <View style={styles.commuteTierChip}>
-                      <Text style={styles.commuteTierText}>🚶 Walk: 10 coins/km</Text>
-                    </View>
-                    <View style={styles.commuteTierChip}>
-                      <Text style={styles.commuteTierText}>🚴 Cycle: 5 coins/km</Text>
+                  <View style={styles.commuteModeBox}>
+                    <Bike size={21} color="#1E5E3A" strokeWidth={2.2} />
+                    <View>
+                      <Text style={styles.commuteModeTitle}>Cycle</Text>
+                      <Text style={styles.commuteModeRate}>5 coins/km</Text>
                     </View>
                   </View>
                 </View>
-              )}
+              </View>
+            )}
 
-              {/* Action Button */}
-              {commuteTracking.isTracking ? (
-                <TouchableOpacity
-                  style={[styles.commuteCta, styles.commuteCtaStop]}
-                  onPress={commuteTracking.stopTracking}
-                  activeOpacity={0.85}
-                >
+            {/* Action CTA button */}
+            <TouchableOpacity
+              style={styles.greenCapsuleBtn}
+              onPress={
+                commuteTracking.isTracking
+                  ? commuteTracking.stopTracking
+                  : commuteTracking.startTracking
+              }
+              disabled={isWeb || commuteTracking.isSyncing}
+              activeOpacity={0.88}
+            >
+              <LinearGradient
+                colors={
+                  commuteTracking.isTracking
+                    ? ["#B83232", "#871C1C"]
+                    : ["#275E3B", "#174428"]
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <View style={styles.greenCapsuleContent}>
+                {commuteTracking.isTracking ? (
                   <Square size={16} color="#FFFFFF" fill="#FFFFFF" />
-                  <Text style={styles.commuteCtaText}>End Trip & Claim Karma Coins</Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={[
-                    styles.commuteCta,
-                    (isWeb || commuteTracking.isSyncing) && styles.walkCtaMuted,
-                  ]}
-                  onPress={commuteTracking.startTracking}
-                  disabled={isWeb || commuteTracking.isSyncing}
-                  activeOpacity={0.85}
-                >
+                ) : (
                   <Play size={16} color="#FFFFFF" fill="#FFFFFF" />
-                  <Text style={styles.commuteCtaText}>
-                    {commuteTracking.isSyncing
-                      ? "Saving Trip..."
-                      : isWeb
-                      ? "Phone GPS Required"
-                      : "Start Commute Tracking"}
+                )}
+                <Text style={styles.greenCapsuleText}>
+                  {commuteTracking.isTracking
+                    ? "End Trip & Claim Karma Coins"
+                    : commuteTracking.isSyncing
+                    ? "Saving Trip..."
+                    : isWeb
+                    ? "Phone GPS Required"
+                    : "Start Commute Tracking"}
+                </Text>
+                <ArrowRight size={17} color="#FFFFFF" strokeWidth={2.4} />
+              </View>
+            </TouchableOpacity>
+
+            {/* Footer Row */}
+            <View style={styles.commuteFooterRow}>
+              <View style={styles.commuteFooterLeft}>
+                <View style={styles.commuteFooterLeafBox}>
+                  <Leaf size={16} color="#1E5E3A" strokeWidth={2.2} />
+                </View>
+                <View>
+                  <Text style={styles.commuteFooterHeadline}>
+                    Every green kilometre counts.
                   </Text>
-                </TouchableOpacity>
-              )}
+                  <Text style={styles.commuteFooterSub}>
+                    Move cleaner. Earn brighter.
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.commuteFooterRight}>
+                <View style={styles.commuteFooterDivider} />
+                <View>
+                  <Text style={styles.commuteFooterTag}>A CLEANER</Text>
+                  <Text style={styles.commuteFooterTag}>TOMORROW</Text>
+                  <Text style={styles.commuteFooterTag}>TOGETHER</Text>
+                </View>
+              </View>
             </View>
           </View>
 
@@ -1050,15 +1355,14 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {/* ── LOOP CLOSET ── */}
-          {(closet.data ?? []).length > 0 && (
+
+          {/* ── RECENT ACTIVITY ── */}
+          {(activity.data ?? []).length > 0 && (
             <View style={styles.section}>
               <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionLabel} numberOfLines={1}>
-                  Loop Closet
-                </Text>
+                <Text style={styles.sectionLabel}>Recent Activity</Text>
                 <Pressable
-                  onPress={() => router.push("/(tabs)/actions")}
+                  onPress={() => router.push("/activity" as import("expo-router").Href)}
                   style={styles.seeAllBtn}
                   hitSlop={8}
                 >
@@ -1066,45 +1370,6 @@ export default function HomeScreen() {
                   <ChevronRight size={13} color="#2EA86E" />
                 </Pressable>
               </View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 12, paddingRight: 4 }}
-              >
-                {(closet.data ?? []).map((item) => (
-                  <Pressable
-                    key={item.id}
-                    onPress={() => router.push(`/product/${item.id}`)}
-                    style={({ pressed }) => [
-                      styles.closetCard,
-                      pressed && { opacity: 0.9 },
-                    ]}
-                  >
-                    <View style={styles.closetImageWrap}>
-                      <ProductImage
-                        uri={item.image_url}
-                        size="full"
-                        radius={12}
-                      />
-                    </View>
-                    <Text style={styles.closetName} numberOfLines={2}>
-                      {item.name}
-                    </Text>
-                    <View style={styles.closetChip}>
-                      <Text style={styles.closetChipText} numberOfLines={1}>
-                        {item.next_action_label || item.category}
-                      </Text>
-                    </View>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </View>
-          )}
-
-          {/* ── RECENT ACTIVITY ── */}
-          {(activity.data ?? []).length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Recent Activity</Text>
               <View style={styles.activityCard}>
                 {(activity.data ?? []).slice(0, 4).map((ev, idx) => (
                   <View
@@ -1148,7 +1413,17 @@ export default function HomeScreen() {
 
           {/* ── QUICK TOOLS ── */}
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Loop Tools</Text>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionLabel}>Loop Tools</Text>
+              <Pressable
+                onPress={() => router.push("/(tabs)/tools")}
+                style={styles.seeAllBtn}
+                hitSlop={8}
+              >
+                <Text style={styles.seeAllText}>See all</Text>
+                <ChevronRight size={13} color="#2EA86E" />
+              </Pressable>
+            </View>
             <View style={styles.toolGrid}>
               <ToolCard
                 icon={<Camera size={20} color="#2EA86E" strokeWidth={1.8} />}
@@ -1304,14 +1579,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "rgba(255,255,255,0.88)",
+    backgroundColor: "transparent",
     borderRadius: 22,
     paddingVertical: 12,
     paddingHorizontal: 13,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.8)",
-    boxShadow: "0px 2px 8px rgba(0,0,0,0.04)",
-    elevation: 2,
+    borderWidth: 1.2,
+    borderColor: "rgba(255, 255, 255, 0.78)",
+    overflow: "hidden",
+    shadowColor: "#0A2415",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
   sideCardLeft: {
     flexDirection: "row",
@@ -1322,7 +1601,9 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#E8F5EC",
+    backgroundColor: "rgba(255, 255, 255, 0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.8)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1353,7 +1634,9 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: "rgba(0,0,0,0.05)",
+    backgroundColor: "rgba(255, 255, 255, 0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.75)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1362,15 +1645,19 @@ const styles = StyleSheet.create({
   threeStatCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.88)",
+    backgroundColor: "transparent",
     borderRadius: 24,
     paddingVertical: 14,
     paddingHorizontal: 10,
     marginTop: 10,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.8)",
-    boxShadow: "0px 2px 10px rgba(0,0,0,0.04)",
-    elevation: 2,
+    borderWidth: 1.2,
+    borderColor: "rgba(255, 255, 255, 0.78)",
+    overflow: "hidden",
+    shadowColor: "#0A2415",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
     width: "100%",
   },
   threeStatItem: {
@@ -1384,7 +1671,9 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "#E8F5EC",
+    backgroundColor: "rgba(255, 255, 255, 0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.8)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1407,23 +1696,27 @@ const styles = StyleSheet.create({
   },
   threeStatDivider: {
     width: 1,
-    height: 30,
-    backgroundColor: "rgba(0,0,0,0.07)",
+    height: 28,
+    backgroundColor: "rgba(24, 74, 44, 0.12)",
   },
 
   // Actions Banner Card
   actionsBannerCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.88)",
+    backgroundColor: "transparent",
     borderRadius: 22,
     paddingVertical: 13,
     paddingHorizontal: 13,
     marginTop: 10,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.8)",
-    boxShadow: "0px 2px 10px rgba(0,0,0,0.04)",
-    elevation: 2,
+    borderWidth: 1.2,
+    borderColor: "rgba(255, 255, 255, 0.78)",
+    overflow: "hidden",
+    shadowColor: "#0A2415",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
     gap: 10,
     width: "100%",
     zIndex: 2,
@@ -1432,7 +1725,9 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#E8F5EC",
+    backgroundColor: "rgba(255, 255, 255, 0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.8)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1491,187 +1786,600 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     gap: 22,
   },
-  leagueMiniCard: {
-    backgroundColor: "#FFF9EC",
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#F0D898",
-    padding: 13,
+  leagueCard: {
+    backgroundColor: "#F9FCFA",
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: "rgba(215, 235, 222, 0.95)",
+    paddingVertical: 7,
+    paddingHorizontal: 13,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    position: "relative",
+    overflow: "hidden",
+    shadowColor: "#0F281B",
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+    gap: 11,
   },
-  leagueMiniBadge: { width: 40, height: 40, borderRadius: 13, backgroundColor: "#FFF0C9", alignItems: "center", justifyContent: "center" },
-  leagueMiniBadgeImage: { width: 34, height: 34 },
-  leagueMiniBadgePlaceholder: { color: "#9AA89F", fontSize: 18, fontWeight: "800" },
-  leagueMiniCopy: { flex: 1, gap: 2 },
-  leagueMiniEyebrow: { color: "#A46C13", fontSize: 9, fontFamily: "Nunito_800ExtraBold", letterSpacing: 1.1 },
-  leagueMiniTitle: { color: "#183222", fontSize: 14, fontFamily: "Nunito_800ExtraBold", flexShrink: 1 },
-  leagueMiniHint: { color: "#8F774C", fontSize: 10, fontFamily: "Nunito_600SemiBold", flexShrink: 1 },
+  leagueBgImage: {
+    position: "absolute",
+    right: -15,
+    top: -15,
+    bottom: -15,
+    width: 190,
+    opacity: 0.28,
+  },
+  leagueBadgeWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "rgba(224, 245, 230, 0.75)",
+    borderWidth: 1,
+    borderColor: "rgba(200, 235, 215, 0.6)",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  leagueBadgeImage: {
+    width: 52,
+    height: 52,
+  },
+  leagueBadgePlaceholder: {
+    color: "#9AA89F",
+    fontSize: 20,
+    fontFamily: "Nunito_800ExtraBold",
+  },
+  leagueCenterWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  leagueTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  leagueTitle: {
+    color: "#0B1D12",
+    fontSize: 20,
+    fontFamily: "Nunito_800ExtraBold",
+  },
+  leaguePointsChip: {
+    backgroundColor: "#E2ECE6",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  leaguePointsChipText: {
+    color: "#275038",
+    fontSize: 11.5,
+    fontFamily: "Nunito_800ExtraBold",
+  },
+  leagueProgressTrack: {
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: "#D9E8DF",
+    overflow: "hidden",
+    width: "100%",
+    marginTop: 5,
+  },
+  leagueProgressFill: {
+    height: "100%",
+    borderRadius: 2.5,
+    backgroundColor: "#52B582",
+    minWidth: 14,
+  },
+  leagueBottomRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 3,
+  },
+  leagueBottomLeft: {
+    fontSize: 10,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#5F7768",
+  },
+  leagueBottomRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  leagueBottomRightText: {
+    fontSize: 10,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#5F7768",
+  },
+  leagueNextBadgeIcon: {
+    width: 13,
+    height: 13,
+  },
+  leagueChevronCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255, 255, 255, 0.72)",
+    borderWidth: 1.2,
+    borderColor: "rgba(185, 218, 198, 0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
 
   // Walking rewards
   walkCard: {
-    backgroundColor: "rgba(255,255,255,0.92)",
-    borderRadius: 22,
-    padding: 16,
-    gap: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(46,168,110,0.16)",
+    backgroundColor: "#F9FCFA",
+    borderRadius: 26,
+    padding: 18,
+    borderWidth: 1.5,
+    borderColor: "rgba(215, 235, 222, 0.95)",
+    position: "relative",
+    overflow: "hidden",
+    shadowColor: "#0F281B",
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
-  walkHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
+  walkBgLeaf: {
+    position: "absolute",
+    right: -25,
+    top: 50,
+    width: 170,
+    height: 170,
+    opacity: 0.12,
+    borderRadius: 85,
+  },
+  walkHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
   walkIconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#E3F3EB",
+    borderWidth: 1,
+    borderColor: "rgba(185, 218, 198, 0.6)",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(46,168,110,0.12)",
   },
-  walkHeaderCopy: { flex: 1, minWidth: 0 },
-  walkTitle: { fontSize: 15, fontFamily: "Nunito_700Bold", color: "#183222" },
-  walkRating: {
-    marginTop: 2,
-    fontSize: 11,
+  walkHeaderCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  walkTitle: {
+    fontSize: 16.5,
+    lineHeight: 21,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#0B1D12",
+  },
+  walkSubtitle: {
+    fontSize: 12.5,
     fontFamily: "Nunito_600SemiBold",
-    color: "#2EA86E",
+    color: "#5C7869",
+    marginTop: 1.5,
   },
   walkPointsBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
-    backgroundColor: "rgba(46,168,110,0.12)",
+    paddingHorizontal: 11,
+    paddingVertical: 4.5,
+    borderRadius: 14,
+    backgroundColor: "#E2F2E8",
+    borderWidth: 1,
+    borderColor: "rgba(185, 218, 198, 0.5)",
   },
   walkPointsText: {
-    fontSize: 11,
-    fontFamily: "Nunito_700Bold",
-    color: "#1B7A4E",
-  },
-  walkStepRow: { flexDirection: "row", alignItems: "baseline" },
-  walkSteps: {
-    fontSize: 28,
+    fontSize: 12.5,
     fontFamily: "Nunito_800ExtraBold",
-    color: "#183222",
+    color: "#1E653D",
   },
-  walkTarget: {
-    fontSize: 12,
+  walkGaugeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 14,
+    marginBottom: 6,
+  },
+  stepDecoCol: {
+    width: 65,
+    alignItems: "flex-start",
+  },
+  stepDecoColRight: {
+    width: 65,
+    alignItems: "flex-end",
+  },
+  stepDecoText: {
+    fontSize: 8.5,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#7B9687",
+    letterSpacing: 1.4,
+    lineHeight: 12.5,
+  },
+  stepDecoLine: {
+    width: 22,
+    height: 1.5,
+    backgroundColor: "#8FAAA0",
+    marginTop: 5,
+    borderRadius: 1,
+  },
+  stepRingWrap: {
+    width: 146,
+    height: 146,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  stepRingCenter: {
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepRingSteps: {
+    fontSize: 32,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#0B1D12",
+    marginTop: 2,
+    lineHeight: 34,
+  },
+  stepRingTarget: {
+    fontSize: 11.5,
     fontFamily: "Nunito_600SemiBold",
-    color: "#6B8576",
+    color: "#607E6C",
+    marginTop: 1,
   },
   walkProgressTrack: {
-    height: 8,
-    borderRadius: 4,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: "#E0EEE5",
     overflow: "hidden",
-    backgroundColor: "#E5EDE8",
+    width: "100%",
+    marginTop: 10,
   },
   walkProgressFill: {
     height: "100%",
-    borderRadius: 4,
-    backgroundColor: "#2EA86E",
+    borderRadius: 3.5,
+    backgroundColor: "#52B582",
   },
   walkDetail: {
     fontSize: 12,
     fontFamily: "Nunito_600SemiBold",
-    color: "#6B8576",
+    color: "#527060",
+    marginTop: 8,
   },
-  stepSeries: {
-    height: 42,
+  walkNoticeRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-    paddingHorizontal: 2,
-  },
-  stepSeriesItem: {
-    flex: 1,
     alignItems: "center",
-    justifyContent: "flex-end",
-    gap: 3,
+    gap: 12,
+    marginTop: 14,
   },
-  stepSeriesBar: { width: 12, borderRadius: 6, backgroundColor: "#A7E5C2" },
-  stepSeriesLabel: {
-    fontSize: 9,
-    fontFamily: "Nunito_600SemiBold",
-    color: "#6B8576",
-  },
-  walkNotice: {
-    fontSize: 12,
-    lineHeight: 17,
-    fontFamily: "Nunito_400Regular",
-    color: "#6B8576",
-  },
-  walkCta: {
-    minHeight: 46,
-    paddingHorizontal: 14,
-    borderRadius: 14,
-    backgroundColor: "#2EA86E",
+  walkNoticeIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#E3F3EB",
+    borderWidth: 1,
+    borderColor: "rgba(185, 218, 198, 0.6)",
     alignItems: "center",
     justifyContent: "center",
-    flexDirection: "row",
-    gap: 8,
   },
-  walkCtaMuted: { backgroundColor: "#6C8374" },
-  walkCtaText: {
-    flexShrink: 1,
-    fontSize: 14,
-    fontFamily: "Nunito_700Bold",
+  walkNoticeText: {
+    fontSize: 12,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#526E5E",
+    lineHeight: 16,
+    flex: 1,
+  },
+  greenCapsuleBtn: {
+    height: 50,
+    borderRadius: 25,
+    overflow: "hidden",
+    marginTop: 14,
+    shadowColor: "#174428",
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  greenCapsuleContent: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 18,
+    gap: 10,
+  },
+  greenCapsuleText: {
+    fontSize: 15,
+    fontFamily: "Nunito_800ExtraBold",
     color: "#FFFFFF",
+    flex: 1,
+    textAlign: "center",
   },
 
   // Commute Card
   commuteCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 16,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.16)",
-    boxShadow: "0px 2px 10px rgba(0,0,0,0.05)",
+    backgroundColor: "#F9FCFA",
+    borderRadius: 26,
+    padding: 18,
+    borderWidth: 1.5,
+    borderColor: "rgba(215, 235, 222, 0.95)",
+    position: "relative",
+    overflow: "hidden",
+    shadowColor: "#0F281B",
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
-  commuteHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
-  commuteIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 13,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(46,168,110,0.11)",
+  commuteBgLeaf: {
+    position: "absolute",
+    right: -20,
+    top: -15,
+    width: 170,
+    height: 170,
+    opacity: 0.14,
+    borderRadius: 85,
   },
-  commuteHeaderCopy: { flex: 1, minWidth: 0 },
-  commuteTitle: { fontSize: 14, fontFamily: "Nunito_700Bold", color: "#183222" },
-  commuteSubtitle: { marginTop: 1, fontSize: 11, fontFamily: "Nunito_600SemiBold", color: "#2EA86E" },
-  commutePointsBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
-    backgroundColor: "rgba(46,168,110,0.1)",
-  },
-  commutePointsText: { fontSize: 11, fontFamily: "Nunito_700Bold", color: "#2EA86E" },
-  commuteStatsBox: {
-    backgroundColor: "#F4FAF6",
-    borderRadius: 14,
-    padding: 12,
-    gap: 8,
-  },
-  commuteStatsTop: {
+  commuteEyebrowRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    marginBottom: 8,
   },
-  commuteDistanceText: { fontSize: 20, fontFamily: "Nunito_800ExtraBold", color: "#183222" },
-  commuteDistanceLabel: { fontSize: 11, fontFamily: "Nunito_600SemiBold", color: "#7A9082", marginTop: 2 },
-  commuteTiersRow: {
+  commuteEyebrow: {
+    fontSize: 10,
+    fontFamily: "Nunito_800ExtraBold",
+    letterSpacing: 1.8,
+    color: "#547160",
+  },
+  gpsPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    flexWrap: "wrap",
+    gap: 5,
+    backgroundColor: "#E2F2E8",
+    paddingHorizontal: 9,
+    paddingVertical: 3.5,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(185, 218, 198, 0.5)",
   },
-  commuteTierChip: {
-    backgroundColor: "rgba(46,168,110,0.12)",
+  gpsDot: {
+    width: 6.5,
+    height: 6.5,
+    borderRadius: 3.25,
+    backgroundColor: "#2EA86E",
+  },
+  gpsPillText: {
+    fontSize: 10.5,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#1E653D",
+  },
+  commuteHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingRight: 100,
+    zIndex: 2,
+  },
+  commuteOuterIconRing: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: "rgba(224, 244, 233, 0.45)",
+    borderWidth: 1.5,
+    borderColor: "rgba(180, 222, 198, 0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  commuteIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#E4F4EC",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  commuteHeaderCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  commuteTitle: {
+    fontSize: 16.5,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#0B1D12",
+  },
+  commuteSubtitle: {
+    fontSize: 11,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#527060",
+    marginTop: 1.5,
+  },
+  commuteTagline: {
+    fontSize: 10.5,
+    fontFamily: "Nunito_400Regular",
+    color: "#748E7E",
+    marginTop: 1,
+  },
+  commuteRouteArt: {
+    position: "absolute",
+    top: 38,
+    right: 14,
+    alignItems: "flex-end",
+    gap: 4,
+    zIndex: 1,
+  },
+  commuteFloatingPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
     paddingHorizontal: 8,
     paddingVertical: 3.5,
-    borderRadius: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(200, 225, 210, 0.7)",
+    shadowColor: "#0F281B",
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
   },
-  commuteTierText: { fontSize: 10, fontFamily: "Nunito_700Bold", color: "#2EA86E" },
+  commuteFloatingPillText: {
+    fontSize: 10.5,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#184A2C",
+  },
+  commuteInnerWhiteCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "rgba(224, 238, 229, 0.9)",
+    marginTop: 14,
+    shadowColor: "#0F281B",
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  commuteInnerTop: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  commuteDistanceBig: {
+    fontSize: 28,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#0B1D12",
+    lineHeight: 30,
+  },
+  commuteDistanceSub: {
+    fontSize: 11.5,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#60796B",
+    marginTop: 2,
+  },
+  viewHistoryPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#F1F7F3",
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(195, 225, 208, 0.7)",
+  },
+  viewHistoryText: {
+    fontSize: 11,
+    fontFamily: "Nunito_700Bold",
+    color: "#184A2C",
+  },
+  commuteProgressRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  commuteProgressBarTrack: {
+    flex: 1,
+    height: 6.5,
+    borderRadius: 3.25,
+    backgroundColor: "#E2EFE7",
+    overflow: "hidden",
+  },
+  commuteProgressBarFill: {
+    height: "100%",
+    borderRadius: 3.25,
+    backgroundColor: "#52B582",
+  },
+  commuteGoalText: {
+    fontSize: 11,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#60796B",
+    marginLeft: 9,
+  },
+  commuteModesRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  commuteModeBox: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(235, 246, 240, 0.65)",
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(215, 235, 222, 0.6)",
+  },
+  commuteModeTitle: {
+    fontSize: 12,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#123320",
+  },
+  commuteModeRate: {
+    fontSize: 11,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#2EA86E",
+    marginTop: 0.5,
+  },
+  commuteFooterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 14,
+    paddingTop: 4,
+  },
+  commuteFooterLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    flex: 1,
+  },
+  commuteFooterLeafBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#E3F3EB",
+    borderWidth: 1,
+    borderColor: "rgba(185, 218, 198, 0.6)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  commuteFooterHeadline: {
+    fontSize: 11,
+    fontFamily: "Nunito_700Bold",
+    color: "#183624",
+  },
+  commuteFooterSub: {
+    fontSize: 10.5,
+    fontFamily: "Nunito_400Regular",
+    color: "#6D8678",
+  },
+  commuteFooterRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  commuteFooterDivider: {
+    width: 1,
+    height: 26,
+    backgroundColor: "rgba(24, 74, 44, 0.14)",
+  },
+  commuteFooterTag: {
+    fontSize: 8,
+    fontFamily: "Nunito_800ExtraBold",
+    letterSpacing: 1.4,
+    color: "#839B8E",
+    lineHeight: 10.5,
+  },
   liveTelemetryBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -1682,24 +2390,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderWidth: 1,
     borderColor: "#A7E5C2",
+    marginTop: 12,
   },
   telemetryItem: { alignItems: "center" },
   telemetryValue: { fontSize: 20, fontFamily: "Nunito_800ExtraBold", color: "#183222" },
   telemetryLabel: { fontSize: 10, fontFamily: "Nunito_600SemiBold", color: "#6A8372", marginTop: 2 },
   telemetryDivider: { width: 1, height: 28, backgroundColor: "#C3EBD4" },
-  commuteCta: {
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: "#2EA86E",
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 8,
-  },
-  commuteCtaStop: {
-    backgroundColor: "#E04F4F",
-  },
-  commuteCtaText: { fontSize: 13, fontFamily: "Nunito_700Bold", color: "#FFFFFF" },
   tripResultBanner: {
     backgroundColor: "#EBF7F0",
     borderRadius: 14,
@@ -1707,6 +2403,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#A7E5C2",
     gap: 6,
+    marginTop: 12,
   },
   tripResultHeader: { flexDirection: "row", alignItems: "center", gap: 6 },
   tripResultTitle: { fontSize: 13, fontFamily: "Nunito_700Bold", color: "#183222" },
@@ -1870,41 +2567,6 @@ const styles = StyleSheet.create({
     borderColor: "rgba(46,168,110,0.14)",
   },
 
-  // Closet
-  closetCard: {
-    width: 164,
-    backgroundColor: "rgba(255,255,255,0.95)",
-    borderRadius: 18,
-    padding: 12,
-    gap: 8,
-    overflow: "hidden",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(46,168,110,0.14)",
-  },
-  closetImageWrap: {
-    width: "100%",
-    height: 120,
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  closetName: {
-    fontSize: 13,
-    fontFamily: "Nunito_700Bold",
-    color: "#0D1811",
-  },
-  closetChip: {
-    alignSelf: "flex-start",
-    maxWidth: "100%",
-    backgroundColor: "rgba(46,168,110,0.12)",
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  closetChipText: {
-    fontSize: 10,
-    fontFamily: "Nunito_600SemiBold",
-    color: "#1B7A4E",
-  },
 
   // Activity
   activityCard: {

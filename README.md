@@ -27,6 +27,10 @@ Built with Expo 57 &bull; React Native 0.79 &bull; FastAPI &bull; Python 3.12 &b
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![pnpm](https://img.shields.io/badge/pnpm-9-F69220?logo=pnpm&logoColor=white)](https://pnpm.io/)
 
+<br><br>
+
+<img src="assets/banner.png" width="100%" alt="Karma Platform Showcase Banner"/>
+
 </div>
 
 ***
@@ -430,6 +434,7 @@ carbon-loop-app/
 |       +-- app/api/extract/    # Gemini multi-modal receipt extraction route
 |       +-- lib/                # Vercel AI SDK client and prompt templates
 +-- assets/
+|   +-- banner.png              # Official Karma showcase hero banner
 |   +-- screenshots/            # 12 showcase captures (01 through 12)
 |   +-- app-icon.png            # Official Karma app icon
 +-- package.json                # Turborepo / pnpm workspace root

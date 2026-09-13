@@ -1,21 +1,25 @@
 import React from "react";
+import {
+  Image,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
 import {
   ArrowLeft,
   ArrowRight,
-  HelpCircle,
   Sparkles,
-  TrendingDown,
   Wrench,
 } from "lucide-react-native";
-import { DecorativeBackground } from "@/components/custom/decorative-background";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonText } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Heading } from "@/components/ui/heading";
 import { HStack } from "@/components/ui/hstack";
-import { Pressable } from "@/components/ui/pressable";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
@@ -30,14 +34,14 @@ export default function RevealScreen() {
 
   const computed = computeBaselineFootprint(baseline);
   const reductionPct = goal.reductionPct ?? 15;
-  const startingFootprint = computed.totalKg; // e.g. 74
-  const targetFootprint = Math.round(startingFootprint * (1 - reductionPct / 100)); // e.g. 63
-  const startingScore = computed.score; // e.g. 642
+  const startingFootprint = computed.totalKg; // e.g. 118
+  const targetFootprint = Math.max(1, Math.round(startingFootprint * (1 - reductionPct / 100)));
+  const startingScore = computed.score; // e.g. 632
 
   // Category breakdown percentages
-  const transportPct = Math.round((computed.transportKg / startingFootprint) * 100); // ~32%
-  const shoppingPct = Math.round((computed.shoppingKg / startingFootprint) * 100); // ~41%
-  const homePct = 100 - transportPct - shoppingPct; // ~27%
+  const transportPct = startingFootprint > 0 ? Math.round((computed.transportKg / startingFootprint) * 100) : 73;
+  const shoppingPct = startingFootprint > 0 ? Math.round((computed.shoppingKg / startingFootprint) * 100) : 10;
+  const homePct = Math.max(0, 100 - transportPct - shoppingPct);
 
   function handleContinue() {
     setOnboardingStep("location");
@@ -46,27 +50,36 @@ export default function RevealScreen() {
 
   return (
     <Box
-      className="flex-1 bg-background"
+      className="flex-1"
       style={{
-        paddingTop: insets.top + 16,
-        paddingBottom: insets.bottom + 20,
-        paddingHorizontal: 24,
+        backgroundColor: "#F4F8F5",
+        paddingTop: insets.top + 14,
+        paddingBottom: insets.bottom + 18,
+        paddingHorizontal: 22,
       }}
     >
-      <DecorativeBackground />
+      {/* 1. Full-bleed Botanical Background */}
+      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+        <Image
+          source={require("@/assets/carbon-loop-welcome-bg.jpg")}
+          style={{ width: "100%", height: "100%" }}
+          resizeMode="cover"
+        />
+      </View>
 
-      {/* Top Bar */}
+      {/* Top Bar Navigation */}
       <HStack className="items-center justify-between mb-4">
         <Pressable
           onPress={() => router.back()}
-          className="w-10 h-10 rounded-full bg-card items-center justify-center border border-border"
+          className="w-10 h-10 rounded-full bg-white/90 items-center justify-center border border-[#E1EDE4]"
+          style={styles.headerBtnShadow}
           hitSlop={8}
         >
-          <ArrowLeft size={18} color="rgb(28,42,36)" />
+          <ArrowLeft size={18} color="#112318" />
         </Pressable>
 
-        <Box className="px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
-          <Text size="xs" bold className="text-primary font-mono uppercase">
+        <Box className="px-3.5 py-1.5 rounded-full bg-white/90 border border-[#CDE5D6] shadow-sm">
+          <Text size="xs" bold className="text-[#1E5E3A] font-mono uppercase text-[11px] tracking-wider">
             Baseline Estimate
           </Text>
         </Box>
@@ -76,158 +89,159 @@ export default function RevealScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: 24, gap: 18 }}
+        contentContainerStyle={{ paddingTop: 4, paddingBottom: 24, gap: 16 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Title Block */}
-        <VStack space="xs">
-          <Heading size="2xl" className="font-heading text-foreground">
+        <VStack space="xs" className="mb-1">
+          <Heading size="2xl" className="font-heading text-[#112318] text-[28px] leading-tight">
             Your starting point
           </Heading>
-          <Text size="sm" className="text-muted-foreground mt-0.5 leading-relaxed font-body">
+          <Text size="sm" className="text-[#527060] mt-0.5 leading-relaxed font-body">
             Based on what you've told us
           </Text>
         </VStack>
 
-        {/* Hero Score Card */}
-        <Card variant="soft" className="p-5 items-center border border-primary/25 bg-card gap-2">
-          <Box className="w-12 h-12 rounded-full bg-primary/15 items-center justify-center mb-1">
-            <Sparkles size={22} color="rgb(46,168,110)" />
-          </Box>
-          <Text size="5xl" bold className="text-foreground font-mono leading-none">
-            {startingScore}
-          </Text>
-          <Text size="xs" bold className="text-primary tracking-widest uppercase font-mono mt-1">
-            Provisional Carbon Credit Score
-          </Text>
-          <Text size="xs" className="text-muted-foreground font-body text-center mt-1 px-4">
-            This questionnaire-based estimate uses the 480–820 KCS range. Your verified score arrives after sufficient real footprint data across receipts, transactions, categories, and history.
-          </Text>
-        </Card>
+        {/* Hero Score Card with Glassmorphism */}
+        <View style={styles.glassCard}>
+          {Platform.OS === "ios" ? (
+            <BlurView intensity={35} tint="light" style={StyleSheet.absoluteFill} />
+          ) : null}
+          <LinearGradient
+            colors={["rgba(255, 255, 255, 0.86)", "rgba(255, 255, 255, 0.65)"]}
+            style={StyleSheet.absoluteFill}
+          />
+
+          <View style={styles.heroScoreContent}>
+            <View style={styles.sparkleIconCircle}>
+              <Sparkles size={22} color="#1E5E3A" />
+            </View>
+            <Text style={styles.heroScoreNumber}>
+              {startingScore}
+            </Text>
+            <Text style={styles.heroScoreTag}>
+              Provisional Carbon Credit Score
+            </Text>
+            <Text style={styles.heroScoreDesc}>
+              This questionnaire-based estimate uses the 480–820 KCS range. Your verified score arrives after sufficient real footprint data across receipts, transactions, categories, and history.
+            </Text>
+          </View>
+        </View>
 
         {/* Estimated Footprint & Breakdown */}
-        <Card variant="outline" className="p-4 gap-3 border-border">
-          <HStack className="items-center justify-between">
-            <VStack>
-              <Text size="xs" className="text-muted-foreground font-body uppercase tracking-wider">
-                Estimated Footprint
-              </Text>
-              <HStack className="items-baseline gap-1 mt-0.5">
-                <Text size="2xl" bold className="text-foreground font-mono">
-                  {startingFootprint}
+        <View style={styles.glassCard}>
+          {Platform.OS === "ios" ? (
+            <BlurView intensity={35} tint="light" style={StyleSheet.absoluteFill} />
+          ) : null}
+          <LinearGradient
+            colors={["rgba(255, 255, 255, 0.84)", "rgba(255, 255, 255, 0.64)"]}
+            style={StyleSheet.absoluteFill}
+          />
+
+          <View style={styles.footprintContent}>
+            <View style={styles.footprintHeader}>
+              <View>
+                <Text style={styles.footprintSmallTag}>
+                  Estimated Footprint
                 </Text>
-                <Text size="xs" className="text-muted-foreground font-body">
-                  kg CO₂e / month
+                <HStack className="items-baseline gap-1.5 mt-0.5">
+                  <Text style={styles.footprintBigNumber}>
+                    {startingFootprint}
+                  </Text>
+                  <Text style={styles.footprintUnit}>
+                    kg CO₂e / month
+                  </Text>
+                </HStack>
+              </View>
+
+              <View style={styles.baselinePill}>
+                <Text style={styles.baselinePillText}>
+                  Baseline
+                </Text>
+              </View>
+            </View>
+
+            {/* Visual Percentage Bar */}
+            <View style={styles.percentBarContainer}>
+              <View style={[styles.percentBarSegment, { width: `${transportPct}%`, backgroundColor: "#2EA86E" }]} />
+              <View style={[styles.percentBarSegment, { width: `${shoppingPct}%`, backgroundColor: "#1E5E3A" }]} />
+              <View style={[styles.percentBarSegment, { width: `${homePct}%`, backgroundColor: "rgba(30, 94, 58, 0.35)" }]} />
+            </View>
+
+            {/* Legend Row */}
+            <HStack className="justify-between items-center pt-0.5 flex-wrap gap-y-1.5 gap-x-2">
+              <HStack className="items-center gap-1.5 shrink min-w-0">
+                <View style={[styles.legendDot, { backgroundColor: "#2EA86E" }]} />
+                <Text style={styles.legendText}>
+                  Transport {transportPct}%
                 </Text>
               </HStack>
-            </VStack>
-            <Box className="px-2.5 py-1 rounded-md bg-secondary">
-              <Text size="xs" className="text-secondary-foreground font-mono">
-                Baseline
-              </Text>
-            </Box>
-          </HStack>
-
-          {/* Visual Percentage Bar */}
-          <Box className="w-full h-3 rounded-full overflow-hidden flex-row bg-secondary/80 mt-1">
-            <Box style={{ width: `${transportPct}%` }} className="h-full bg-primary" />
-            <Box style={{ width: `${shoppingPct}%` }} className="h-full bg-emerald-600" />
-            <Box style={{ width: `${homePct}%` }} className="h-full bg-emerald-900/30" />
-          </Box>
-
-          <HStack className="justify-between items-center pt-1 flex-wrap gap-y-2 gap-x-3">
-            <HStack className="items-center gap-1.5 shrink min-w-0">
-              <Box className="w-2.5 h-2.5 rounded-full bg-primary" />
-              <Text size="xs" numberOfLines={1} className="text-foreground font-mono">
-                Transport {transportPct}%
-              </Text>
+              <HStack className="items-center gap-1.5 shrink min-w-0">
+                <View style={[styles.legendDot, { backgroundColor: "#1E5E3A" }]} />
+                <Text style={styles.legendText}>
+                  Shopping {shoppingPct}%
+                </Text>
+              </HStack>
+              <HStack className="items-center gap-1.5 shrink min-w-0">
+                <View style={[styles.legendDot, { backgroundColor: "rgba(30, 94, 58, 0.35)" }]} />
+                <Text style={styles.legendText}>
+                  Home {homePct}%*
+                </Text>
+              </HStack>
             </HStack>
-            <HStack className="items-center gap-1.5 shrink min-w-0">
-              <Box className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
-              <Text size="xs" numberOfLines={1} className="text-foreground font-mono">
-                Shopping {shoppingPct}%
-              </Text>
-            </HStack>
-            <HStack className="items-center gap-1.5 shrink min-w-0">
-              <Box className="w-2.5 h-2.5 rounded-full bg-emerald-900/30" />
-              <Text size="xs" numberOfLines={1} className="text-foreground font-mono">
-                Home {homePct}%*
-              </Text>
-            </HStack>
-          </HStack>
 
-          <Text size="2xs" className="text-muted-foreground font-body mt-0.5">
-            *Home energy is an estimated initial baseline until utility bills or energy data are connected.
-          </Text>
-        </Card>
+            <Text style={styles.homeFootnote}>
+              *Home energy is an estimated initial baseline until utility bills or energy data are connected.
+            </Text>
+          </View>
+        </View>
 
         {/* Goal Transition Visual */}
-        <Card variant="soft" className="p-4 gap-3 bg-secondary/60 border border-border">
+        <View style={styles.goalCard}>
+          {Platform.OS === "ios" ? (
+            <BlurView intensity={35} tint="light" style={StyleSheet.absoluteFill} />
+          ) : null}
+          <LinearGradient
+            colors={["rgba(255, 255, 255, 0.84)", "rgba(255, 255, 255, 0.64)"]}
+            style={StyleSheet.absoluteFill}
+          />
+
           <HStack className="items-center justify-between">
             <VStack>
-              <Text size="xs" bold className="text-foreground font-body">
+              <Text style={styles.goalTitle}>
                 Your 1st Month Goal
               </Text>
-              <Text size="xs" className="text-primary font-mono font-bold">
+              <Text style={styles.goalReduction}>
                 −{reductionPct}% reduction
               </Text>
             </VStack>
 
             <HStack className="items-center gap-2">
-              <Box className="px-2.5 py-1 rounded-lg bg-card border border-border">
-                <Text size="xs" bold className="text-foreground font-mono">
+              <View style={styles.startingKgPill}>
+                <Text style={styles.startingKgText}>
                   {startingFootprint} kg
                 </Text>
-              </Box>
-              <ArrowRight size={14} color="rgb(46,168,110)" />
-              <Box className="px-2.5 py-1 rounded-lg bg-primary">
-                <Text size="xs" bold className="text-primary-foreground font-mono">
+              </View>
+              <ArrowRight size={14} color="#1E5E3A" />
+              <View style={styles.targetKgPill}>
+                <Text style={styles.targetKgText}>
                   {targetFootprint} kg
                 </Text>
-              </Box>
+              </View>
             </HStack>
           </HStack>
-        </Card>
-
-        {/* Easiest First Action Recommendation */}
-        <Card variant="softPop" className="p-4 gap-3 border border-primary/30">
-          <HStack className="items-center justify-between gap-2">
-            <Text
-              size="2xs"
-              bold
-              numberOfLines={1}
-              className="flex-1 min-w-0 shrink text-primary tracking-widest uppercase font-mono"
-            >
-              Your easiest first action
-            </Text>
-            <Box className="px-2 py-0.5 rounded-full bg-primary/15 shrink-0">
-              <Text size="2xs" bold numberOfLines={1} className="text-primary font-mono">
-                −4.2 kg CO₂e
-              </Text>
-            </Box>
-          </HStack>
-
-          <HStack className="items-center gap-3">
-            <Box className="w-10 h-10 rounded-xl bg-primary/15 items-center justify-center">
-              <Wrench size={20} color="rgb(46,168,110)" />
-            </Box>
-            <VStack className="flex-1 min-w-0">
-              <Text bold size="md" numberOfLines={1} className="text-foreground font-heading">
-                Repair before replacing
-              </Text>
-              <Text size="xs" numberOfLines={2} className="text-muted-foreground font-body">
-                Fixing an everyday device keeps ~4.2 to 120 kg CO₂e out of the atmosphere.
-              </Text>
-            </VStack>
-          </HStack>
-        </Card>
+        </View>
       </ScrollView>
 
-      {/* Bottom Action */}
+      {/* Bottom Action CTA */}
       <Box className="pt-2">
-        <Button onPress={handleContinue} className="w-full h-13 rounded-2xl">
+        <Button
+          onPress={handleContinue}
+          className="w-full h-13 rounded-2xl bg-[#1E5E3A] active:bg-[#16472C]"
+          style={styles.ctaShadow}
+        >
           <HStack className="items-center justify-center gap-2 min-w-0 px-2">
-            <ButtonText className="text-primary-foreground text-base font-body">
+            <ButtonText className="text-white text-base font-body font-bold">
               See how
             </ButtonText>
             <ArrowRight size={18} color="white" />
@@ -237,3 +251,187 @@ export default function RevealScreen() {
     </Box>
   );
 }
+
+const styles = StyleSheet.create({
+  headerBtnShadow: {
+    shadowColor: "#184A2C",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 1,
+  },
+  glassCard: {
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: "rgba(255, 255, 255, 0.88)",
+    backgroundColor: "rgba(255, 255, 255, 0.72)",
+    padding: 14,
+    overflow: "hidden",
+    shadowColor: "#184A2C",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  heroScoreContent: {
+    alignItems: "center",
+    gap: 4,
+  },
+  sparkleIconCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: "#E2F4EA",
+    borderWidth: 1,
+    borderColor: "rgba(185, 222, 202, 0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  heroScoreNumber: {
+    fontSize: 52,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#0B1D12",
+    lineHeight: 62,
+    paddingVertical: 2,
+  },
+  heroScoreTag: {
+    fontSize: 11,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#1E5E3A",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginTop: 2,
+  },
+  heroScoreDesc: {
+    fontSize: 11.5,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#567464",
+    textAlign: "center",
+    lineHeight: 16.5,
+    marginTop: 6,
+    paddingHorizontal: 6,
+  },
+  footprintContent: {
+    gap: 12,
+  },
+  footprintHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  footprintSmallTag: {
+    fontSize: 11,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#1E5E3A",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  footprintBigNumber: {
+    fontSize: 28,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#0B1D12",
+    lineHeight: 36,
+  },
+  footprintUnit: {
+    fontSize: 12.5,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#567464",
+  },
+  baselinePill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4.5,
+    borderRadius: 12,
+    backgroundColor: "#E2F4EA",
+    borderWidth: 1,
+    borderColor: "rgba(175, 218, 194, 0.75)",
+  },
+  baselinePillText: {
+    fontSize: 11,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#165330",
+  },
+  percentBarContainer: {
+    width: "100%",
+    height: 9,
+    borderRadius: 5,
+    overflow: "hidden",
+    flexDirection: "row",
+    backgroundColor: "rgba(210, 232, 220, 0.6)",
+  },
+  percentBarSegment: {
+    height: "100%",
+  },
+  legendDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
+  legendText: {
+    fontSize: 11.5,
+    fontFamily: "Nunito_700Bold",
+    color: "#112318",
+  },
+  homeFootnote: {
+    fontSize: 11,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#6C8A79",
+    lineHeight: 15,
+  },
+  goalCard: {
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: "rgba(255, 255, 255, 0.88)",
+    backgroundColor: "rgba(255, 255, 255, 0.72)",
+    padding: 14,
+    overflow: "hidden",
+    shadowColor: "#184A2C",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  goalTitle: {
+    fontSize: 13.5,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#0B1D12",
+  },
+  goalReduction: {
+    fontSize: 11.5,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#1E5E3A",
+    marginTop: 1,
+  },
+  startingKgPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    borderWidth: 1,
+    borderColor: "#DCEAE0",
+  },
+  startingKgText: {
+    fontSize: 11.5,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#0B1D12",
+  },
+  targetKgPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    backgroundColor: "#1E5E3A",
+  },
+  targetKgText: {
+    fontSize: 11.5,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#FFFFFF",
+  },
+  ctaShadow: {
+    shadowColor: "#184A2C",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+});
+

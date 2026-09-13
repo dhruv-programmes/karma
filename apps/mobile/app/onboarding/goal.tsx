@@ -1,6 +1,16 @@
 import React, { useState } from "react";
+import {
+  Image,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
+import * as Haptics from "expo-haptics";
 import {
   ArrowLeft,
   ArrowRight,
@@ -10,13 +20,10 @@ import {
   Sparkles,
   TrendingDown,
 } from "lucide-react-native";
-import { DecorativeBackground } from "@/components/custom/decorative-background";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonText } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Heading } from "@/components/ui/heading";
 import { HStack } from "@/components/ui/hstack";
-import { Pressable } from "@/components/ui/pressable";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
@@ -60,6 +67,7 @@ export default function GoalScreen() {
   );
 
   function togglePriority(id: string) {
+    Haptics.selectionAsync().catch(() => {});
     if (selectedPriorities.includes(id)) {
       if (selectedPriorities.length > 1) {
         setSelectedPriorities(selectedPriorities.filter((p) => p !== id));
@@ -73,6 +81,11 @@ export default function GoalScreen() {
     }
   }
 
+  function handleSelectStep(step: number) {
+    setReductionPct(step);
+    Haptics.selectionAsync().catch(() => {});
+  }
+
   function handleContinue() {
     setGoal({ reductionPct, priorities: selectedPriorities });
     setOnboardingStep("reveal");
@@ -81,27 +94,36 @@ export default function GoalScreen() {
 
   return (
     <Box
-      className="flex-1 bg-background"
+      className="flex-1"
       style={{
-        paddingTop: insets.top + 16,
-        paddingBottom: insets.bottom + 20,
-        paddingHorizontal: 24,
+        backgroundColor: "#F4F8F5",
+        paddingTop: insets.top + 14,
+        paddingBottom: insets.bottom + 18,
+        paddingHorizontal: 22,
       }}
     >
-      <DecorativeBackground />
+      {/* 1. Full-bleed Botanical Background */}
+      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+        <Image
+          source={require("@/assets/carbon-loop-welcome-bg.jpg")}
+          style={{ width: "100%", height: "100%" }}
+          resizeMode="cover"
+        />
+      </View>
 
-      {/* Top Navigation & Progress */}
-      <HStack className="items-center justify-between mb-4">
+      {/* Top Navigation & Progress Header */}
+      <HStack className="items-center justify-between mb-3">
         <Pressable
           onPress={() => router.back()}
-          className="w-10 h-10 rounded-full bg-card items-center justify-center border border-border"
+          className="w-10 h-10 rounded-full bg-white/90 items-center justify-center border border-[#E1EDE4]"
+          style={styles.headerBtnShadow}
           hitSlop={8}
         >
-          <ArrowLeft size={18} color="rgb(28,42,36)" />
+          <ArrowLeft size={18} color="#112318" />
         </Pressable>
 
-        <Box className="px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
-          <Text size="xs" bold className="text-primary font-mono uppercase">
+        <Box className="px-3.5 py-1.5 rounded-full bg-white/90 border border-[#CDE5D6] shadow-sm">
+          <Text size="xs" bold className="text-[#1E5E3A] font-mono uppercase text-[11px] tracking-wider">
             Step 2 of 2
           </Text>
         </Box>
@@ -110,92 +132,98 @@ export default function GoalScreen() {
       </HStack>
 
       {/* Progress Line */}
-      <Box className="w-full h-1.5 bg-border rounded-full overflow-hidden mb-5">
-        <Box className="w-full h-full bg-primary rounded-full" />
+      <Box className="w-full h-1.5 bg-[#DCEAE0] rounded-full overflow-hidden mb-4">
+        <Box className="w-full h-full bg-[#2EA86E] rounded-full" />
       </Box>
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: 24, gap: 22 }}
+        contentContainerStyle={{ paddingBottom: 24, gap: 18 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Title Block */}
         <VStack space="xs">
-          <Heading size="2xl" className="font-heading text-foreground">
+          <Heading size="2xl" className="font-heading text-[#112318] text-[28px] leading-tight">
             Set your goal
           </Heading>
-          <Text size="sm" className="text-muted-foreground mt-1 leading-relaxed font-body">
+          <Text size="sm" className="text-[#527060] mt-1 leading-relaxed font-body">
             Choose how much you want to improve over your first month.
           </Text>
         </VStack>
 
-        {/* Hero Goal Card */}
-        <Card variant="soft" className="p-5 border border-primary/25 bg-card gap-4">
-          <HStack className="items-center justify-between gap-3">
-            <VStack className="flex-1 min-w-0">
-              <Text size="xs" bold numberOfLines={1} className="text-primary tracking-widest uppercase font-mono">
-                Monthly footprint reduction
-              </Text>
-              <HStack className="items-baseline gap-2 mt-1 flex-wrap">
-                <Text size="4xl" bold className="text-foreground font-mono">
-                  {reductionPct}%
-                </Text>
-                <Text size="sm" numberOfLines={1} className="shrink text-muted-foreground font-body">
-                  Estimated reduction
-                </Text>
-              </HStack>
-            </VStack>
-            <Box className="w-12 h-12 rounded-2xl bg-primary/15 items-center justify-center">
-              <Sparkles size={22} color="rgb(46,168,110)" />
-            </Box>
-          </HStack>
+        {/* Hero Goal Card with Glassmorphism */}
+        <View style={styles.glassCard}>
+          {Platform.OS === "ios" ? (
+            <BlurView intensity={35} tint="light" style={StyleSheet.absoluteFill} />
+          ) : null}
+          <LinearGradient
+            colors={["rgba(255, 255, 255, 0.84)", "rgba(255, 255, 255, 0.64)"]}
+            style={StyleSheet.absoluteFill}
+          />
 
-          {/* Stepped Increment Slider Chips */}
-          <VStack space="xs" className="mt-1">
-            <HStack className="justify-between items-center gap-1.5 flex-wrap">
+          <View style={styles.heroCardContent}>
+            <View style={styles.heroCardTop}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={styles.badgeLabel}>
+                  Monthly footprint reduction
+                </Text>
+                <HStack className="items-baseline gap-2 mt-1">
+                  <Text style={styles.reductionPctText}>
+                    {reductionPct}%
+                  </Text>
+                  <Text style={styles.reductionSubText}>
+                    Estimated reduction
+                  </Text>
+                </HStack>
+              </View>
+
+              <View style={styles.sparkleBox}>
+                <Sparkles size={20} color="#1E5E3A" />
+              </View>
+            </View>
+
+            {/* Stepped Increment Chips */}
+            <View style={styles.chipsRow}>
               {REDUCTION_STEPS.map((step) => {
                 const isSelected = reductionPct === step;
                 return (
                   <Pressable
                     key={step}
-                    onPress={() => setReductionPct(step)}
-                    className={`flex-1 min-w-[44px] py-2.5 px-1 rounded-xl items-center justify-center border transition-all ${
-                      isSelected
-                        ? "bg-primary border-primary"
-                        : "bg-secondary/70 border-border/80 active:bg-secondary"
-                    }`}
+                    onPress={() => handleSelectStep(step)}
+                    style={[
+                      styles.chipBtn,
+                      isSelected ? styles.chipBtnSelected : styles.chipBtnUnselected,
+                    ]}
                   >
                     <Text
-                      size="xs"
-                      bold
-                      numberOfLines={1}
-                      className={`font-mono ${
-                        isSelected ? "text-primary-foreground" : "text-foreground"
-                      }`}
+                      style={[
+                        styles.chipText,
+                        isSelected ? styles.chipTextSelected : styles.chipTextUnselected,
+                      ]}
                     >
                       {step}%
                     </Text>
                   </Pressable>
                 );
               })}
-            </HStack>
-          </VStack>
+            </View>
 
-          <Text size="xs" className="text-muted-foreground font-body leading-relaxed pt-1">
-            We'll recommend actions based on your goal and current habits.
-          </Text>
-        </Card>
+            <Text style={styles.cardFootnote}>
+              We'll recommend actions based on your goal and current habits.
+            </Text>
+          </View>
+        </View>
 
-        {/* WHAT MATTERS MOST */}
-        <VStack space="sm">
-          <Text bold size="sm" className="text-foreground font-body">
+        {/* WHAT MATTERS MOST SECTION */}
+        <VStack space="sm" className="mt-1">
+          <Text bold size="sm" className="text-[#112318] font-heading text-[16px]">
             What matters most to you?
           </Text>
-          <Text size="xs" className="text-muted-foreground font-body -mt-1">
+          <Text size="xs" className="text-[#527060] font-body -mt-1">
             Select 1 or 2 priorities to tailor your recommendations.
           </Text>
 
-          <VStack space="xs" className="mt-1">
+          <VStack space="sm" className="mt-1">
             {MATTERS_MOST_OPTIONS.map((item) => {
               const isSelected = selectedPriorities.includes(item.id);
               const IconComp = item.Icon;
@@ -203,43 +231,51 @@ export default function GoalScreen() {
                 <Pressable
                   key={item.id}
                   onPress={() => togglePriority(item.id)}
-                  className={`p-3.5 rounded-2xl border transition-all ${
-                    isSelected
-                      ? "bg-card border-primary"
-                      : "bg-card/70 border-border/70 active:bg-card"
-                  }`}
+                  style={[
+                    styles.priorityCard,
+                    isSelected && styles.priorityCardSelected,
+                  ]}
                 >
+                  {Platform.OS === "ios" ? (
+                    <BlurView intensity={35} tint="light" style={StyleSheet.absoluteFill} />
+                  ) : null}
+                  <LinearGradient
+                    colors={
+                      isSelected
+                        ? ["rgba(238, 252, 244, 0.92)", "rgba(230, 248, 238, 0.82)"]
+                        : ["rgba(255, 255, 255, 0.82)", "rgba(255, 255, 255, 0.64)"]
+                    }
+                    style={StyleSheet.absoluteFill}
+                  />
+
                   <HStack className="items-center justify-between">
-                    <HStack className="items-center gap-3 flex-1">
-                      <Box
-                        className={`w-10 h-10 rounded-xl items-center justify-center ${
-                          isSelected ? "bg-primary/15" : "bg-secondary"
-                        }`}
+                    <HStack className="items-center gap-3 flex-1 min-w-0 pr-2">
+                      <View
+                        style={[
+                          styles.priorityIconBox,
+                          isSelected && styles.priorityIconBoxSelected,
+                        ]}
                       >
-                        <IconComp
-                          size={18}
-                          color={isSelected ? "rgb(46,168,110)" : "rgb(100,120,110)"}
-                        />
-                      </Box>
-                      <VStack className="flex-1">
-                        <Text bold size="sm" className="text-foreground font-body">
+                        <IconComp size={18} color="#1E5E3A" />
+                      </View>
+                      <VStack className="flex-1 min-w-0">
+                        <Text style={styles.priorityTitle}>
                           {item.title}
                         </Text>
-                        <Text size="xs" className="text-muted-foreground font-body">
+                        <Text style={styles.priorityDesc}>
                           {item.desc}
                         </Text>
                       </VStack>
                     </HStack>
 
-                    <Box
-                      className={`w-6 h-6 rounded-full items-center justify-center border ${
-                        isSelected
-                          ? "bg-primary border-primary"
-                          : "border-border bg-card"
-                      }`}
+                    <View
+                      style={[
+                        styles.checkCircle,
+                        isSelected ? styles.checkCircleSelected : styles.checkCircleUnselected,
+                      ]}
                     >
-                      {isSelected ? <Check size={14} color="white" /> : null}
-                    </Box>
+                      {isSelected ? <Check size={13} color="#FFFFFF" strokeWidth={2.8} /> : null}
+                    </View>
                   </HStack>
                 </Pressable>
               );
@@ -250,9 +286,13 @@ export default function GoalScreen() {
 
       {/* Bottom CTA */}
       <Box className="pt-2">
-        <Button onPress={handleContinue} className="w-full h-13 rounded-2xl">
+        <Button
+          onPress={handleContinue}
+          className="w-full h-13 rounded-2xl bg-[#1E5E3A] active:bg-[#16472C]"
+          style={styles.ctaShadow}
+        >
           <HStack className="items-center justify-center gap-2 min-w-0 px-2">
-            <ButtonText className="text-primary-foreground text-base font-body">
+            <ButtonText className="text-white text-base font-body font-bold">
               Reveal starting point
             </ButtonText>
             <ArrowRight size={18} color="white" />
@@ -262,3 +302,172 @@ export default function GoalScreen() {
     </Box>
   );
 }
+
+const styles = StyleSheet.create({
+  headerBtnShadow: {
+    shadowColor: "#184A2C",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 1,
+  },
+  glassCard: {
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: "rgba(255, 255, 255, 0.88)",
+    backgroundColor: "rgba(255, 255, 255, 0.72)",
+    padding: 16,
+    overflow: "hidden",
+    shadowColor: "#184A2C",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  heroCardContent: {
+    gap: 14,
+  },
+  heroCardTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  badgeLabel: {
+    fontSize: 11,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#1E5E3A",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  reductionPctText: {
+    fontSize: 34,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#0B1D12",
+    lineHeight: 42,
+  },
+  reductionSubText: {
+    fontSize: 13,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#567464",
+  },
+  sparkleBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "#E2F4EA",
+    borderWidth: 1,
+    borderColor: "rgba(185, 222, 202, 0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chipsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 6,
+  },
+  chipBtn: {
+    flex: 1,
+    height: 38,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+  },
+  chipBtnSelected: {
+    backgroundColor: "#2EA86E",
+    borderColor: "#2EA86E",
+    shadowColor: "#184A2C",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  chipBtnUnselected: {
+    backgroundColor: "rgba(255, 255, 255, 0.82)",
+    borderColor: "rgba(205, 224, 214, 0.85)",
+  },
+  chipText: {
+    fontSize: 12,
+    fontFamily: "Nunito_700Bold",
+  },
+  chipTextSelected: {
+    color: "#FFFFFF",
+    fontFamily: "Nunito_800ExtraBold",
+  },
+  chipTextUnselected: {
+    color: "#165330",
+  },
+  cardFootnote: {
+    fontSize: 12,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#567464",
+    lineHeight: 17,
+  },
+  priorityCard: {
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: "rgba(255, 255, 255, 0.88)",
+    backgroundColor: "rgba(255, 255, 255, 0.72)",
+    padding: 13,
+    overflow: "hidden",
+    shadowColor: "#184A2C",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  priorityCardSelected: {
+    borderColor: "rgba(46, 168, 110, 0.6)",
+  },
+  priorityIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 13,
+    backgroundColor: "rgba(230, 246, 237, 0.8)",
+    borderWidth: 1,
+    borderColor: "rgba(185, 222, 202, 0.6)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  priorityIconBoxSelected: {
+    backgroundColor: "#E2F4EA",
+    borderColor: "#BDE3CC",
+  },
+  priorityTitle: {
+    fontSize: 14.5,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#0B1D12",
+  },
+  priorityDesc: {
+    fontSize: 11.5,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#567464",
+    marginTop: 1,
+  },
+  checkCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+  },
+  checkCircleSelected: {
+    backgroundColor: "#2EA86E",
+    borderColor: "#2EA86E",
+  },
+  checkCircleUnselected: {
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    borderColor: "rgba(185, 212, 198, 0.9)",
+  },
+  ctaShadow: {
+    shadowColor: "#184A2C",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+});
+

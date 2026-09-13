@@ -92,13 +92,14 @@ export interface UserProfile {
 }
 
 export interface SustainablePurchaseVerification {
-  status: "verified" | string;
+  status: string;
   reward_points: number;
   total_points: number;
   already_claimed: boolean;
   vehicle_make_model: string;
   vehicle_type: string;
   ownership: string;
+  owner_name?: string | null;
   verification: string;
   is_mock: boolean;
 }

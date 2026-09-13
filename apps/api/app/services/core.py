@@ -736,6 +736,7 @@ def verify_sustainable_purchase(
             "vehicle_make_model": make_model,
             "vehicle_type": "Electric Vehicle",
             "ownership": "Verified",
+            "owner_name": meta.get("owner_name", "SARATHKUMAR B"),
             "verification": "Successful",
             "provider": meta.get("provider", default_provider),
             "reward_formula_version": meta.get(
@@ -832,6 +833,7 @@ def verify_sustainable_purchase(
         "vehicle_make_model": make_model,
         "vehicle_type": "Electric Vehicle",
         "ownership": "Verified",
+        "owner_name": "SARATHKUMAR B",
         "verification": "Successful",
         "provider": default_provider,
         "reward_formula_version": SUSTAINABLE_REWARD_FORMULA_VERSION,

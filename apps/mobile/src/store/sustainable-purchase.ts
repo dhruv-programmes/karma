@@ -11,6 +11,7 @@ export interface SustainablePurchaseState {
   vehicleMakeModel: string;
   vehicleType: string;
   ownership: string;
+  ownerName: string | null;
   registrationNumber: string | null;
   setVerified: (data?: {
     documentName?: string;
@@ -18,6 +19,7 @@ export interface SustainablePurchaseState {
     vehicleMakeModel?: string;
     vehicleType?: string;
     ownership?: string;
+    ownerName?: string;
     rewardPoints?: number;
     registrationNumber?: string;
   }) => void;
@@ -35,6 +37,7 @@ export const useSustainablePurchaseStore = create<SustainablePurchaseState>((set
   vehicleMakeModel: "Tata Nexon EV",
   vehicleType: "Electric Vehicle",
   ownership: "Verified Owner",
+  ownerName: null,
   registrationNumber: null,
   setVerified: (data) =>
     set({
@@ -45,6 +48,7 @@ export const useSustainablePurchaseStore = create<SustainablePurchaseState>((set
       vehicleMakeModel: data?.vehicleMakeModel ?? "Tata Nexon EV",
       vehicleType: data?.vehicleType ?? "Electric Vehicle",
       ownership: data?.ownership ?? "Verified Owner",
+      ownerName: data?.ownerName ?? null,
       registrationNumber: data?.registrationNumber ?? null,
       rewardPoints: Math.max(0, Math.round(data?.rewardPoints ?? 0)),
     }),
@@ -60,6 +64,7 @@ export const useSustainablePurchaseStore = create<SustainablePurchaseState>((set
       verifiedAt: null,
       documentName: null,
       documentSize: null,
+      ownerName: null,
       registrationNumber: null,
     }),
 }));

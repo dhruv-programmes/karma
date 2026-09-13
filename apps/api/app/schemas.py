@@ -553,6 +553,7 @@ class SustainablePurchaseVerifyResponse(BaseModel):
     vehicle_make_model: str = "Tata Nexon EV"
     vehicle_type: str = "Electric Vehicle"
     ownership: str = "Verified"
+    owner_name: str | None = None
     verification: str = "Successful"
     provider: str = "MockVerificationProvider"
     reward_formula_version: str = "sustainable-purchase-reward-v1"

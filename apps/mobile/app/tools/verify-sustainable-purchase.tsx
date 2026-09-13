@@ -47,10 +47,11 @@ export default function VerifySustainablePurchaseScreen() {
     isVerified,
     rewardClaimed,
     rewardPoints,
+    documentName,
     vehicleMakeModel,
     vehicleType,
     ownership,
-    documentName,
+    ownerName,
     registrationNumber,
     setVerified,
     claimReward,
@@ -101,11 +102,12 @@ export default function VerifySustainablePurchaseScreen() {
       }
 
       setVerified({
-        documentName: pickedFile.name,
-        documentSize: pickedFile.size,
+        documentName: "EV Registration Certificate",
+        documentSize: pickedFile?.size || 0,
         vehicleMakeModel: result.vehicle_make_model,
         vehicleType: result.vehicle_type,
         ownership: result.ownership,
+        ownerName: result.owner_name,
         rewardPoints: result.reward_points,
         registrationNumber: registrationNumber || "MH-12-EV-2024",
       });
@@ -307,9 +309,16 @@ export default function VerifySustainablePurchaseScreen() {
                   <ShieldCheck size={14} color="#2EA86E" />
                   <Text style={styles.certFieldLabel}>Ownership</Text>
                 </View>
-                <Text style={[styles.certFieldValue, { color: "#2EA86E" }]}>
-                  {ownership}
-                </Text>
+                <View style={{ alignItems: "flex-end" }}>
+                  <Text style={[styles.certFieldValue, { color: "#2EA86E" }]}>
+                    {ownership}
+                  </Text>
+                  {ownerName ? (
+                    <Text style={{ fontSize: 12, color: "#4B5563", fontFamily: "Nunito_600SemiBold", marginTop: 2 }}>
+                      {ownerName}
+                    </Text>
+                  ) : null}
+                </View>
               </View>
 
               <View style={styles.certDivider} />

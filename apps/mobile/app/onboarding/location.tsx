@@ -8,7 +8,6 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
 import * as Haptics from "expo-haptics";
 import {
@@ -159,10 +158,6 @@ export default function LocationPermissionScreen() {
             const IconComp = item.Icon;
             return (
               <View key={item.id} style={styles.glassCard}>
-                <LinearGradient
-                  colors={["rgba(255, 255, 255, 0.86)", "rgba(255, 255, 255, 0.65)"]}
-                  style={StyleSheet.absoluteFill}
-                />
 
                 <HStack className="items-center gap-3.5">
                   <View style={styles.iconBox}>
@@ -239,15 +234,15 @@ const styles = StyleSheet.create({
   glassCard: {
     borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: "rgba(255, 255, 255, 0.88)",
-    backgroundColor: "rgba(255, 255, 255, 0.72)",
+    borderColor: "rgba(255, 255, 255, 0.92)",
+    backgroundColor: "rgba(255, 255, 255, 0.88)",
     padding: 14,
     overflow: "hidden",
     shadowColor: "#184A2C",
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 1,
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
   },
   iconBox: {
     width: 40,

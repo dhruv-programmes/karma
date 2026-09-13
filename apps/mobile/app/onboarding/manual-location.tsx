@@ -8,7 +8,6 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { ArrowLeft, ArrowRight, Check, MapPin } from "lucide-react-native";
 import { Box } from "@/components/ui/box";
@@ -141,15 +140,6 @@ export default function ManualLocationScreen() {
                   isSelected && styles.locationCardSelected,
                 ]}
               >
-                <LinearGradient
-                  colors={
-                    isSelected
-                      ? ["rgba(238, 252, 244, 0.92)", "rgba(230, 248, 238, 0.82)"]
-                      : ["rgba(255, 255, 255, 0.82)", "rgba(255, 255, 255, 0.64)"]
-                  }
-                  style={StyleSheet.absoluteFill}
-                />
-
                 <HStack className="items-center gap-3">
                   <View
                     style={[
@@ -230,18 +220,19 @@ const styles = StyleSheet.create({
   locationCard: {
     borderRadius: 18,
     borderWidth: 1.5,
-    borderColor: "rgba(255, 255, 255, 0.88)",
-    backgroundColor: "rgba(255, 255, 255, 0.72)",
+    borderColor: "rgba(255, 255, 255, 0.92)",
+    backgroundColor: "rgba(255, 255, 255, 0.88)",
     padding: 13,
     overflow: "hidden",
     shadowColor: "#184A2C",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 1,
   },
   locationCardSelected: {
-    borderColor: "rgba(46, 168, 110, 0.6)",
+    backgroundColor: "rgba(238, 252, 244, 0.94)",
+    borderColor: "rgba(46, 168, 110, 0.65)",
   },
   iconBox: {
     width: 40,

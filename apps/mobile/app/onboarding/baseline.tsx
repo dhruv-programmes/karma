@@ -9,7 +9,6 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import {
   ArrowLeft,
@@ -225,10 +224,6 @@ function GlassSliderCard({
 
   return (
     <View style={styles.glassCard}>
-      <LinearGradient
-        colors={["rgba(255, 255, 255, 0.82)", "rgba(255, 255, 255, 0.62)"]}
-        style={StyleSheet.absoluteFill}
-      />
 
       {/* Top Header Row */}
       <View style={styles.cardHeaderRow}>
@@ -530,15 +525,15 @@ const styles = StyleSheet.create({
   glassCard: {
     borderRadius: 22,
     borderWidth: 1.5,
-    borderColor: "rgba(255, 255, 255, 0.88)",
-    backgroundColor: "rgba(255, 255, 255, 0.72)",
+    borderColor: "rgba(255, 255, 255, 0.92)",
+    backgroundColor: "rgba(255, 255, 255, 0.88)",
     padding: 14,
     gap: 10,
     overflow: "hidden",
     shadowColor: "#184A2C",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
     elevation: 2,
   },
   cardHeaderRow: {

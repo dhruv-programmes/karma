@@ -14,7 +14,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { X, Send, Square, TrendingUp, Sparkles, Leaf } from "lucide-react-native";
 import {
@@ -226,10 +225,7 @@ export function KarmaChatBot() {
           <View style={styles.sheet}>
 
             {/* Header */}
-            <LinearGradient
-              colors={["#0D2A1C", "#0A1F14"]}
-              style={styles.header}
-            >
+            <View style={styles.header}>
               {/* Logo — Karma K icon */}
               <Image
                 source={require("@/assets/karma-k-icon.jpg")}
@@ -252,7 +248,7 @@ export function KarmaChatBot() {
               >
                 <X size={17} color={C.textSecondary} strokeWidth={2.5} />
               </TouchableOpacity>
-            </LinearGradient>
+            </View>
 
             {/* Divider */}
             <View style={styles.divider} />

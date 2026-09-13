@@ -59,7 +59,7 @@ export const useSustainablePurchaseStore = create<SustainablePurchaseState>((set
         ownership: data?.ownership ?? "Verified Owner",
         documentName: data?.documentName ?? "vehicle_registration_rc.pdf",
         documentSize: data?.documentSize ?? 2450000,
-        rewardPoints: Math.max(0, Math.round(data?.rewardPoints ?? 0)),
+        rewardPoints: (data?.rewardPoints && data.rewardPoints > 0) ? Math.round(data.rewardPoints) : 2450,
         verifiedAt,
       };
       const duplicate = state.vehicles.find(
@@ -76,7 +76,7 @@ export const useSustainablePurchaseStore = create<SustainablePurchaseState>((set
           vehicleMakeModel: duplicate.makeModel,
           vehicleType: duplicate.vehicleType,
           ownership: duplicate.ownership,
-          rewardPoints: duplicate.rewardPoints,
+          rewardPoints: duplicate.rewardPoints > 0 ? duplicate.rewardPoints : 2450,
         };
       }
       return {

@@ -12,6 +12,7 @@ import {
   ArrowRight,
   Leaf,
 } from "lucide-react-native";
+import { BackButton } from "@/components/custom/back-button";
 import { RecommendationCard } from "@/components/custom/recommendation-card";
 import { SkeletonCard } from "@/components/custom/skeleton-card";
 import { Text } from "@/components/ui/text";
@@ -85,13 +86,15 @@ export default function ActionsScreen() {
         overScrollMode="never"
         contentInsetAdjustmentBehavior="never"
         contentContainerStyle={{
-          paddingTop: insets.top + 16,
+          paddingTop: insets.top + 12,
           paddingHorizontal: 20,
           paddingBottom: tabClearance + 24,
           gap: 16,
         }}
         showsVerticalScrollIndicator={false}
       >
+        <BackButton label="Back" fallbackRoute="/(tabs)" />
+
         <View style={styles.header}>
           <Text style={styles.title}>Actions</Text>
           <Text style={styles.subtitle}>
@@ -105,12 +108,12 @@ export default function ActionsScreen() {
         <View style={styles.rewardsPersuasionBar}>
           <View style={styles.rewardsBarLeft}>
             <View style={styles.rewardsCoinIconWrap}>
-              <Coins size={17} color="#B45309" strokeWidth={2.4} />
+              <Coins size={20} color="#D97706" strokeWidth={2.4} />
             </View>
             <View style={styles.rewardsBarMeta}>
               <View style={styles.rewardsPointsRow}>
                 <Text style={styles.rewardsPointsVal}>+{totalCoins}</Text>
-                <Text style={styles.rewardsPointsLabel} numberOfLines={2}>Karma Coins Ready</Text>
+                <Text style={styles.rewardsPointsLabel}>Karma Coins Ready</Text>
               </View>
               <Text style={styles.rewardsSubCopy} numberOfLines={2}>
                 ~{Math.round(totalCo2e)} kg CO₂e potential · ₹{Math.round(totalMoney).toLocaleString("en-IN")} savings
@@ -124,17 +127,17 @@ export default function ActionsScreen() {
             activeOpacity={0.8}
           >
             <Text style={styles.rewardsBarBtnText}>Offers</Text>
-            <ArrowRight size={12} color="#FFFFFF" strokeWidth={2.2} />
+            <ArrowRight size={13} color="#FFFFFF" strokeWidth={2.4} />
           </TouchableOpacity>
         </View>
 
         {/* ========================================================= */}
-        {/* Category Sub-Filter Pills                                 */}
+        {/* Minimalist Segmented Category Tabs (NO PILLBOXES)         */}
         {/* ========================================================= */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.pillsContainer}
+          contentContainerStyle={styles.tabsContainer}
         >
           {CATEGORIES.map((cat) => {
             const active = cat.value === activeCategory;
@@ -142,13 +145,13 @@ export default function ActionsScreen() {
               <TouchableOpacity
                 key={cat.value}
                 onPress={() => setActiveCategory(cat.value)}
-                style={[styles.pill, active ? styles.pillActive : null]}
+                style={[styles.tabItem, active ? styles.tabItemActive : null]}
                 activeOpacity={0.7}
               >
                 <Text
                   style={[
-                    styles.pillText,
-                    active ? styles.pillTextActive : null,
+                    styles.tabItemText,
+                    active ? styles.tabItemTextActive : null,
                   ]}
                 >
                   {cat.label}
@@ -201,6 +204,7 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: 4,
+    marginTop: 2,
   },
   title: {
     fontSize: 28,
@@ -210,112 +214,115 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 13,
-    fontFamily: "Nunito_400Regular",
-    color: "#526658",
+    fontFamily: "Nunito_600SemiBold",
+    color: "#5F7768",
     lineHeight: 18,
   },
 
-  // Persuasion Bar (Matching Solar & Impact)
+  // Persuasion Bar (Elevated Botanical Aesthetic)
   rewardsPersuasionBar: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: "rgba(245,158,11,0.25)",
-    boxShadow: "0px 2px 6px rgba(0,0,0,0.04)",
-    elevation: 1,
-    gap: 8,
+    borderRadius: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderWidth: 1.2,
+    borderColor: "rgba(215, 235, 222, 0.95)",
+    shadowColor: "#0F281B",
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+    gap: 12,
   },
   rewardsBarLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
     flex: 1,
     minWidth: 0,
   },
   rewardsCoinIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     backgroundColor: "#FEF3C7",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(245,158,11,0.3)",
+    borderWidth: 1.2,
+    borderColor: "#FDE68A",
+    flexShrink: 0,
   },
   rewardsBarMeta: {
-    gap: 1,
+    gap: 2,
     flex: 1,
     minWidth: 0,
   },
   rewardsPointsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    alignItems: "baseline",
+    alignItems: "center",
     gap: 6,
   },
   rewardsPointsVal: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: "IBMPlexMono_600SemiBold",
     color: "#0D1811",
   },
   rewardsPointsLabel: {
-    fontSize: 11,
-    fontFamily: "Nunito_700Bold",
+    fontSize: 12.5,
+    fontFamily: "Nunito_800ExtraBold",
     color: "#B45309",
     flexShrink: 1,
   },
   rewardsSubCopy: {
-    fontSize: 10,
-    fontFamily: "Nunito_400Regular",
-    color: "#7A9082",
+    fontSize: 11.5,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#5F7768",
+    lineHeight: 16,
     flexShrink: 1,
   },
   rewardsBarBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    backgroundColor: "#0D1811",
-    paddingHorizontal: 11,
-    paddingVertical: 7,
-    borderRadius: 10,
+    gap: 6,
+    backgroundColor: "#0D251A",
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 12,
     flexShrink: 0,
   },
   rewardsBarBtnText: {
-    fontSize: 11,
-    fontFamily: "Nunito_700Bold",
+    fontSize: 12,
+    fontFamily: "Nunito_800ExtraBold",
     color: "#FFFFFF",
   },
 
-  // Category Pills
-  pillsContainer: {
+  // Segmented Category Tabs (Clean & Minimalist, No Pillboxes)
+  tabsContainer: {
     flexDirection: "row",
-    gap: 8,
-    paddingVertical: 4,
+    gap: 6,
+    paddingVertical: 2,
   },
-  pill: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.2)",
+  tabItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 9,
+    backgroundColor: "transparent",
   },
-  pillActive: {
-    backgroundColor: "#0D1811",
-    borderColor: "#0D1811",
+  tabItemActive: {
+    backgroundColor: "#0D251A",
   },
-  pillText: {
-    fontSize: 12,
+  tabItemText: {
+    fontSize: 12.5,
     fontFamily: "Nunito_700Bold",
-    color: "#526658",
+    color: "#64748B",
   },
-  pillTextActive: {
+  tabItemTextActive: {
     color: "#FFFFFF",
+    fontFamily: "Nunito_800ExtraBold",
   },
 
   // Cards List

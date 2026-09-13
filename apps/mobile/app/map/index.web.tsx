@@ -89,15 +89,20 @@ export default function MapScreen() {
   }, [manualLocation]);
 
   const facilities = useMemo(() => {
-    const seeded = manualLocation
-      ? remapSeededFacilities(facilitiesQuery.data ?? [], manualLocation)
-      : facilitiesQuery.data ?? [];
+    // The catalog is seeded rather than live-geocoded. Always lay it out
+    // around the selected/current center so distances remain the promised
+    // stable demo values (0–10 km), even when the device is outside Bengaluru.
+    const seeded = remapSeededFacilities(
+      facilitiesQuery.data ?? [],
+      manualLocation || "current-location",
+      mapLocation,
+    );
     return [...seeded].sort(
       (a, b) =>
         (a.distance_km ?? Number.POSITIVE_INFINITY) -
         (b.distance_km ?? Number.POSITIVE_INFINITY),
     );
-  }, [facilitiesQuery.data, manualLocation]);
+  }, [facilitiesQuery.data, manualLocation, mapLocation.lat, mapLocation.lng]);
 
   const mapPoints = useMemo(() => {
     const points = [...facilities, { lat: mapLocation.lat, lng: mapLocation.lng }];

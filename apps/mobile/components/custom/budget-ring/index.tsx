@@ -33,9 +33,6 @@ export function BudgetRing({
             Target: under {safeBudget} kg CO₂e / month
           </Text>
         </View>
-        <Text style={[styles.pctLabel, { color: barColor }]}>
-          {safeUsedPct}% used
-        </Text>
       </View>
 
       {/* Primary Value & Context */}
@@ -44,11 +41,6 @@ export function BudgetRing({
           <Text style={styles.currentKg}>~{safeThisMonth}</Text>
           <Text style={styles.budgetKg}> / {safeBudget} kg</Text>
         </View>
-        <Text style={isOver ? styles.metaTextOver : styles.metaText}>
-          {remaining > 0
-            ? `~${remaining} kg remaining`
-            : `+${Math.abs(remaining)} kg over target`}
-        </Text>
       </View>
 
       {/* Minimalist Progress Bar */}
@@ -106,11 +98,6 @@ const styles = StyleSheet.create({
     color: "#64748B",
     marginTop: 2,
   },
-  pctLabel: {
-    fontSize: 13,
-    fontFamily: "IBMPlexMono_600SemiBold",
-    marginLeft: 8,
-  },
   numbersRow: {
     flexDirection: "row",
     alignItems: "baseline",
@@ -131,16 +118,6 @@ const styles = StyleSheet.create({
     fontFamily: "IBMPlexMono_500Medium",
     color: "#94A3B8",
     marginLeft: 4,
-  },
-  metaText: {
-    fontSize: 12,
-    fontFamily: "Nunito_600SemiBold",
-    color: "#64748B",
-  },
-  metaTextOver: {
-    fontSize: 12,
-    fontFamily: "Nunito_700Bold",
-    color: "#EF4444",
   },
   progressSection: {
     gap: 6,

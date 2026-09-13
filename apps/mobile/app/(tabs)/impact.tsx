@@ -253,26 +253,13 @@ export default function ImpactScreen() {
         <View style={styles.ctaRow}>
           <Pressable
             style={({ pressed }) => [
-              styles.ctaOutline,
-              pressed && { opacity: 0.88 },
-            ]}
-            onPress={() => router.push("/map?type=recycling")}
-          >
-            <Text style={styles.ctaOutlineText} numberOfLines={1}>
-              Find recycle
-            </Text>
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [
               styles.ctaPrimary,
               pressed && { opacity: 0.9 },
             ]}
-            onPress={() =>
-              router.push("/offsets" as import("expo-router").Href)
-            }
+            onPress={() => router.push("/map?type=recycling")}
           >
             <Text style={styles.ctaPrimaryText} numberOfLines={1}>
-              View offsets
+              Find Recycling Hubs
             </Text>
           </Pressable>
         </View>

@@ -11,7 +11,6 @@ export function InsightCard({
 }) {
   return (
     <View style={styles.card}>
-      <Text style={styles.eyebrow}>AI INSIGHT</Text>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.body}>{body}</Text>
     </View>
@@ -28,12 +27,6 @@ const styles = StyleSheet.create({
     boxShadow: "0px 1px 4px rgba(0,0,0,0.03)",
     elevation: 1,
     gap: 6,
-  },
-  eyebrow: {
-    fontSize: 10.5,
-    fontFamily: "Nunito_800ExtraBold",
-    color: "#2EA86E",
-    letterSpacing: 0.8,
   },
   title: {
     fontSize: 15,

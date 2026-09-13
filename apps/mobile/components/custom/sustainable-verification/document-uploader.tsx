@@ -162,9 +162,7 @@ export function DocumentUploader({
                 <FileCheck2 size={22} color="#059669" strokeWidth={2.2} />
               </View>
               <View style={styles.docInfo}>
-                <View style={styles.statusPill}>
-                  <Text style={styles.statusPillText}>DOCUMENT UPLOADED</Text>
-                </View>
+                <Text style={styles.statusLabelText}>DOCUMENT UPLOADED</Text>
                 <Text style={styles.docName} numberOfLines={1}>
                   {file.name}
                 </Text>
@@ -344,18 +342,12 @@ const styles = StyleSheet.create({
     minWidth: 0,
     gap: 2,
   },
-  statusPill: {
-    alignSelf: "flex-start",
-    backgroundColor: "rgba(46, 168, 110, 0.12)",
-    paddingHorizontal: 6,
-    paddingVertical: 1.5,
-    borderRadius: 6,
-  },
-  statusPillText: {
-    fontSize: 8.5,
+  statusLabelText: {
+    fontSize: 9,
     fontFamily: "IBMPlexMono_600SemiBold",
     color: "#059669",
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
   },
   docName: {
     fontSize: 14,

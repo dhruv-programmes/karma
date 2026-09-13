@@ -26,8 +26,16 @@ export function seededDistanceKm(location: string, facilityId: string, index: nu
   return Number((0.5 + ((hash >>> 0) % 96) / 10).toFixed(1));
 }
 
-export function remapSeededFacilities(facilities: Facility[], location: string) {
-  const center = seededLocationCenter(location);
+export function remapSeededFacilities(
+  facilities: Facility[],
+  location: string,
+  centerOverride?: { lat: number; lng: number },
+) {
+  // Keep the seeded catalog useful for both a manually selected city and a
+  // device's current coordinates. The latter must not fall back to the
+  // Bengaluru coordinates stored on the seed records (which can produce
+  // values such as 1,246 km when a device is elsewhere).
+  const center = centerOverride ?? seededLocationCenter(location);
   return facilities.map((facility, index) => {
     const distance = seededDistanceKm(location, facility.id, index);
     const angle = ((index * 137.5) * Math.PI) / 180;

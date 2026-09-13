@@ -66,15 +66,9 @@ export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
       >
         <View style={styles.heroGlowOrb} />
 
-        {/* Header Row: Quiet Eyebrow + Clean Inline Points */}
+        {/* Header Row */}
         <View style={styles.heroHeaderRow}>
           <Text style={styles.heroEyebrow}>ROOFTOP SOLAR</Text>
-          <View style={styles.heroPointsWrap}>
-            <Coins size={13} color="#FBBF24" strokeWidth={2.4} />
-            <Text style={styles.heroPointsText}>
-              +{totalPoints} Coins
-            </Text>
-          </View>
         </View>
 
         {/* Big Generation Metric */}
@@ -147,19 +141,6 @@ export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
               Milestones from solar telemetry & clean routine
             </Text>
           </View>
-          {pendingPoints > 0 ? (
-            <View style={styles.waitingWrap}>
-              <Sparkles size={12} color="#D97706" strokeWidth={2.2} />
-              <Text style={styles.waitingText}>
-                +{pendingPoints} coins waiting
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.allClaimedWrap}>
-              <Check size={12} color="#059669" strokeWidth={2.4} />
-              <Text style={styles.allClaimedText}>All Claimed</Text>
-            </View>
-          )}
         </View>
 
         {/* Milestone checklist items */}
@@ -217,16 +198,7 @@ export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
                 style={StyleSheet.absoluteFill}
               />
 
-              {/* Action Top Header: Eyebrow + Clean Inline Points */}
-              <View style={styles.actionCardHeader}>
-                <Text style={styles.actionEyebrow}>SMART TIMING</Text>
-                <View style={styles.actionGoldWrap}>
-                  <Coins size={12} color="#D97706" strokeWidth={2.4} />
-                  <Text style={styles.actionGoldText}>
-                    +{item.points} COINS
-                  </Text>
-                </View>
-              </View>
+
 
               {/* Action Body */}
               <View style={styles.actionBody}>

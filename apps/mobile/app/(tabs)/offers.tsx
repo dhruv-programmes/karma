@@ -583,10 +583,6 @@ export default function OffersScreen() {
           <View style={styles.heroGlowOrb} />
 
           <View style={styles.heroHeaderRow}>
-            <View style={styles.coinsPill}>
-              <Coins size={14} color="#5EEAD4" strokeWidth={2.2} />
-              <Text style={styles.coinsPillText}>IMPACT BALANCE</Text>
-            </View>
             <TouchableOpacity
               activeOpacity={0.75}
               onPress={() => router.push("/league")}
@@ -609,16 +605,14 @@ export default function OffersScreen() {
               <Text style={[styles.levelBadgeText, { color: leagueTheme.text }]}>
                 {leagueName}
               </Text>
+              <ChevronRight size={13} color={leagueTheme.text} strokeWidth={2.2} />
             </TouchableOpacity>
           </View>
 
           {/* Big Points Display */}
           <View style={styles.balanceRow}>
             <Text style={styles.balanceNumber}>{pointsBalance ?? "—"}</Text>
-            <View style={styles.balanceMeta}>
-              <Text style={styles.balanceUnit}>Karma Coins</Text>
-              <Text style={styles.balanceSubtext}>Karma Coins Available</Text>
-            </View>
+            <Text style={styles.balanceUnit}>Karma Coins</Text>
           </View>
 
           {/* Quick Stats Grid */}
@@ -1245,19 +1239,21 @@ const styles = StyleSheet.create({
   historyLink: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.24)",
-    paddingHorizontal: 13,
-    paddingVertical: 12,
-    marginBottom: 2,
+    borderColor: "#DCE8E0",
+    paddingHorizontal: 15,
+    paddingVertical: 13,
+    marginBottom: 16,
+    boxShadow: "0px 1px 4px rgba(0,0,0,0.03)",
+    elevation: 1,
   },
   historyIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 11,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     backgroundColor: "#E8F7EE",
     alignItems: "center",
     justifyContent: "center",
@@ -1268,14 +1264,14 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   historyTitle: {
-    fontSize: 14,
+    fontSize: 14.5,
     fontFamily: "Nunito_800ExtraBold",
-    color: "#183222",
+    color: "#0D1811",
   },
   historySubtitle: {
-    fontSize: 11,
-    fontFamily: "Nunito_400Regular",
-    color: "#6B7D72",
+    fontSize: 11.5,
+    fontFamily: "Nunito_500Medium",
+    color: "#64748B",
   },
   heroGlowOrb: {
     position: "absolute",
@@ -1288,75 +1284,44 @@ const styles = StyleSheet.create({
   },
   heroHeaderRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 12,
-    gap: 8,
-  },
-  coinsPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: "rgba(255,255,255,0.12)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    maxWidth: "100%",
-    flexShrink: 1,
-  },
-  coinsPillText: {
-    fontSize: 10,
-    fontFamily: "Nunito_700Bold",
-    color: "#5EEAD4",
-    letterSpacing: 0.8,
-    flexShrink: 1,
+    justifyContent: "flex-start",
+    marginBottom: 14,
   },
   levelBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    backgroundColor: "rgba(251,191,36,0.15)",
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 12,
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
   },
   leagueBadgeIcon: {
-    width: 15,
-    height: 15,
+    width: 16,
+    height: 16,
   },
   levelBadgeText: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Nunito_700Bold",
-    color: "#FDE68A",
   },
   balanceRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
     alignItems: "baseline",
     gap: 10,
-    marginBottom: 18,
+    marginBottom: 20,
   },
   balanceNumber: {
-    fontSize: 48,
+    fontSize: 50,
     fontFamily: "Nunito_800ExtraBold",
     color: "#FFFFFF",
-    lineHeight: 52,
-  },
-  balanceMeta: {
-    justifyContent: "center",
-    minWidth: 0,
-    flexShrink: 1,
+    lineHeight: 54,
+    letterSpacing: -0.5,
   },
   balanceUnit: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: "Nunito_700Bold",
     color: "#5EEAD4",
-  },
-  balanceSubtext: {
-    fontSize: 11,
-    fontFamily: "Nunito_400Regular",
-    color: "rgba(255,255,255,0.6)",
+    lineHeight: 24,
   },
   heroStatsRow: {
     flexDirection: "row",
@@ -1470,17 +1435,18 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
     paddingHorizontal: 14,
-    height: 44,
-    marginBottom: 14,
+    height: 48,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.06)",
-    gap: 8,
+    borderColor: "#DCE8E0",
+    boxShadow: "0px 1px 3px rgba(0,0,0,0.02)",
+    gap: 10,
   },
   searchInput: {
     flex: 1,
     minWidth: 0,
-    fontSize: 13,
-    fontFamily: "Nunito_400Regular",
+    fontSize: 13.5,
+    fontFamily: "Nunito_500Medium",
     color: "#0D1811",
   },
   categoryScroll: {

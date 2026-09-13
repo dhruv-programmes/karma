@@ -32,22 +32,6 @@ export function CompareBars({
             Comparing total monthly emissions
           </Text>
         </View>
-        <Text
-          style={[
-            styles.deltaLabel,
-            isReduced
-              ? styles.deltaGreen
-              : isIncreased
-                ? styles.deltaRose
-                : styles.deltaMuted,
-          ]}
-        >
-          {isReduced
-            ? `-${diff} kg (-${pct}%)`
-            : isIncreased
-              ? `+${Math.abs(diff)} kg (+${pct}%)`
-              : "0% change"}
-        </Text>
       </View>
 
       {/* Visual Bars Comparison */}
@@ -126,20 +110,6 @@ const styles = StyleSheet.create({
     fontFamily: "Nunito_500Medium",
     color: "#64748B",
     marginTop: 2,
-  },
-  deltaLabel: {
-    fontSize: 12.5,
-    fontFamily: "IBMPlexMono_600SemiBold",
-    marginLeft: 8,
-  },
-  deltaGreen: {
-    color: "#059669",
-  },
-  deltaRose: {
-    color: "#EF4444",
-  },
-  deltaMuted: {
-    color: "#64748B",
   },
   chartStage: {
     width: "100%",

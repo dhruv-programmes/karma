@@ -61,9 +61,7 @@ export function FootprintTrend({
             Estimated weekly footprint (kg CO₂e)
           </Text>
         </View>
-        {latestVal !== null ? (
-          <Text style={styles.latestValue}>~{latestVal} kg</Text>
-        ) : null}
+        
       </View>
 
       {/* Chart Viewport */}
@@ -158,12 +156,6 @@ const styles = StyleSheet.create({
     fontFamily: "Nunito_500Medium",
     color: "#64748B",
     marginTop: 2,
-  },
-  latestValue: {
-    fontSize: 13,
-    fontFamily: "IBMPlexMono_600SemiBold",
-    color: "#2EA86E",
-    marginLeft: 8,
   },
   chartWrapper: {
     width: "100%",

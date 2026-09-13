@@ -5,7 +5,6 @@ import { LinearGradient as ExpoLinearGradient } from "expo-linear-gradient";
 import Animated, {
   Easing,
   useAnimatedProps,
-  useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withTiming,
@@ -16,11 +15,29 @@ import { Text } from "@/components/ui/text";
 import type { SolarImpactResponse } from "@/src/types/api";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const GREEN = "#2EA86E";
 const MINT = "#A7E5C2";
 const GOLD = "#F4B942";
 const BLUE = "#64B4E6";
 const DARK_VIEWPORT = "#0B1D14";
+
+function cubicPoint(
+  progress: number,
+  start: number,
+  controlOne: number,
+  controlTwo: number,
+  end: number
+) {
+  "worklet";
+  const inverse = 1 - progress;
+  return (
+    inverse * inverse * inverse * start +
+    3 * inverse * inverse * progress * controlOne +
+    3 * inverse * progress * progress * controlTwo +
+    progress * progress * progress * end
+  );
+}
 
 function FlowNode({
   label,
@@ -51,30 +68,6 @@ function FlowNode({
 
 export function SolarPanelHero({ data }: { data: SolarImpactResponse }) {
   const dashOffset = useSharedValue(0);
-  const sunGlow = useSharedValue(0.7);
-
-  useEffect(() => {
-    dashOffset.value = withRepeat(
-      withTiming(72, { duration: 2200, easing: Easing.linear }),
-      -1,
-      false
-    );
-    sunGlow.value = withRepeat(
-      withTiming(1, { duration: 1600, easing: Easing.inOut(Easing.quad) }),
-      -1,
-      true
-    );
-  }, [dashOffset, sunGlow]);
-
-  const flowProps = useAnimatedProps(() => ({
-    strokeDashoffset: dashOffset.value,
-  }));
-
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: sunGlow.value,
-    transform: [{ scale: 0.95 + sunGlow.value * 0.08 }],
-  }));
-
   const batteryKw = data.live.batteryKw ?? 0;
   const evKw = data.live.evKw ?? 0;
   const hasBattery = batteryKw > 0.05;
@@ -83,6 +76,83 @@ export function SolarPanelHero({ data }: { data: SolarImpactResponse }) {
   const intensity = Math.min(1, Math.max(0.25, data.live.solarKw / 5));
   const panelOpacity = 0.78 + intensity * 0.22;
 
+  useEffect(() => {
+    dashOffset.value = withRepeat(
+      withTiming(72, { duration: 2200, easing: Easing.linear }),
+      -1,
+      false
+    );
+  }, [dashOffset]);
+
+  const flowProps = useAnimatedProps(() => ({
+    strokeDashoffset: dashOffset.value,
+  }));
+
+  // Keep the particles tied to the routes instead of rendering fixed blue
+  // points. Fixed points made the export path look like it had debris stuck
+  // in the middle, while the animated dashes did not clearly show where the
+  // energy originated. Each particle starts at the panel edge and travels to
+  // its destination node, then loops back to the panel.
+  const greenDotProps1 = useAnimatedProps(() => {
+    const progress = (dashOffset.value / 72 + 0.04) % 1;
+    const fadeIn = Math.min(1, progress / 0.08);
+    const fadeOut = Math.min(1, (1 - progress) / 0.14);
+    return {
+      cx: cubicPoint(progress, 170, 145, 112, 73),
+      cy: cubicPoint(progress, 149, 172, 185, 193),
+      opacity: Math.min(fadeIn, fadeOut),
+    };
+  });
+  const greenDotProps2 = useAnimatedProps(() => {
+    const progress = (dashOffset.value / 72 + 0.37) % 1;
+    const fadeIn = Math.min(1, progress / 0.08);
+    const fadeOut = Math.min(1, (1 - progress) / 0.14);
+    return {
+      cx: cubicPoint(progress, 170, 145, 112, 73),
+      cy: cubicPoint(progress, 149, 172, 185, 193),
+      opacity: Math.min(fadeIn, fadeOut),
+    };
+  });
+  const greenDotProps3 = useAnimatedProps(() => {
+    const progress = (dashOffset.value / 72 + 0.7) % 1;
+    const fadeIn = Math.min(1, progress / 0.08);
+    const fadeOut = Math.min(1, (1 - progress) / 0.14);
+    return {
+      cx: cubicPoint(progress, 170, 145, 112, 73),
+      cy: cubicPoint(progress, 149, 172, 185, 193),
+      opacity: Math.min(fadeIn, fadeOut),
+    };
+  });
+  const blueDotProps1 = useAnimatedProps(() => {
+    const progress = (dashOffset.value / 72 + 0.04) % 1;
+    const fadeIn = Math.min(1, progress / 0.08);
+    const fadeOut = Math.min(1, (1 - progress) / 0.14);
+    return {
+      cx: cubicPoint(progress, 215, 240, 269, 311),
+      cy: cubicPoint(progress, 140, 161, 177, 185),
+      opacity: Math.min(fadeIn, fadeOut) * (hasExport ? 1 : 0.28),
+    };
+  });
+  const blueDotProps2 = useAnimatedProps(() => {
+    const progress = (dashOffset.value / 72 + 0.37) % 1;
+    const fadeIn = Math.min(1, progress / 0.08);
+    const fadeOut = Math.min(1, (1 - progress) / 0.14);
+    return {
+      cx: cubicPoint(progress, 215, 240, 269, 311),
+      cy: cubicPoint(progress, 140, 161, 177, 185),
+      opacity: Math.min(fadeIn, fadeOut) * (hasExport ? 1 : 0.28),
+    };
+  });
+  const blueDotProps3 = useAnimatedProps(() => {
+    const progress = (dashOffset.value / 72 + 0.7) % 1;
+    const fadeIn = Math.min(1, progress / 0.08);
+    const fadeOut = Math.min(1, (1 - progress) / 0.14);
+    return {
+      cx: cubicPoint(progress, 215, 240, 269, 311),
+      cy: cubicPoint(progress, 140, 161, 177, 185),
+      opacity: Math.min(fadeIn, fadeOut) * (hasExport ? 1 : 0.28),
+    };
+  });
   return (
     <View style={styles.card}>
       <BlurView
@@ -105,18 +175,10 @@ export function SolarPanelHero({ data }: { data: SolarImpactResponse }) {
             Live generation routed to your home and the grid
           </Text>
         </View>
-        <View style={styles.liveWrap}>
-          <View style={styles.livePulseDot} />
-          <Text style={styles.liveText}>
-            {data.live.solarKw.toFixed(1)} kW Live
-          </Text>
-        </View>
       </View>
 
       {/* Isometric Animated Canvas Viewport */}
       <View style={styles.viewport}>
-        <Animated.View style={[styles.glowOrb, glowStyle]} />
-
         <Svg width="100%" height="240" viewBox="0 0 360 240">
           <Defs>
             <LinearGradient id="solarFace" x1="0" y1="0" x2="1" y2="1">
@@ -128,13 +190,8 @@ export function SolarPanelHero({ data }: { data: SolarImpactResponse }) {
               <Stop offset="0" stopColor="#081B20" />
               <Stop offset="1" stopColor="#071218" />
             </LinearGradient>
-            <LinearGradient id="sunDisc" x1="0" y1="0" x2="1" y2="1">
-              <Stop offset="0" stopColor="#FFF0B7" stopOpacity="0.85" />
-              <Stop offset="1" stopColor="#E1A92E" stopOpacity="0.08" />
-            </LinearGradient>
           </Defs>
 
-          <Circle cx="295" cy="38" r="32" fill="url(#sunDisc)" />
           <Circle cx="295" cy="38" r="10" fill={GOLD} />
           <Path
             d="M295 18v-7M295 58v7M275 38h-7M315 38h7M281 24l-5-5M309 52l5 5M309 24l5-5M281 52l-5 5"
@@ -194,6 +251,12 @@ export function SolarPanelHero({ data }: { data: SolarImpactResponse }) {
             animatedProps={flowProps}
             opacity={hasExport ? 0.95 : 0.3}
           />
+          <AnimatedCircle r="2.8" fill={MINT} animatedProps={greenDotProps1} />
+          <AnimatedCircle r="2.8" fill={MINT} animatedProps={greenDotProps2} />
+          <AnimatedCircle r="2.8" fill={MINT} animatedProps={greenDotProps3} />
+          <AnimatedCircle r="2.8" fill={BLUE} animatedProps={blueDotProps1} />
+          <AnimatedCircle r="2.8" fill={BLUE} animatedProps={blueDotProps2} />
+          <AnimatedCircle r="2.8" fill={BLUE} animatedProps={blueDotProps3} />
           <AnimatedPath
             d="M187 145C188 164 188 179 187 195"
             fill="none"
@@ -290,24 +353,6 @@ const styles = StyleSheet.create({
     color: "#64748B",
     marginTop: 2,
   },
-  liveWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    marginTop: 2,
-  },
-  livePulseDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#059669",
-  },
-  liveText: {
-    fontSize: 11.5,
-    fontFamily: "IBMPlexMono_600SemiBold",
-    color: "#059669",
-    letterSpacing: 0.2,
-  },
   viewport: {
     position: "relative",
     height: 240,
@@ -317,15 +362,6 @@ const styles = StyleSheet.create({
     backgroundColor: DARK_VIEWPORT,
     borderWidth: 1,
     borderColor: "#18442D",
-  },
-  glowOrb: {
-    position: "absolute",
-    right: 28,
-    top: 10,
-    height: 100,
-    width: 100,
-    borderRadius: 50,
-    backgroundColor: "#D8A82F",
   },
   nodesRow: {
     position: "absolute",

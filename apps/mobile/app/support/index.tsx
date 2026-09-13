@@ -17,6 +17,7 @@ import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated"
 import {
   ArrowUp,
   Camera,
+  Car,
   ChevronLeft,
   Gift,
   Leaf,
@@ -72,9 +73,9 @@ const SUGGESTIONS = [
     icon: Camera,
   },
   {
-    label: "Offsets",
-    prompt: "Show me offset projects",
-    icon: Gift,
+    label: "Electric Vehicles",
+    prompt: "How do I verify an electric vehicle in tools?",
+    icon: Car,
   },
 ] as const;
 

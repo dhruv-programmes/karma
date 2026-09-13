@@ -9,7 +9,6 @@ import {
   Coins,
   ArrowRight,
   MapPin,
-  Sparkles,
   ShoppingBag,
 } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
@@ -24,18 +23,18 @@ type Props = {
 function getCategoryIcon(cat: string) {
   const c = (cat || "").toLowerCase();
   if (c.includes("elec") || c.includes("phone")) {
-    return <Smartphone size={12} color="#059669" strokeWidth={2.4} />;
+    return <Smartphone size={13} color="#059669" strokeWidth={2.4} />;
   }
   if (c.includes("cloth") || c.includes("fashion") || c.includes("apparel")) {
-    return <Shirt size={12} color="#059669" strokeWidth={2.4} />;
+    return <Shirt size={13} color="#059669" strokeWidth={2.4} />;
   }
   if (c.includes("solar") || c.includes("energy")) {
-    return <Sun size={12} color="#D97706" strokeWidth={2.4} />;
+    return <Sun size={13} color="#D97706" strokeWidth={2.4} />;
   }
   if (c.includes("food") || c.includes("grocer")) {
-    return <ShoppingBag size={12} color="#059669" strokeWidth={2.4} />;
+    return <ShoppingBag size={13} color="#059669" strokeWidth={2.4} />;
   }
-  return <Leaf size={12} color="#059669" strokeWidth={2.4} />;
+  return <Leaf size={13} color="#059669" strokeWidth={2.4} />;
 }
 
 export function RecommendationCard({ item, onPress, hero }: Props) {
@@ -50,36 +49,36 @@ export function RecommendationCard({ item, onPress, hero }: Props) {
       onPress={onPress}
       style={[styles.card, hero ? styles.heroCard : null]}
     >
-      {/* Top Header: Category Tag & Karma Coin Reward Badge */}
+      {/* Top Header: Pure Typography & Meta (NO PILLBOXES) */}
       <View style={styles.headerRow}>
-        <View style={styles.categoryBadge}>
+        <View style={styles.categoryMeta}>
           {getCategoryIcon(item.category)}
-          <Text style={styles.categoryBadgeText}>
+          <Text style={styles.categoryText}>
             {(item.category || "General").toUpperCase()}
           </Text>
+          {hero ? (
+            <>
+              <Text style={styles.metaDot}>·</Text>
+              <Text style={styles.topPickText}>TOP PICK</Text>
+            </>
+          ) : null}
         </View>
 
-        <View style={styles.pointsBadge}>
-          <Coins size={12} color="#B45309" strokeWidth={2.4} />
-          <Text style={styles.pointsBadgeText}>+{points} KARMA COINS</Text>
+        <View style={styles.pointsMeta}>
+          <Coins size={13} color="#B45309" strokeWidth={2.2} />
+          <Text style={styles.pointsText}>+{points} Karma Coins</Text>
         </View>
       </View>
 
       {/* Title & Pitch */}
       <View style={styles.titleSection}>
-        {hero ? (
-          <View style={styles.bestTodayPill}>
-            <Sparkles size={11} color="#059669" strokeWidth={2.4} />
-            <Text style={styles.bestTodayText}>RECOMMENDED FIRST</Text>
-          </View>
-        ) : null}
         <Text style={styles.title}>{item.title}</Text>
         <Text style={styles.subtitle}>{item.subtitle || item.explanation}</Text>
       </View>
 
-      {/* Impact Metric Tiles Row */}
-      <View style={styles.metricsRow}>
-        <View style={styles.metricTile}>
+      {/* Unified Impact Metrics Panel (Clean Split, No Pillboxes) */}
+      <View style={styles.metricsPanel}>
+        <View style={styles.metricColumn}>
           <Text style={styles.metricLabel}>CO₂E AVOIDED</Text>
           <Text style={styles.metricValueGreen}>
             ~{Math.round(item.co2e_avoided_kg || 0)} kg
@@ -87,7 +86,9 @@ export function RecommendationCard({ item, onPress, hero }: Props) {
           <Text style={styles.metricSub}>Direct reduction</Text>
         </View>
 
-        <View style={styles.metricTile}>
+        <View style={styles.metricDivider} />
+
+        <View style={styles.metricColumn}>
           <Text style={styles.metricLabel}>VALUE POTENTIAL</Text>
           <Text style={styles.metricValueDark}>
             ₹{Math.round(item.money_impact_inr || 0).toLocaleString("en-IN")}
@@ -96,29 +97,27 @@ export function RecommendationCard({ item, onPress, hero }: Props) {
         </View>
       </View>
 
-      {/* Meta Pills (Effort & Availability) */}
-      <View style={styles.metaPillsRow}>
-        <View style={styles.metaPill}>
-          <Zap size={11} color="#526658" strokeWidth={2.2} />
-          <Text style={styles.metaPillText}>
-            {(item.effort || "Low").toUpperCase()} EFFORT
-          </Text>
+      {/* Meta Row: Effort & Local Availability (Clean text with icons, NO PILLBOXES) */}
+      <View style={styles.metaRow}>
+        <View style={styles.metaItem}>
+          <Zap size={12} color="#059669" strokeWidth={2.2} />
+          <Text style={styles.metaText}>{item.effort || "Low"} effort</Text>
         </View>
-
-        <View style={styles.metaPill}>
-          <MapPin size={11} color="#526658" strokeWidth={2.2} />
-          <Text style={styles.metaPillText} numberOfLines={1}>
+        <Text style={styles.metaDot}>·</Text>
+        <View style={styles.metaItem}>
+          <MapPin size={12} color="#64748B" strokeWidth={2.2} />
+          <Text style={styles.metaText} numberOfLines={1}>
             {item.local_availability || "Local options available"}
           </Text>
         </View>
       </View>
 
-      {/* CTA Button */}
+      {/* Modern Minimalist Action Button */}
       <View style={styles.ctaButton}>
         <Text style={styles.ctaButtonText}>
           {item.product_id ? "View Circular Options" : "Take Action"}
         </Text>
-        <ArrowRight size={14} color="#FFFFFF" strokeWidth={2.2} />
+        <ArrowRight size={14} color="#FFFFFF" strokeWidth={2.4} />
       </View>
     </TouchableOpacity>
   );
@@ -127,170 +126,143 @@ export function RecommendationCard({ item, onPress, hero }: Props) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 20,
+    borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.18)",
-    boxShadow: "0px 2px 8px rgba(0,0,0,0.04)",
+    borderColor: "#E5ECE8",
+    boxShadow: "0px 2px 8px rgba(0,0,0,0.03)",
     elevation: 2,
     gap: 12,
   },
   heroCard: {
     borderColor: "rgba(46,168,110,0.35)",
-    backgroundColor: "#FFFFFF",
-    boxShadow: "0px 0px 8px rgba(5,150,105,0.08)",
+    boxShadow: "0px 4px 14px rgba(5,150,105,0.06)",
   },
   headerRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 8,
   },
-  categoryBadge: {
+  categoryMeta: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    backgroundColor: "#F0FDF4",
-    paddingHorizontal: 8,
-    paddingVertical: 3.5,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.2)",
-    maxWidth: "100%",
-    flexShrink: 1,
+    gap: 6,
+    flex: 1,
+    minWidth: 0,
   },
-  categoryBadgeText: {
+  categoryText: {
+    fontSize: 10,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#059669",
+    letterSpacing: 0.8,
+  },
+  metaDot: {
+    fontSize: 12,
+    color: "#94A3B8",
+  },
+  topPickText: {
     fontSize: 9.5,
     fontFamily: "Nunito_800ExtraBold",
     color: "#059669",
     letterSpacing: 0.6,
-    flexShrink: 1,
   },
-  pointsBadge: {
+  pointsMeta: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    backgroundColor: "#FEF3C7",
-    paddingHorizontal: 8,
-    paddingVertical: 3.5,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "rgba(245,158,11,0.3)",
-    maxWidth: "100%",
-    flexShrink: 1,
+    gap: 5,
   },
-  pointsBadgeText: {
-    fontSize: 9.5,
+  pointsText: {
+    fontSize: 12,
     fontFamily: "Nunito_800ExtraBold",
     color: "#B45309",
-    letterSpacing: 0.3,
-    flexShrink: 1,
   },
   titleSection: {
     gap: 3,
   },
-  bestTodayPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "#ECFDF5",
-    alignSelf: "flex-start",
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginBottom: 4,
-  },
-  bestTodayText: {
-    fontSize: 9,
-    fontFamily: "Nunito_800ExtraBold",
-    color: "#059669",
-    letterSpacing: 0.5,
-  },
   title: {
-    fontSize: 16.5,
+    fontSize: 17,
     fontFamily: "Nunito_800ExtraBold",
     color: "#0D1811",
+    letterSpacing: -0.2,
   },
   subtitle: {
     fontSize: 12.5,
     fontFamily: "Nunito_400Regular",
-    color: "#526658",
+    color: "#64748B",
     lineHeight: 17,
   },
-  metricsRow: {
+  metricsPanel: {
     flexDirection: "row",
-    gap: 8,
-  },
-  metricTile: {
-    flex: 1,
-    minWidth: 0,
-    backgroundColor: "#F8FAF9",
-    borderRadius: 14,
-    padding: 10,
+    alignItems: "center",
+    backgroundColor: "#F8FAF8",
+    borderRadius: 13,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: "#E5ECE8",
+    borderColor: "#EEF3F0",
+  },
+  metricColumn: {
+    flex: 1,
+    alignItems: "center",
+    gap: 2,
   },
   metricLabel: {
     fontSize: 8.5,
-    fontFamily: "Nunito_800ExtraBold",
-    color: "#7A9082",
-    letterSpacing: 0.5,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#799184",
+    letterSpacing: 0.6,
   },
   metricValueGreen: {
-    fontSize: 17,
+    fontSize: 16,
     fontFamily: "IBMPlexMono_600SemiBold",
     color: "#059669",
-    marginTop: 2,
-    flexShrink: 1,
+    marginTop: 1,
   },
   metricValueDark: {
-    fontSize: 17,
+    fontSize: 16,
     fontFamily: "IBMPlexMono_600SemiBold",
     color: "#0D1811",
-    marginTop: 2,
-    flexShrink: 1,
+    marginTop: 1,
   },
   metricSub: {
     fontSize: 9.5,
     fontFamily: "Nunito_400Regular",
-    color: "#7A9082",
-    marginTop: 1,
+    color: "#799184",
   },
-  metaPillsRow: {
+  metricDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: "#E2E8E4",
+  },
+  metaRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
+    alignItems: "center",
     gap: 6,
+    marginTop: 2,
   },
-  metaPill: {
+  metaItem: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#F1F5F3",
-    paddingHorizontal: 8,
-    paddingVertical: 3.5,
-    borderRadius: 7,
-    maxWidth: "100%",
-    flexShrink: 1,
   },
-  metaPillText: {
-    fontSize: 9.5,
-    fontFamily: "Nunito_700Bold",
-    color: "#526658",
-    flexShrink: 1,
+  metaText: {
+    fontSize: 11.5,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#64748B",
   },
   ctaButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    backgroundColor: "#0D1811",
-    paddingVertical: 11,
-    borderRadius: 14,
+    backgroundColor: "#0D251A",
+    height: 42,
+    borderRadius: 12,
     marginTop: 2,
   },
   ctaButtonText: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontFamily: "Nunito_700Bold",
     color: "#FFFFFF",
   },

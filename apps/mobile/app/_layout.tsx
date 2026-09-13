@@ -19,6 +19,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { View } from "react-native";
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 import { useAuthStore } from "@/src/store/auth";
+import { useSolarAssetsStore } from "@/src/store/solar-assets";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,6 +30,8 @@ const queryClient = new QueryClient({
 export default function RootLayout() {
   const isHydrated = useAuthStore((s) => s.isHydrated);
   const hydrateAuth = useAuthStore((s) => s.hydrateAuth);
+  const solarHydrated = useSolarAssetsStore((s) => s.isHydrated);
+  const hydrateSolarAssets = useSolarAssetsStore((s) => s.hydrateSolarAssets);
 
   const [fontsLoaded] = useFonts({
     Nunito_400Regular,
@@ -44,7 +47,11 @@ export default function RootLayout() {
     hydrateAuth();
   }, [hydrateAuth]);
 
-  if (!fontsLoaded || !isHydrated) {
+  useEffect(() => {
+    void hydrateSolarAssets();
+  }, [hydrateSolarAssets]);
+
+  if (!fontsLoaded || !isHydrated || !solarHydrated) {
     return <View className="flex-1 bg-background" />;
   }
 

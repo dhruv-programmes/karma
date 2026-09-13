@@ -17,6 +17,7 @@ import {
   ArrowRight,
   Award,
   Camera,
+  Car,
   ChevronRight,
   Coins,
   Flame,
@@ -1160,10 +1161,10 @@ export default function HomeScreen() {
                 onPress={() => router.push("/map?type=recycling")}
               />
               <ToolCard
-                icon={<Leaf size={20} color="#2EA86E" strokeWidth={1.8} />}
-                label="Offset Carbon"
+                icon={<Car size={20} color="#2EA86E" strokeWidth={1.8} />}
+                label="Electric Vehicle"
                 onPress={() =>
-                  router.push("/offsets" as import("expo-router").Href)
+                  router.push("/tools/verify-sustainable-purchase" as import("expo-router").Href)
                 }
               />
             </View>

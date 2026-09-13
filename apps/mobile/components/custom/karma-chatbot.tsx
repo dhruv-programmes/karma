@@ -15,7 +15,15 @@ import {
   View,
 } from "react-native";
 import * as Haptics from "expo-haptics";
-import { X, Send, Square, TrendingUp, Sparkles, Leaf } from "lucide-react-native";
+import {
+  ChevronRight,
+  Leaf,
+  Send,
+  Sparkles,
+  Square,
+  TrendingUp,
+  X,
+} from "lucide-react-native";
 import {
   createUserSupportMessage,
   streamSupportChat,
@@ -25,27 +33,22 @@ import { useAuthStore } from "@/src/store/auth";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TAB_DOCK_BOTTOM_GAP, TAB_DOCK_HEIGHT } from "@/src/theme/layout";
 
-// ─── Palette ────────────────────────────────────────────────────────────────
-const C = {
-  primary: "#2EA86E",
-  primaryDark: "#1B7A4E",
-  bg: "#0A1F14",           // Very dark green — solid, no bleed-through
-  bgCard: "#0F2A1C",
-  surface: "#122318",
-  border: "rgba(46,168,110,0.22)",
-  borderStrong: "rgba(46,168,110,0.38)",
-  textPrimary: "#FFFFFF",
-  textSecondary: "rgba(255,255,255,0.72)",
-  textMuted: "rgba(255,255,255,0.45)",
-  bubbleUser: "#2EA86E",
-  bubbleAi: "#162D20",
-  bubbleAiBorder: "rgba(46,168,110,0.22)",
-};
-
 const QUICK_PROMPTS = [
-  { label: "My score", prompt: "What is my circularity score and what does it mean?", icon: TrendingUp },
-  { label: "Earn coins", prompt: "How do I earn more Karma Coins?", icon: Sparkles },
-  { label: "Best action", prompt: "What is the single highest-impact action I can take right now?", icon: Leaf },
+  {
+    label: "My circularity score",
+    prompt: "What is my circularity score and what does it mean?",
+    icon: TrendingUp,
+  },
+  {
+    label: "Earn Karma Coins",
+    prompt: "How do I earn more Karma Coins?",
+    icon: Sparkles,
+  },
+  {
+    label: "Highest-impact action",
+    prompt: "What is the single highest-impact action I can take right now?",
+    icon: Leaf,
+  },
 ];
 
 // ─── Typing animation ────────────────────────────────────────────────────────
@@ -69,7 +72,7 @@ function TypingDots() {
     );
     anims.forEach((a) => a.start());
     return () => anims.forEach((a) => a.stop());
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <View style={styles.dotsRow}>
@@ -191,7 +194,7 @@ export function KarmaChatBot() {
       >
         <TouchableOpacity
           onPress={openChat}
-          activeOpacity={0.82}
+          activeOpacity={0.85}
           style={styles.fab}
           accessibilityLabel="Open Karma AI chat"
           accessibilityRole="button"
@@ -204,7 +207,7 @@ export function KarmaChatBot() {
         </TouchableOpacity>
       </View>
 
-      {/* ── Modal ────────────────────────────────────────────────── */}
+      {/* ── Bottom Sheet Modal (White Background, No Emojis) ────── */}
       <Modal
         visible={open}
         transparent
@@ -212,163 +215,190 @@ export function KarmaChatBot() {
         onRequestClose={closeChat}
         statusBarTranslucent
       >
-        {/* Dimmed backdrop */}
-        <Pressable style={styles.backdrop} onPress={closeChat}>
-          <View style={styles.backdropOverlay} />
-        </Pressable>
+        <View style={styles.modalRoot}>
+          {/* Dimmed backdrop area: tapping closes sheet */}
+          <Pressable style={styles.backdropPressable} onPress={closeChat} />
 
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.sheetOuter}
-        >
-          {/* Solid sheet — no bleed-through */}
-          <View style={styles.sheet}>
-
-            {/* Header */}
-            <View style={styles.header}>
-              {/* Logo — Karma K icon */}
-              <Image
-                source={require("@/assets/karma-k-icon.jpg")}
-                style={styles.headerLogo}
-                resizeMode="cover"
-              />
-              {/* Title block */}
-              <View style={styles.headerText}>
-                <Text style={styles.headerTitle}>Karma AI</Text>
-                <Text style={styles.headerSub}>
-                  {busy ? "Thinking…" : "Carbon & sustainability assistant"}
-                </Text>
+          {/* Bottom Sheet container */}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            style={styles.sheetWrapper}
+          >
+            <View style={styles.sheet}>
+              {/* Grab Handle */}
+              <View style={styles.grabHandleWrap}>
+                <View style={styles.grabHandle} />
               </View>
-              {/* Close */}
-              <TouchableOpacity
-                onPress={closeChat}
-                style={styles.closeBtn}
-                activeOpacity={0.7}
-                hitSlop={8}
-              >
-                <X size={17} color={C.textSecondary} strokeWidth={2.5} />
-              </TouchableOpacity>
-            </View>
 
-            {/* Divider */}
-            <View style={styles.divider} />
-
-            {/* Messages area */}
-            <ScrollView
-              ref={scrollRef}
-              style={styles.msgList}
-              contentContainerStyle={styles.msgContent}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-            >
-              {messages.length === 0 ? (
-                /* Empty state */
-                <View style={styles.emptyWrap}>
-                  <Text style={styles.emptyGreeting}>
-                    {firstName ? `Hey ${firstName} 👋` : "Hey there 👋"}
-                  </Text>
-                  <Text style={styles.emptySub}>
-                    Ask about your score, actions, Karma Coins, or anything
-                    sustainability-related.
-                  </Text>
-                  <View style={styles.quickRow}>
-                    {QUICK_PROMPTS.map((q) => {
-                      const Icon = q.icon;
-                      return (
-                        <TouchableOpacity
-                          key={q.label}
-                          style={styles.quickChip}
-                          onPress={() => void submit(q.prompt)}
-                          activeOpacity={0.78}
-                        >
-                          <Icon size={13} color={C.primary} strokeWidth={2.2} />
-                          <Text style={styles.quickLabel}>{q.label}</Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
+              {/* Header */}
+              <View style={styles.header}>
+                <View style={styles.headerAvatarWrap}>
+                  <Image
+                    source={require("@/assets/karma-k-icon.jpg")}
+                    style={styles.headerLogo}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.onlineDot} />
                 </View>
-              ) : (
-                /* Message bubbles */
-                messages.map((msg) => {
-                  const text = textFromMessage(msg);
-                  const isUser = msg.role === "user";
-                  const isStreaming = !isUser && busy && !text;
 
-                  return (
-                    <View
-                      key={msg.id}
-                      style={[styles.msgRow, isUser ? styles.msgRowUser : styles.msgRowAi]}
-                    >
-                      {/* AI avatar */}
-                      {!isUser && (
-                        <Image
-                          source={require("@/assets/karma-k-icon.jpg")}
-                          style={styles.msgAvatar}
-                          resizeMode="cover"
-                        />
-                      )}
+                <View style={styles.headerText}>
+                  <Text style={styles.headerTitle}>Karma AI</Text>
+                  <Text style={styles.headerSub}>
+                    {busy ? "Thinking…" : "Carbon & sustainability assistant"}
+                  </Text>
+                </View>
 
-                      {isStreaming ? (
-                        <View style={styles.bubbleAi}>
-                          <TypingDots />
-                        </View>
-                      ) : text ? (
-                        <View
-                          style={[
-                            styles.bubble,
-                            isUser ? styles.bubbleUser : styles.bubbleAi,
-                          ]}
-                        >
-                          <Text
+                <TouchableOpacity
+                  onPress={closeChat}
+                  style={styles.closeBtn}
+                  activeOpacity={0.75}
+                  hitSlop={8}
+                >
+                  <X size={17} color="#0B1D12" strokeWidth={2.4} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Hairline Divider */}
+              <View style={styles.divider} />
+
+              {/* Messages area */}
+              <ScrollView
+                ref={scrollRef}
+                style={styles.msgList}
+                contentContainerStyle={styles.msgContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                {messages.length === 0 ? (
+                  /* Empty state (Clean White, No Emojis) */
+                  <View style={styles.emptyWrap}>
+                    <Text style={styles.emptyGreeting}>
+                      {firstName ? `Hello ${firstName}` : "Welcome to Karma AI"}
+                    </Text>
+                    <Text style={styles.emptySub}>
+                      Ask about your carbon footprint, circular actions, or how to grow your Karma Coins balance.
+                    </Text>
+
+                    {/* Suggested Question Cards (No Emojis, No Pillboxes) */}
+                    <View style={styles.promptList}>
+                      <Text style={styles.promptListLabel}>SUGGESTED QUESTIONS</Text>
+                      {QUICK_PROMPTS.map((q) => {
+                        const Icon = q.icon;
+                        return (
+                          <TouchableOpacity
+                            key={q.label}
+                            style={styles.promptCard}
+                            onPress={() => void submit(q.prompt)}
+                            activeOpacity={0.78}
+                          >
+                            <View style={styles.promptIconWrap}>
+                              <Icon size={16} color="#2EA86E" strokeWidth={2.2} />
+                            </View>
+                            <View style={styles.promptCopy}>
+                              <Text style={styles.promptTitle}>{q.label}</Text>
+                              <Text style={styles.promptSub} numberOfLines={1}>
+                                {q.prompt}
+                              </Text>
+                            </View>
+                            <ChevronRight
+                              size={15}
+                              color="#94A3B8"
+                              strokeWidth={2.2}
+                            />
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ) : (
+                  /* Message bubbles */
+                  messages.map((msg) => {
+                    const text = textFromMessage(msg);
+                    const isUser = msg.role === "user";
+                    const isStreaming = !isUser && busy && !text;
+
+                    return (
+                      <View
+                        key={msg.id}
+                        style={[
+                          styles.msgRow,
+                          isUser ? styles.msgRowUser : styles.msgRowAi,
+                        ]}
+                      >
+                        {!isUser && (
+                          <View style={styles.msgAvatarWrap}>
+                            <Image
+                              source={require("@/assets/karma-k-icon.jpg")}
+                              style={styles.msgAvatar}
+                              resizeMode="cover"
+                            />
+                          </View>
+                        )}
+
+                        {isStreaming ? (
+                          <View style={styles.bubbleAi}>
+                            <TypingDots />
+                          </View>
+                        ) : text ? (
+                          <View
                             style={[
-                              styles.bubbleText,
-                              isUser
-                                ? styles.bubbleTextUser
-                                : styles.bubbleTextAi,
+                              styles.bubble,
+                              isUser ? styles.bubbleUser : styles.bubbleAi,
                             ]}
                           >
-                            {text}
-                          </Text>
-                        </View>
-                      ) : null}
-                    </View>
-                  );
-                })
-              )}
-            </ScrollView>
-
-            {/* Composer */}
-            <View style={styles.composer}>
-              <TextInput
-                value={input}
-                onChangeText={setInput}
-                placeholder="Ask about your carbon footprint…"
-                placeholderTextColor={C.textMuted}
-                style={styles.input}
-                onSubmitEditing={() => void submit(input)}
-                returnKeyType="send"
-                blurOnSubmit={false}
-                multiline={false}
-              />
-              <TouchableOpacity
-                style={[
-                  styles.sendBtn,
-                  !canSend && !busy && styles.sendBtnDisabled,
-                ]}
-                onPress={busy ? stop : () => void submit(input)}
-                activeOpacity={0.8}
-                disabled={!canSend && !busy}
-              >
-                {busy ? (
-                  <Square size={16} color="#fff" strokeWidth={0} fill="#fff" />
-                ) : (
-                  <Send size={16} color="#fff" strokeWidth={2.2} />
+                            <Text
+                              style={[
+                                styles.bubbleText,
+                                isUser ? styles.bubbleTextUser : styles.bubbleTextAi,
+                              ]}
+                            >
+                              {text}
+                            </Text>
+                          </View>
+                        ) : null}
+                      </View>
+                    );
+                  })
                 )}
-              </TouchableOpacity>
+              </ScrollView>
+
+              {/* Composer */}
+              <View
+                style={[
+                  styles.composer,
+                  { paddingBottom: Math.max(insets.bottom, 12) + 8 },
+                ]}
+              >
+                <TextInput
+                  value={input}
+                  onChangeText={setInput}
+                  placeholder="Ask about your carbon footprint…"
+                  placeholderTextColor="#789185"
+                  style={styles.input}
+                  onSubmitEditing={() => void submit(input)}
+                  returnKeyType="send"
+                  blurOnSubmit={false}
+                  multiline={false}
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.sendBtn,
+                    !canSend && !busy && styles.sendBtnDisabled,
+                  ]}
+                  onPress={busy ? stop : () => void submit(input)}
+                  activeOpacity={0.8}
+                  disabled={!canSend && !busy}
+                >
+                  {busy ? (
+                    <Square size={15} color="#FFFFFF" strokeWidth={0} fill="#FFFFFF" />
+                  ) : (
+                    <Send size={15} color="#FFFFFF" strokeWidth={2.4} />
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </View>
       </Modal>
     </>
   );
@@ -376,70 +406,105 @@ export function KarmaChatBot() {
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  // FAB
+  // Floating Action Button (FAB)
   fabWrap: {
     position: "absolute",
-    right: 20,
+    right: 18,
     zIndex: 99,
   },
   fab: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     overflow: "hidden",
-    ...Platform.select({
-      ios: { boxShadow: "0px 3px 10px rgba(0,0,0,0.35)" } as any,
-      android: { elevation: 6 },
-    }),
+    borderWidth: 2,
+    borderColor: "rgba(46,168,110,0.35)",
+    shadowColor: "#05180E",
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
   },
   fabLogo: {
     width: "100%",
     height: "100%",
   },
 
-  // Modal
-  backdrop: {
+  // Modal & Backdrop Structure
+  modalRoot: {
+    flex: 1,
+    backgroundColor: "rgba(10, 24, 16, 0.45)",
+    justifyContent: "flex-end",
+  },
+  backdropPressable: {
     flex: 1,
   },
-  backdropOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(4, 14, 9, 0.72)",
-  },
-  sheetOuter: {
-    height: "74%",
-    marginHorizontal: 10,
-    marginBottom: 10,
+  sheetWrapper: {
+    width: "100%",
+    height: "88%",
+    maxHeight: "92%",
   },
   sheet: {
     flex: 1,
-    borderRadius: 26,
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     overflow: "hidden",
-    backgroundColor: C.bg,              // Solid dark — fully opaque, no bleed
+    position: "relative",
     borderWidth: 1,
-    borderColor: C.borderStrong,
-    ...Platform.select({
-      ios: { boxShadow: "0px 12px 40px rgba(0,0,0,0.6)" } as any,
-      android: { elevation: 24 },
-    }),
+    borderBottomWidth: 0,
+    borderColor: "rgba(215, 235, 222, 0.95)",
+    shadowColor: "#05180E",
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 20,
+  },
+
+  // Grab Handle
+  grabHandleWrap: {
+    alignItems: "center",
+    paddingTop: 10,
+    paddingBottom: 4,
+    backgroundColor: "#FFFFFF",
+  },
+  grabHandle: {
+    width: 38,
+    height: 4.5,
+    borderRadius: 3,
+    backgroundColor: "#D1DDD5",
   },
 
   // Header
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 13,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
     gap: 12,
+    backgroundColor: "#FFFFFF",
+  },
+  headerAvatarWrap: {
+    position: "relative",
   },
   headerLogo: {
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderRadius: 14,
     overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(46,168,110,0.22)",
+  },
+  onlineDot: {
+    position: "absolute",
+    bottom: -1,
+    right: -1,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#2EA86E",
+    borderWidth: 1.5,
+    borderColor: "#FFFFFF",
   },
   headerText: {
     flex: 1,
@@ -447,36 +512,33 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   headerTitle: {
-    color: C.textPrimary,
-    fontSize: 16,
-    fontFamily: "Nunito_800ExtraBold",
+    color: "#0B1D12",
+    fontSize: 17,
+    fontFamily: "Nunito_900Black",
     letterSpacing: -0.2,
   },
   headerSub: {
-    color: C.textMuted,
+    color: "#5F7768",
     fontSize: 12,
-    fontFamily: "Nunito_400Regular",
+    fontFamily: "Nunito_600SemiBold",
   },
   closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.07)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#F0F7F2",
     alignItems: "center",
     justifyContent: "center",
   },
   divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: C.border,
-    marginHorizontal: 0,
+    height: 1,
+    backgroundColor: "#EDF3EF",
   },
 
-  // Messages
+  // Messages Area
   msgList: {
     flex: 1,
-    backgroundColor: C.bg,
+    backgroundColor: "#F8FCFA",
   },
   msgContent: {
     paddingHorizontal: 16,
@@ -485,49 +547,77 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
 
-  // Empty state
+  // Empty State (Clean White, No Emojis)
   emptyWrap: {
     flex: 1,
     justifyContent: "center",
     gap: 8,
-    paddingTop: 8,
+    paddingVertical: 10,
   },
   emptyGreeting: {
-    color: C.textPrimary,
-    fontSize: 22,
-    fontFamily: "Nunito_800ExtraBold",
+    color: "#0B1D12",
+    fontSize: 24,
+    fontFamily: "Nunito_900Black",
     letterSpacing: -0.3,
   },
   emptySub: {
-    color: C.textSecondary,
-    fontSize: 14,
-    fontFamily: "Nunito_400Regular",
-    lineHeight: 21,
+    color: "#5F7768",
+    fontSize: 13.5,
+    fontFamily: "Nunito_600SemiBold",
+    lineHeight: 20,
   },
-  quickRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+  promptList: {
     gap: 8,
-    marginTop: 6,
+    marginTop: 12,
   },
-  quickChip: {
+  promptListLabel: {
+    color: "#789185",
+    fontSize: 11,
+    fontFamily: "Nunito_800ExtraBold",
+    letterSpacing: 1.2,
+    marginBottom: 2,
+  },
+  promptCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    backgroundColor: "#122318",
-    borderWidth: 1,
-    borderColor: C.borderStrong,
-    borderRadius: 20,
-    paddingHorizontal: 13,
-    paddingVertical: 8,
+    gap: 12,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1.2,
+    borderColor: "rgba(215, 235, 222, 0.95)",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    shadowColor: "#0F281B",
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
   },
-  quickLabel: {
-    color: C.primary,
-    fontSize: 13,
+  promptIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    backgroundColor: "#E8F7EE",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  promptCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  promptTitle: {
+    color: "#0B1D12",
+    fontSize: 13.5,
+    fontFamily: "Nunito_800ExtraBold",
+  },
+  promptSub: {
+    color: "#5F7768",
+    fontSize: 11.5,
     fontFamily: "Nunito_600SemiBold",
   },
 
-  // Message rows
+  // Message Rows
   msgRow: {
     flexDirection: "row",
     alignItems: "flex-end",
@@ -539,41 +629,52 @@ const styles = StyleSheet.create({
   msgRowAi: {
     justifyContent: "flex-start",
   },
-  msgAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    flexShrink: 0,
+  msgAvatarWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
     overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(46,168,110,0.22)",
+    flexShrink: 0,
+  },
+  msgAvatar: {
+    width: "100%",
+    height: "100%",
   },
 
   // Bubbles
   bubble: {
-    maxWidth: "78%",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    maxWidth: "80%",
+    paddingHorizontal: 15,
+    paddingVertical: 11,
     borderRadius: 18,
   },
   bubbleUser: {
-    backgroundColor: C.primary,
-    borderTopRightRadius: 6,
-    ...Platform.select({
-      ios: { boxShadow: "0px 2px 8px rgba(46,168,110,0.35)" } as any,
-      android: { elevation: 3 },
-    }),
+    backgroundColor: "#0D251A",
+    borderBottomRightRadius: 4,
+    shadowColor: "#0A2014",
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   bubbleAi: {
-    backgroundColor: C.bubbleAi,
-    borderTopLeftRadius: 6,
-    borderWidth: 1,
-    borderColor: C.bubbleAiBorder,
-    maxWidth: "78%",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 4,
+    borderWidth: 1.2,
+    borderColor: "rgba(215, 235, 222, 0.95)",
+    maxWidth: "80%",
+    paddingHorizontal: 15,
+    paddingVertical: 11,
     borderRadius: 18,
+    shadowColor: "#0F281B",
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
   },
   bubbleText: {
-    fontSize: 14,
+    fontSize: 14.5,
     lineHeight: 21,
   },
   bubbleTextUser: {
@@ -581,59 +682,60 @@ const styles = StyleSheet.create({
     fontFamily: "Nunito_600SemiBold",
   },
   bubbleTextAi: {
-    color: C.textPrimary,         // Full white — easy to read on dark bg
+    color: "#0B1D12",
     fontFamily: "Nunito_400Regular",
   },
 
-  // Typing dots
+  // Typing Dots
   dotsRow: {
     flexDirection: "row",
     gap: 5,
-    paddingVertical: 3,
+    paddingVertical: 4,
   },
   dot: {
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: C.primary,
+    backgroundColor: "#2EA86E",
   },
 
   // Composer
   composer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: C.border,
-    backgroundColor: C.bgCard,
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#EDF3EF",
+    backgroundColor: "#FFFFFF",
   },
   input: {
     flex: 1,
-    height: 44,
+    height: 46,
     borderRadius: 14,
-    backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: C.border,
-    paddingHorizontal: 14,
-    color: C.textPrimary,
+    backgroundColor: "#F4FAF6",
+    borderWidth: 1.2,
+    borderColor: "rgba(215, 235, 222, 0.95)",
+    paddingHorizontal: 15,
+    color: "#0B1D12",
     fontSize: 14,
-    fontFamily: "Nunito_400Regular",
+    fontFamily: "Nunito_600SemiBold",
   },
   sendBtn: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: C.primary,
+    backgroundColor: "#0D251A",
     alignItems: "center",
     justifyContent: "center",
-    ...Platform.select({
-      ios: { boxShadow: "0px 3px 10px rgba(46,168,110,0.4)" } as any,
-      android: { elevation: 4 },
-    }),
+    shadowColor: "#0A2014",
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
   sendBtnDisabled: {
-    backgroundColor: "rgba(46,168,110,0.28)",
+    backgroundColor: "rgba(13,37,26,0.22)",
   },
 });

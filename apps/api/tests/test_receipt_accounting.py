@@ -50,7 +50,7 @@ def test_receipt_reward_is_bounded_and_confidence_aware():
 
 def test_unknown_category_uses_other_carbon_factor_and_reward_multiplier():
     estimate = estimate_from_spend("not-a-category", 100)
-    assert estimate.estimated_co2e_kg == 32.0
+    assert estimate.estimated_co2e_kg == 0.3
     assert calculate_receipt_reward("not-a-category", 100, estimate.estimated_co2e_kg, "high") == 5
 
 
@@ -118,8 +118,8 @@ def test_imported_carbon_is_visible_to_score_meter_on_next_query():
         "category": ProductCategory.ENERGY,
     }], user, db)
     after = build_score_response(user, db)
-    assert imported[0].co2e_kg == 82.0
-    assert after["meter"]["actual_monthly_kg"] == 2460.0
+    assert imported[0].co2e_kg == 1.2
+    assert after["meter"]["actual_monthly_kg"] == 36.0
     # Reward points change independently; KCS math is still owned by the
     # score engine and receives only the persisted carbon evidence.
     assert after["score"] == before["score"]

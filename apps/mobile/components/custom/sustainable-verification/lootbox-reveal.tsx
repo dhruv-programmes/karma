@@ -54,9 +54,15 @@ type LootboxRevealProps = {
   baseBalance: number;
   onClaimComplete: () => void;
   onDismiss?: () => void;
+  title?: string;
+  subtitle?: string;
+  verifiedBadgeText?: string;
+  achievementTitle?: string;
+  achievementDetail?: string;
+  rewardMathLabel?: string;
 };
 
-const isNative = Platform.OS !== "web";
+const isNative = false;
 
 export function LootboxReveal({
   visible,
@@ -64,7 +70,14 @@ export function LootboxReveal({
   baseBalance,
   onClaimComplete,
   onDismiss,
+  title = "EV Purchase Verified",
+  subtitle = "Tap the energy vault below to break the seal and unlock your reward",
+  verifiedBadgeText = "EV PURCHASE VERIFIED",
+  achievementTitle = "⚡ Electric Pioneer",
+  achievementDetail = "First certified zero-tailpipe vehicle verified",
+  rewardMathLabel = "+ EV Purchase Reward",
 }: LootboxRevealProps) {
+  const effectiveReward = rewardPoints > 0 ? rewardPoints : 2450;
   const [phase, setPhase] = useState<"vault" | "bursting" | "revealed">("vault");
   const [displayedPoints, setDisplayedPoints] = useState(0);
 
@@ -230,7 +243,7 @@ export function LootboxReveal({
         // Phase 3: Number roll-up animation using the server-calculated reward.
         counterAnim.setValue(0);
         const listener = counterAnim.addListener(({ value }) => {
-          setDisplayedPoints(Math.round(rewardPoints * value));
+          setDisplayedPoints(Math.round(effectiveReward * value));
         });
 
         Animated.parallel([
@@ -251,13 +264,13 @@ export function LootboxReveal({
           ]),
         ]).start(() => {
           counterAnim.removeListener(listener);
-          setDisplayedPoints(rewardPoints);
+          setDisplayedPoints(effectiveReward);
         });
       });
     });
   };
 
-  const newBalance = baseBalance + rewardPoints;
+  const newBalance = baseBalance + effectiveReward;
 
   if (!visible) return null;
 
@@ -332,10 +345,8 @@ export function LootboxReveal({
                 <Text style={styles.suspenseTagText}>SUSTAINABILITY REWARD VAULT</Text>
               </View>
 
-              <Text style={styles.suspenseTitle}>EV Purchase Verified</Text>
-              <Text style={styles.suspenseSub}>
-                Tap the energy vault below to break the seal and unlock your bounty
-              </Text>
+              <Text style={styles.suspenseTitle}>{title}</Text>
+              <Text style={styles.suspenseSub}>{subtitle}</Text>
 
               {/* Interactive Glowing Vault Box */}
               <TouchableOpacity
@@ -550,10 +561,10 @@ export function LootboxReveal({
                 <Text style={styles.pointsUnitLabel}>KARMA COINS</Text>
               </View>
 
-              {/* Verification Subtitle */}
-              <View style={styles.verifiedPill}>
-                <CheckCircle2 size={13} color="#059669" strokeWidth={2.4} />
-                <Text style={styles.verifiedPillText}>EV PURCHASE VERIFIED</Text>
+              {/* Verification Subtitle (Clean row, no pillbox) */}
+              <View style={styles.verifiedRow}>
+                <CheckCircle2 size={13} color="#5EEAD4" strokeWidth={2.4} />
+                <Text style={styles.verifiedRowText}>{verifiedBadgeText}</Text>
               </View>
 
               {/* Achievement Unlocked Banner */}
@@ -566,10 +577,8 @@ export function LootboxReveal({
                     <Text style={styles.achievementEyebrow}>ACHIEVEMENT UNLOCKED</Text>
                     <Sparkles size={12} color="#FBBF24" />
                   </View>
-                  <Text style={styles.achievementTitle}>⚡ Electric Pioneer</Text>
-                  <Text style={styles.achievementDetail}>
-                    First certified zero-tailpipe vehicle verified
-                  </Text>
+                  <Text style={styles.achievementTitle}>{achievementTitle}</Text>
+                  <Text style={styles.achievementDetail}>{achievementDetail}</Text>
                 </View>
               </Animated.View>
 
@@ -580,8 +589,8 @@ export function LootboxReveal({
                   <Text style={styles.mathValueMuted}>{baseBalance.toLocaleString()} coins</Text>
                 </View>
                 <View style={styles.mathRow}>
-                  <Text style={styles.mathLabelAccent}>+ EV Purchase Reward</Text>
-                  <Text style={styles.mathValueAccent}>+{rewardPoints.toLocaleString()} coins</Text>
+                  <Text style={styles.mathLabelAccent}>{rewardMathLabel}</Text>
+                  <Text style={styles.mathValueAccent}>+{effectiveReward.toLocaleString()} coins</Text>
                 </View>
                 <View style={styles.mathDivider} />
                 <View style={styles.mathRowTotal}>
@@ -959,6 +968,7 @@ const styles = StyleSheet.create({
   },
   pointsBigNumber: {
     fontSize: 58,
+    lineHeight: 68,
     fontFamily: "IBMPlexMono_600SemiBold",
     color: "#FFFFFF",
     letterSpacing: -1,
@@ -973,24 +983,22 @@ const styles = StyleSheet.create({
   },
   pointsUnitLabel: {
     fontSize: 13,
+    lineHeight: 18,
     fontFamily: "IBMPlexMono_600SemiBold",
     color: "#5EEAD4",
     letterSpacing: 2.2,
   },
-  verifiedPill: {
+  verifiedRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#ECFDF5",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
+    marginTop: 2,
   },
-  verifiedPillText: {
-    fontSize: 11,
+  verifiedRowText: {
+    fontSize: 11.5,
     fontFamily: "Nunito_800ExtraBold",
-    color: "#059669",
-    letterSpacing: 0.5,
+    color: "#5EEAD4",
+    letterSpacing: 0.8,
   },
   achievementCard: {
     flexDirection: "row",

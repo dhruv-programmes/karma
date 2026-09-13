@@ -20,15 +20,13 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Carbon Loop to scan product barcodes."
+          "cameraPermission": "Allow Carbon Loop to scan products and photograph receipts."
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow Carbon Loop to detect walking and cycling commutes.",
-          "locationAlwaysAndWhenInUsePermission": "Allow Carbon Loop to track walking and cycling trips in the background to award green commute points.",
-          "isAndroidBackgroundLocationEnabled": true
+          "locationWhenInUsePermission": "Allow Carbon Loop to show nearby recycling and repair locations."
         }
       ]
     ],
@@ -36,11 +34,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.carbonloop.app",
       "infoPlist": {
-        "NSCameraUsageDescription": "Scan product barcodes for circular decisions.",
+        "NSCameraUsageDescription": "Scan products and photograph receipts for circular decisions.",
         "NSMotionUsageDescription": "Allow Carbon Loop to read motion activity so it can count steps and award walking points.",
-        "NSLocationWhenInUseUsageDescription": "Allow Carbon Loop to detect walking and cycling commutes.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow Carbon Loop to track walking and cycling trips in the background to award green commute points.",
-        "UIBackgroundModes": ["location"]
+        "NSLocationWhenInUseUsageDescription": "Allow Carbon Loop to show nearby recycling and repair locations."
       }
     },
     "android": {
@@ -57,9 +53,10 @@
         "ACTIVITY_RECOGNITION",
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION",
-        "FOREGROUND_SERVICE",
-        "FOREGROUND_SERVICE_LOCATION"
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
       "package": "com.carbonloop.app"
     },
@@ -69,6 +66,13 @@
     },
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "81e0c211-e91e-490c-acfe-ab8dd3b4cdcc"
+      }
+    },
+    "owner": "pranshulsoni"
   }
 }

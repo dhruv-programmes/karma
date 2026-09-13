@@ -15,9 +15,11 @@ import {
   IBMPlexMono_600SemiBold,
 } from "@expo-google-fonts/ibm-plex-mono";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { View } from "react-native";
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 import { useAuthStore } from "@/src/store/auth";
+import { useSolarAssetsStore } from "@/src/store/solar-assets";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,6 +30,8 @@ const queryClient = new QueryClient({
 export default function RootLayout() {
   const isHydrated = useAuthStore((s) => s.isHydrated);
   const hydrateAuth = useAuthStore((s) => s.hydrateAuth);
+  const solarHydrated = useSolarAssetsStore((s) => s.isHydrated);
+  const hydrateSolarAssets = useSolarAssetsStore((s) => s.hydrateSolarAssets);
 
   const [fontsLoaded] = useFonts({
     Nunito_400Regular,
@@ -43,21 +47,26 @@ export default function RootLayout() {
     hydrateAuth();
   }, [hydrateAuth]);
 
-  if (!fontsLoaded || !isHydrated) {
+  useEffect(() => {
+    void hydrateSolarAssets();
+  }, [hydrateSolarAssets]);
+
+  if (!fontsLoaded || !isHydrated || !solarHydrated) {
     return <View className="flex-1 bg-background" />;
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <GluestackUIProvider mode="light">
-        <QueryClientProvider client={queryClient}>
-          <StatusBar style="dark" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: "rgb(244, 250, 246)" },
-            }}
-          >
+    <SafeAreaProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <GluestackUIProvider mode="light">
+          <QueryClientProvider client={queryClient}>
+            <StatusBar style="dark" />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: "rgb(244, 250, 246)" },
+              }}
+            >
             <Stack.Screen name="index" />
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="onboarding/index" options={{ animation: "fade" }} />
@@ -87,13 +96,16 @@ export default function RootLayout() {
             <Stack.Screen name="verify/index" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="verify/capture" options={{ presentation: "fullScreenModal" }} />
             <Stack.Screen name="verify/result" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="tools/add-solar" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="receipt/index" />
+            <Stack.Screen name="receipt/camera" />
             <Stack.Screen name="receipt/review" />
             <Stack.Screen name="receipt/result" />
             <Stack.Screen name="support/index" />
-          </Stack>
-        </QueryClientProvider>
-      </GluestackUIProvider>
-    </GestureHandlerRootView>
+            </Stack>
+          </QueryClientProvider>
+        </GluestackUIProvider>
+      </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }

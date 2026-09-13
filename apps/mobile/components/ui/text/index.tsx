@@ -1,5 +1,5 @@
 import React from "react";
-import { Text as RNText, type TextProps as RNTextProps } from "react-native";
+import { Platform, StyleSheet, Text as RNText, type TextProps as RNTextProps } from "react-native";
 
 const sizeMap = {
   "2xs": "text-2xs",
@@ -24,17 +24,36 @@ export type TextProps = RNTextProps & {
 
 export function Text({
   className,
-  size = "md",
+  size,
   bold,
   isTruncated,
   style,
   ...props
 }: TextProps) {
+  const flatStyle = StyleSheet.flatten(style);
+  const hasCustomFontSize = typeof flatStyle?.fontSize === "number";
+
+  // Only apply default "text-base" if no custom fontSize is specified and no explicit size prop
+  const resolvedSizeClass = size
+    ? sizeMap[size]
+    : hasCustomFontSize
+      ? ""
+      : "text-base";
+
+  // If a custom fontSize is provided but lineHeight is missing or smaller than fontSize,
+  // ensure lineHeight provides enough headroom so CoreText (iOS) and Skia (Android) never clip font ascenders.
+  const dynamicLineHeight =
+    hasCustomFontSize &&
+    (!flatStyle?.lineHeight ||
+      (flatStyle.lineHeight as number) < (flatStyle.fontSize as number))
+      ? { lineHeight: Math.round((flatStyle.fontSize as number) * 1.25) }
+      : null;
+
   return (
     <RNText
       className={[
         "text-foreground",
-        sizeMap[size],
+        resolvedSizeClass,
         isTruncated ? "truncate" : "",
         className,
       ]
@@ -42,6 +61,7 @@ export function Text({
         .join(" ")}
       style={[
         {
+          ...(Platform.OS === "android" ? { includeFontPadding: true } : {}),
           fontFamily: className?.includes("font-mono")
             ? bold
               ? "IBMPlexMono_600SemiBold"
@@ -51,6 +71,7 @@ export function Text({
               : "Nunito_600SemiBold",
         },
         style,
+        dynamicLineHeight,
       ]}
       numberOfLines={isTruncated ? 1 : props.numberOfLines}
       {...props}

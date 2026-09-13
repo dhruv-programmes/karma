@@ -35,9 +35,6 @@ from app.schemas import (
     AuthResponse,
     BarcodeLookupRequest,
     BaselineRequest,
-    CommuteSummaryResponse,
-    CommuteTripRequest,
-    CommuteTripResult,
     ChallengeProgressRequest,
     LeagueActionRequest,
     LeagueActionSyncRequest,
@@ -178,7 +175,7 @@ def signin(body: SignInRequest, db: Session = Depends(get_db)):
 @router.get("/auth/demo-users", response_model=list[DemoUserSummary])
 def list_demo_users(db: Session = Depends(get_db)):
     descriptions = {
-        "aisha@example.com": "Urban Commuter · Balanced tech & transit circularity",
+        "aisha@example.com": "Urban eco builder · Balanced circularity",
         "rohan@example.com": "Eco Minimalist · Public transit & repair-first lifestyle",
         "maya@example.com": "Convenience Shopper · High-velocity consumer starting her loop",
     }
@@ -593,46 +590,6 @@ def complete_solar_recommendation(
             db.rollback()
     return result
 # ==========================================
-# GPS COMMUTE REWARDS
-# ==========================================
-
-
-@router.post("/commute/log", response_model=CommuteTripResult)
-def log_commute(
-    body: CommuteTripRequest,
-    current_user: UserModel = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    result = services.log_commute_trip(
-        distance_km=body.distance_km,
-        duration_min=body.duration_min,
-        avg_speed_kmh=body.avg_speed_kmh,
-        acceleration_rms_mps2=body.acceleration_rms_mps2,
-        user=current_user,
-        db=db,
-    )
-    if result.get("points_awarded", 0):
-        try:
-            league_service.record_action(
-                db, current_user,
-                action_key=f"commute:{result['trip_id']}",
-                action_type="commute", source="commute", reward_points=result.get("points_awarded", 0),
-                evidence={"trip_id": result["trip_id"], "mode": result["mode"]},
-            )
-        except Exception:
-            db.rollback()
-    return result
-
-
-@router.get("/commute/summary", response_model=CommuteSummaryResponse)
-def commute_summary(
-    current_user: UserModel = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    return services.build_commute_summary(current_user, db)
-
-
-# ==========================================
 # SUSTAINABLE PURCHASE VERIFICATION (DEMO)
 # ==========================================
 
@@ -646,7 +603,7 @@ def verify_sustainable_purchase(
     current_user: UserModel = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Run the local integrity gate before the demo EV verification provider."""
+    """Run the local integrity gate before the bounded EV verification flow."""
     integrity = services.inspect_document_integrity(
         filename=body.filename,
         mime_type=body.mime_type,
@@ -675,6 +632,7 @@ def verify_sustainable_purchase(
         db=db,
         vehicle_make_model=body.vehicle_make_model,
         registration_number=body.registration_number,
+        allow_multiple=body.allow_multiple,
     )
     if result.get("reward_points", 0):
         try:

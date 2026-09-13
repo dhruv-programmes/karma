@@ -24,6 +24,7 @@ import {
   TrendingUp,
   Tag,
   Clock,
+  Sun,
 } from "lucide-react-native";
 import { BackButton } from "@/components/custom/back-button";
 import { BudgetRing } from "@/components/custom/budget-ring";
@@ -39,6 +40,7 @@ import { ListRow } from "@/components/ui/list-row";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { SegmentedControl } from "@/components/ui/segmented";
 import { StatTile } from "@/components/ui/stat-tile";
+import { Button } from "@/components/ui/button";
 import { Text as UIText } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 import {
@@ -53,6 +55,7 @@ import {
 import { useAuthStore } from "@/src/store/auth";
 import { useSustainablePurchaseStore } from "@/src/store/sustainable-purchase";
 import { useTabBarClearance } from "@/src/theme/layout";
+import { useSolarAssetsStore } from "@/src/store/solar-assets";
 
 export default function ImpactScreen() {
   const insets = useSafeAreaInsets();
@@ -66,6 +69,21 @@ export default function ImpactScreen() {
   const authUser = useAuthStore((state) => state.user);
   const activity = useActivity();
   const rewards = useRewards();
+  const solarPanels = useSolarAssetsStore((state) => state.panels);
+  const selectedPanelId = useSolarAssetsStore((state) => state.selectedPanelId);
+  const selectPanel = useSolarAssetsStore((state) => state.selectPanel);
+  const selectedPanel = solarPanels.find((panel) => panel.id === selectedPanelId) ?? solarPanels[0];
+  const solarViewData = solar.data && selectedPanel
+    ? {
+        ...solar.data,
+        location: selectedPanel.location,
+        systemSizeKw: selectedPanel.systemSizeKw,
+        rewards: [
+          { label: `${selectedPanel.name} verified`, points: selectedPanel.rewardPoints },
+          ...solar.data.rewards,
+        ],
+      }
+    : null;
   const [tab, setTab] = useState("overview");
 
   const sustainableStore = useSustainablePurchaseStore();
@@ -113,10 +131,29 @@ export default function ImpactScreen() {
         />
 
         {tab === "solar" ? (
-          solar.isLoading || !solar.data ? (
+          !selectedPanel ? (
+            <View style={styles.solarEmptyCard}>
+              <View style={styles.solarEmptyIcon}><Sun size={24} color="#B7791F" /></View>
+              <UIText bold style={styles.solarEmptyTitle}>Add solar from Tools</UIText>
+              <UIText style={styles.solarEmptyText}>Add one or more rooftop systems to unlock the animated solar view and higher-value rewards.</UIText>
+              <Button onPress={() => router.push("/tools/add-solar")}>Add solar system</Button>
+            </View>
+          ) : solar.isLoading || !solarViewData ? (
             <SkeletonCard height={280} />
           ) : (
-            <SolarImpactDashboard data={solar.data} />
+            <>
+              {solarPanels.length > 1 ? (
+                <View style={styles.solarSelector}>
+                  {solarPanels.map((panel) => (
+                    <Pressable key={panel.id} onPress={() => selectPanel(panel.id)} style={[styles.solarChip, panel.id === selectedPanel.id && styles.solarChipActive]}>
+                      <Sun size={14} color={panel.id === selectedPanel.id ? "#FFFFFF" : "#B7791F"} />
+                      <UIText numberOfLines={1} style={[styles.solarChipText, panel.id === selectedPanel.id && styles.solarChipTextActive]}>{panel.name}</UIText>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
+              <SolarImpactDashboard data={solarViewData} />
+            </>
           )
         ) : impact.isLoading || !impact.data ? (
           <SkeletonCard height={220} />
@@ -140,8 +177,7 @@ export default function ImpactScreen() {
               />
             </View>
 
-            <View style={styles.frost}>
-              <BudgetRing
+            <BudgetRing
                 usedPct={impact.data.budget_used_pct ?? 0}
                 budgetKg={impact.data.monthly_budget_kg ?? 90}
                 thisMonthKg={
@@ -149,27 +185,21 @@ export default function ImpactScreen() {
                 }
                 status={impact.data.budget_status ?? "on_track"}
               />
-            </View>
 
             {tab === "overview" ? (
               <VStack space="md">
-                <View style={styles.frost}>
-                  <FootprintTrend
+                <FootprintTrend
                     points={(series.data?.points ?? []).map((p) => ({
                       label: p.label,
                       kg: p.kg,
                     }))}
                   />
-                </View>
-                <View style={styles.frost}>
-                  <CategoryDonut
+                <CategoryDonut
                     purchases={impact.data.purchases_kg}
                     transport={impact.data.transport_kg}
                     energy={impact.data.energy_kg}
                   />
-                </View>
-                <View style={styles.frost}>
-                  <CompareBars
+                <CompareBars
                     previousKg={
                       impact.data.previous_month_kg ??
                       series.data?.previous_month_kg ??
@@ -181,16 +211,15 @@ export default function ImpactScreen() {
                       0
                     }
                   />
-                </View>
                 <InsightCard
                   title={`Biggest opportunity: ${impact.data.biggest_opportunity}`}
                   body={impact.data.insight}
                 />
                 {impact.data.by_category ? (
-                  <Card variant="soft" className="border border-border/60">
-                    <UIText bold className="mb-2">
+                  <View style={styles.drilldownCard}>
+                    <Text style={styles.drilldownTitle}>
                       Category drill-down
-                    </UIText>
+                    </Text>
                     {Object.entries(impact.data.by_category)
                       .sort((a, b) => b[1] - a[1])
                       .map(([cat, kg]) => (
@@ -200,14 +229,14 @@ export default function ImpactScreen() {
                           trailing={`~${Math.round(kg)} kg`}
                         />
                       ))}
-                  </Card>
+                  </View>
                 ) : null}
               </VStack>
             ) : (
-              <Card variant="soft" className="border border-border/60">
-                <UIText bold className="mb-2">
+              <View style={styles.drilldownCard}>
+                <Text style={styles.drilldownTitle}>
                   Recent transactions
-                </UIText>
+                </Text>
                 {(txns.data ?? []).slice(0, 12).map((t) => (
                   <ListRow
                     key={t.id}
@@ -216,7 +245,7 @@ export default function ImpactScreen() {
                     trailing={`₹${Math.round(t.amount_inr).toLocaleString("en-IN")}`}
                   />
                 ))}
-              </Card>
+              </View>
             )}
           </>
         )}
@@ -224,26 +253,13 @@ export default function ImpactScreen() {
         <View style={styles.ctaRow}>
           <Pressable
             style={({ pressed }) => [
-              styles.ctaOutline,
-              pressed && { opacity: 0.88 },
-            ]}
-            onPress={() => router.push("/map?type=recycling")}
-          >
-            <Text style={styles.ctaOutlineText} numberOfLines={1}>
-              Find recycle
-            </Text>
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [
               styles.ctaPrimary,
               pressed && { opacity: 0.9 },
             ]}
-            onPress={() =>
-              router.push("/offsets" as import("expo-router").Href)
-            }
+            onPress={() => router.push("/map?type=recycling")}
           >
             <Text style={styles.ctaPrimaryText} numberOfLines={1}>
-              View offsets
+              Find Recycling Hubs
             </Text>
           </Pressable>
         </View>
@@ -265,13 +281,21 @@ const styles = StyleSheet.create({
     gap: 10,
     minWidth: 0,
   },
-  frost: {
-    backgroundColor: "rgba(255,255,255,0.88)",
-    borderRadius: 22,
-    overflow: "hidden",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(46,168,110,0.14)",
-    padding: 4,
+  drilldownCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#E5ECE8",
+    boxShadow: "0px 1px 4px rgba(0,0,0,0.03)",
+    elevation: 1,
+  },
+  drilldownTitle: {
+    fontSize: 16,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#0D1811",
+    letterSpacing: -0.2,
+    marginBottom: 4,
   },
   ctaRow: {
     flexDirection: "row",
@@ -309,4 +333,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#FFFFFF",
   },
+  solarEmptyCard: { backgroundColor: "#FFFFFF", borderRadius: 22, borderWidth: 1, borderColor: "#D8E9DF", padding: 20, gap: 10 },
+  solarEmptyIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: "#FFF5D9", alignItems: "center", justifyContent: "center" },
+  solarEmptyTitle: { color: "#183222", fontSize: 19 },
+  solarEmptyText: { color: "#6B8576", fontSize: 13, lineHeight: 18 },
+  solarSelector: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
+  solarChip: { flexDirection: "row", alignItems: "center", gap: 6, maxWidth: "100%", paddingHorizontal: 11, paddingVertical: 8, borderRadius: 14, borderWidth: 1, borderColor: "#D8E9DF", backgroundColor: "#FFFFFF" },
+  solarChipActive: { backgroundColor: "#0E2A1E", borderColor: "#0E2A1E" },
+  solarChipText: { color: "#557362", fontSize: 12, fontWeight: "800", flexShrink: 1 },
+  solarChipTextActive: { color: "#FFFFFF" },
 });

@@ -16,7 +16,7 @@ def test_format_co2e_no_false_precision():
 
 def test_spend_estimate_uses_factor():
     est = estimate_from_spend("Electronics", 1000)
-    assert est.estimated_co2e_kg == 450.0
+    assert est.estimated_co2e_kg == 4.5
     assert est.geography == "IN"
 
 

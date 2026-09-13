@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import { View, Platform, StyleSheet } from "react-native";
 import { LineChart } from "react-native-gifted-charts";
-import { TrendingDown } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 
 const POINT_COLOR = "#2EA86E";
-const POINT_SIZE = 7;
+const POINT_SIZE = 6;
 
 function DataPoint() {
   return (
@@ -29,55 +28,43 @@ export function FootprintTrend({
 }) {
   const [containerWidth, setContainerWidth] = useState(0);
 
-  // Clean data points without cluttered text overlapping on the line
   const data = points.map((p) => ({
     value: p.kg,
     label: p.label,
   }));
 
   const maxVal = Math.max(...points.map((p) => p.kg), 100);
-  const chartMax = Math.ceil(maxVal * 1.22); // 22% headroom to prevent top clipping
+  const chartMax = Math.ceil(maxVal * 1.2);
 
-  // Precise dimension calculations to prevent clipping on any device
-  const chartWidth = Math.max(180, containerWidth - 36);
-  const yAxisLabelWidth = 36;
+  const chartWidth = Math.max(180, containerWidth - 32);
+  const yAxisLabelWidth = 32;
   const availableWidth = Math.max(120, chartWidth - yAxisLabelWidth);
-  const initialSpacing = 16;
-  const endSpacing = 16;
+  const initialSpacing = 14;
+  const endSpacing = 14;
   const spacing =
     data.length > 1
       ? Math.max(
-          24,
+          20,
           Math.floor((availableWidth - initialSpacing - endSpacing) / (data.length - 1))
         )
       : 40;
 
+  const latestVal = data.length > 0 ? Math.round(data[data.length - 1].value) : null;
+
   return (
     <View style={styles.card}>
-      {/* Header */}
+      {/* Clean Header */}
       <View style={styles.cardHeader}>
-        <View style={styles.headerLeft}>
-          <View style={styles.iconCircle}>
-            <TrendingDown size={18} color="#2EA86E" strokeWidth={2.2} />
-          </View>
-          <View style={styles.headerInfo}>
-            <Text style={styles.title}>Weekly Footprint Trajectory</Text>
-            <Text style={styles.subtitle}>
-              Estimated kg CO₂e from transactions & routine shifts
-            </Text>
-          </View>
+        <View style={styles.headerInfo}>
+          <Text style={styles.title}>Weekly Trajectory</Text>
+          <Text style={styles.subtitle}>
+            Estimated weekly footprint (kg CO₂e)
+          </Text>
         </View>
-
-        {data.length > 0 ? (
-          <View style={styles.latestBadge}>
-            <Text style={styles.latestBadgeText}>
-              Latest: ~{Math.round(data[data.length - 1].value).toLocaleString()} kg
-            </Text>
-          </View>
-        ) : null}
+        
       </View>
 
-      {/* Chart Viewport with onLayout measurement to eliminate clipping */}
+      {/* Chart Viewport */}
       <View
         style={styles.chartWrapper}
         onLayout={(e) => {
@@ -88,29 +75,29 @@ export function FootprintTrend({
         {data.length && containerWidth > 0 ? (
           <LineChart
             data={data}
-            height={145}
+            height={135}
             width={chartWidth}
             maxValue={chartMax}
             color={POINT_COLOR}
-            thickness={2.5}
-            startFillColor="rgba(46,168,110,0.20)"
-            endFillColor="rgba(46,168,110,0.01)"
-            startOpacity={0.8}
-            endOpacity={0.02}
+            thickness={2.2}
+            startFillColor="rgba(46,168,110,0.14)"
+            endFillColor="rgba(46,168,110,0.00)"
+            startOpacity={0.7}
+            endOpacity={0.0}
             areaChart
             hideRules={false}
             rulesType="dashed"
-            rulesColor="rgba(46,168,110,0.10)"
+            rulesColor="rgba(0,0,0,0.06)"
             yAxisColor="transparent"
-            xAxisColor="rgba(46,168,110,0.18)"
+            xAxisColor="rgba(0,0,0,0.08)"
             yAxisLabelWidth={yAxisLabelWidth}
             yAxisTextStyle={{
-              color: "#7A9082",
+              color: "#94A3B8",
               fontSize: 9.5,
-              fontFamily: "IBMPlexMono_600SemiBold",
+              fontFamily: "IBMPlexMono_500Medium",
             }}
             xAxisLabelTextStyle={{
-              color: "#7A9082",
+              color: "#94A3B8",
               fontSize: 10,
               fontFamily: "Nunito_600SemiBold",
             }}
@@ -131,16 +118,9 @@ export function FootprintTrend({
           />
         ) : (
           <Text style={styles.emptyText}>
-            Gathering more weeks of footprint data...
+            Gathering weekly footprint data...
           </Text>
         )}
-      </View>
-
-      {/* Footnote callout */}
-      <View style={styles.footnoteRow}>
-        <Text style={styles.footnoteText}>
-          Trajectory reflects weekly consumption and clean habits over the last {data.length || 10} weeks.
-        </Text>
       </View>
     </View>
   );
@@ -149,87 +129,44 @@ export function FootprintTrend({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 16,
+    borderRadius: 18,
+    padding: 18,
     borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.16)",
-    boxShadow: "0px 2px 8px rgba(0,0,0,0.04)",
-    elevation: 2,
-    gap: 12,
+    borderColor: "#E5ECE8",
+    boxShadow: "0px 1px 4px rgba(0,0,0,0.03)",
+    elevation: 1,
+    gap: 10,
   },
   cardHeader: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
-  },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    flex: 1,
-  },
-  iconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#F0FDF4",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.2)",
   },
   headerInfo: {
     flex: 1,
   },
   title: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: "Nunito_800ExtraBold",
     color: "#0D1811",
+    letterSpacing: -0.2,
   },
   subtitle: {
-    fontSize: 11,
-    fontFamily: "Nunito_400Regular",
-    color: "#526658",
-    marginTop: 1,
-  },
-  latestBadge: {
-    backgroundColor: "#F0FDF4",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.25)",
-  },
-  latestBadgeText: {
-    fontSize: 10.5,
-    fontFamily: "IBMPlexMono_600SemiBold",
-    color: "#059669",
+    fontSize: 12,
+    fontFamily: "Nunito_500Medium",
+    color: "#64748B",
+    marginTop: 2,
   },
   chartWrapper: {
     width: "100%",
-    paddingTop: 8,
-    paddingBottom: 4,
+    paddingTop: 6,
     overflow: "hidden",
   },
   emptyText: {
     fontSize: 12,
     fontFamily: "Nunito_400Regular",
-    color: "#7A9082",
+    color: "#94A3B8",
     paddingVertical: 20,
     textAlign: "center",
-  },
-  footnoteRow: {
-    backgroundColor: "#F8FAF9",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#E5ECE8",
-  },
-  footnoteText: {
-    fontSize: 11,
-    fontFamily: "Nunito_600SemiBold",
-    color: "#166534",
-    lineHeight: 15,
   },
 });

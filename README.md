@@ -27,6 +27,10 @@ Built with Expo 57 &bull; React Native 0.79 &bull; FastAPI &bull; Python 3.12 &b
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![pnpm](https://img.shields.io/badge/pnpm-9-F69220?logo=pnpm&logoColor=white)](https://pnpm.io/)
 
+<br><br>
+
+<img src="assets/banner.png" width="100%" alt="Karma Platform Showcase Banner"/>
+
 </div>
 
 ***
@@ -103,37 +107,57 @@ Within this ecosystem:
       <img src="assets/screenshots/02_baseline.png" width="100%" alt="Baseline Calibration"/>
     </td>
     <td align="center" width="25%">
-      <img src="assets/screenshots/03_home.png" width="100%" alt="Karma Home"/>
+      <img src="assets/screenshots/03_home.png" width="100%" alt="Karma Home Dashboard"/>
     </td>
     <td align="center" width="25%">
-      <img src="assets/screenshots/04_tools.png" width="100%" alt="Circularity Tools"/>
+      <img src="assets/screenshots/04_impact.png" width="100%" alt="Footprint & Carbon Budget"/>
     </td>
   </tr>
   <tr>
     <td align="center" valign="top"><strong>1. Onboarding</strong></td>
-    <td align="center" valign="top"><strong>2. Baseline</strong></td>
+    <td align="center" valign="top"><strong>2. Baseline Calibration</strong></td>
     <td align="center" valign="top"><strong>3. Home Dashboard</strong></td>
-    <td align="center" valign="top"><strong>4. Decision Tools</strong></td>
+    <td align="center" valign="top"><strong>4. Footprint & Budget</strong></td>
   </tr>
   <tr>
     <td align="center" width="25%">
-      <img src="assets/screenshots/05_receipt.png" width="100%" alt="AI Receipt Intelligence"/>
+      <img src="assets/screenshots/05_solar.png" width="100%" alt="Solar & Clean Energy Assets"/>
     </td>
     <td align="center" width="25%">
-      <img src="assets/screenshots/06_actions.png" width="100%" alt="Action Recommendations"/>
+      <img src="assets/screenshots/06_product_circularity.png" width="100%" alt="Circularity Decision Engine"/>
     </td>
     <td align="center" width="25%">
-      <img src="assets/screenshots/07_impact.png" width="100%" alt="Footprint Analytics"/>
+      <img src="assets/screenshots/07_receipt_audit.png" width="100%" alt="AI Receipt Intelligence"/>
     </td>
     <td align="center" width="25%">
-      <img src="assets/screenshots/08_offers.png" width="100%" alt="Coupons & Offsets"/>
+      <img src="assets/screenshots/08_actions.png" width="100%" alt="Action Recommendations"/>
     </td>
   </tr>
   <tr>
-    <td align="center" valign="top"><strong>5. AI Receipt Engine</strong></td>
-    <td align="center" valign="top"><strong>6. Concrete Actions</strong></td>
-    <td align="center" valign="top"><strong>7. Footprint Pulse</strong></td>
-    <td align="center" valign="top"><strong>8. Coupons & Offsets</strong></td>
+    <td align="center" valign="top"><strong>5. Solar & Clean Assets</strong></td>
+    <td align="center" valign="top"><strong>6. Decision Engine</strong></td>
+    <td align="center" valign="top"><strong>7. AI Receipt Audit</strong></td>
+    <td align="center" valign="top"><strong>8. Concrete Actions</strong></td>
+  </tr>
+  <tr>
+    <td align="center" width="25%">
+      <img src="assets/screenshots/09_rewards_marketplace.png" width="100%" alt="Rewards & Green Subsidies"/>
+    </td>
+    <td align="center" width="25%">
+      <img src="assets/screenshots/10_leaderboard.png" width="100%" alt="Circular Leagues"/>
+    </td>
+    <td align="center" width="25%">
+      <img src="assets/screenshots/11_challenges.png" width="100%" alt="Quests & Challenges"/>
+    </td>
+    <td align="center" width="25%">
+      <img src="assets/screenshots/12_community.png" width="100%" alt="Circular Community Hub"/>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" valign="top"><strong>9. Rewards & Subsidies</strong></td>
+    <td align="center" valign="top"><strong>10. Circular Leagues</strong></td>
+    <td align="center" valign="top"><strong>11. Quests & Challenges</strong></td>
+    <td align="center" valign="top"><strong>12. Community Hub</strong></td>
   </tr>
 </table>
 
@@ -141,14 +165,18 @@ Within this ecosystem:
 
 | Screen | Focus Area | Key Capabilities |
 | :--- | :--- | :--- |
-| **1. Onboarding** | Product Introduction | Core circular living value proposition and guided profile setup |
-| **2. Baseline** | Routine Calibration | Commute modes, shopping frequency, and household consumption baseline |
-| **3. Home Dashboard** | Daily Tracking | Dynamic KCS 681 progress ring, habit streaks, and Walk & Earn tracking |
-| **4. Decision Tools** | Utility Hub | Barcode scanner, receipt OCR, recycling drop points, and offset portals |
-| **5. AI Receipt Engine** | Document Ingestion | Google Gemini Vision multi-modal invoice, receipt, and utility bill parsing |
-| **6. Concrete Actions** | Circular Pathways | Repair vs replace decision matrix, resale estimates, and kg CO2e savings |
-| **7. Footprint Pulse** | Impact Analytics | Spend-based emissions breakdown and interactive weekly footprint pulse chart |
-| **8. Coupons & Offsets** | Value Realization | Karma Coin redemption for govt green subsidies, partner coupons, and offsets |
+| **1. Onboarding** | Product Introduction | Core circular living value proposition, biometric sign-in, and guided eco-persona setup |
+| **2. Baseline Calibration** | Routine Calibration | Commute modes, weekly shopping habits, and household consumption baseline calibration |
+| **3. Home Dashboard** | Real-Time Command Center | Dynamic KCS 581 progress ring, calibrated monthly carbon budget (75 kg / 100 kg), habit streaks, and Walk & Earn tracking |
+| **4. Footprint & Budget** | Impact Analytics | Multi-category spend emissions breakdown, monthly budget pulse, and 8-week reduction trajectory |
+| **5. Solar & Clean Assets** | Clean Energy Telemetry | Real-time rooftop solar generation, inverter efficiency, battery reserve status, and grid offset yield |
+| **6. Decision Engine** | Real-Time Product Intelligence | Barcode scan, durability scoring, repairability index, and lifetime footprint vs replacement delta |
+| **7. AI Receipt Audit** | Multi-Modal Document AI | Google Gemini Vision receipt parsing, automated sustainable item categorization, and instant Karma Coin rewards |
+| **8. Concrete Actions** | Circular Interventions | Repair vs replace matrix, certified local technician matching, e-waste drop locator, and resale estimators |
+| **9. Rewards & Subsidies** | Value Realization | Karma Coin redemptions for govt green transit passes, EV charging vouchers, and circular brand discounts |
+| **10. Circular Leagues** | Gamified Community | Tier-based competitive circular ladders, regional carbon-saved rankings, and peer milestones |
+| **11. Quests & Challenges** | Habit Formation | Daily eco challenges, zero-waste weekend missions, verified action bounties, and mystery lootboxes |
+| **12. Community Hub** | Local Infrastructure | Interactive map of neighborhood tool libraries, verified repair cafes, certified recycling points, and peer swap zones |
 
 ***
 
@@ -406,7 +434,8 @@ carbon-loop-app/
 |       +-- app/api/extract/    # Gemini multi-modal receipt extraction route
 |       +-- lib/                # Vercel AI SDK client and prompt templates
 +-- assets/
-|   +-- screenshots/            # 8 showcase captures (01 through 08)
+|   +-- banner.png              # Official Karma showcase hero banner
+|   +-- screenshots/            # 12 showcase captures (01 through 12)
 |   +-- app-icon.png            # Official Karma app icon
 +-- package.json                # Turborepo / pnpm workspace root
 +-- README.md                   # Enterprise technical documentation
@@ -418,7 +447,7 @@ carbon-loop-app/
 
 | Path | Screen | Description |
 | :--- | :--- | :--- |
-| `/(tabs)` | Home | Carbon Credit Score (KCS 681) ring, habit tracker, and Walk & Earn card |
+| `/(tabs)` | Home | Carbon Credit Score (KCS 581) ring, habit tracker, and Walk & Earn card |
 | `/(tabs)/tools` | Decision Tools | Hub for barcode scanner, bill import, recycling hubs, and offsets |
 | `/(tabs)/actions` | Concrete Actions | Prioritized circular moves (repair vs replace, resale value, CO2e savings) |
 | `/(tabs)/impact` | Impact Analytics | Spend-based emissions breakdown and weekly footprint pulse area chart |

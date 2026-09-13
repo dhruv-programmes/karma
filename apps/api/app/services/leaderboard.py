@@ -12,7 +12,6 @@ from app.db.models import (
     ChallengeModel,
     FriendConnectionModel,
     UserCompletedActionModel,
-    UserCommuteTripModel,
     UserDailyStepsModel,
     UserChallengeProgressModel,
     UserModel,
@@ -44,7 +43,7 @@ def _measured_progress(db: Session, user: UserModel, challenge: ChallengeModel) 
     """
     start = _period_start(challenge.cadence).isoformat()
     end = date.today().isoformat()
-    if challenge.goal_kind == "steps":
+    if challenge.goal_kind in {"steps", "walking"}:
         total = db.query(UserDailyStepsModel).filter(
             UserDailyStepsModel.user_id == user.id,
             UserDailyStepsModel.date >= start,
@@ -62,17 +61,8 @@ def _measured_progress(db: Session, user: UserModel, challenge: ChallengeModel) 
             UserCompletedActionModel.user_id == user.id,
             UserCompletedActionModel.completed_at >= datetime.combine(_period_start(challenge.cadence), datetime.min.time()),
         ).count()
-    if challenge.goal_kind in {"commute", "walking", "cycling"}:
-        query = db.query(UserCommuteTripModel).filter(
-            UserCommuteTripModel.user_id == user.id,
-            UserCommuteTripModel.date >= start,
-            UserCommuteTripModel.date <= end,
-        )
-        if challenge.goal_kind == "walking":
-            query = query.filter(UserCommuteTripModel.mode == "walk")
-        elif challenge.goal_kind == "cycling":
-            query = query.filter(UserCommuteTripModel.mode == "cycle")
-        return query.count()
+    # Walking challenges use verified phone step totals above. GPS commute
+    # and cycling events are intentionally not evidence for challenges.
     return 0
 
 
@@ -90,6 +80,29 @@ def _period_key(cadence: str, today: date | None = None) -> str:
 
 def _public_username(user: UserModel) -> str:
     return user.username or user.email.split("@", 1)[0]
+
+
+def _carbon_score(user: UserModel) -> int:
+    """Return the same server-owned CCS value used by every leaderboard view."""
+    return int(
+        user.verified_score
+        if user.verified_score is not None
+        else (user.provisional_score or 650)
+    )
+
+
+def _user_metrics(user: UserModel) -> dict[str, int]:
+    """Expose canonical balances when a user is found for a friend request.
+
+    Search results used to contain only identity fields, which made the client
+    create a friend row with zero coins/default CCS until another leaderboard
+    refresh. Keeping these values beside the identity makes the global and
+    friends views use one source of truth.
+    """
+    return {
+        "impact_points": int(user.impact_points or 0),
+        "carbon_score": _carbon_score(user),
+    }
 
 
 def search_users(db: Session, query: str, current_user: UserModel, limit: int = 20) -> list[dict]:
@@ -116,6 +129,7 @@ def search_users(db: Session, query: str, current_user: UserModel, limit: int = 
             "username": _public_username(user),
             "name": user.name,
             "status": "accepted" if user.id in existing else "not_connected",
+            **_user_metrics(user),
         }
         for user in users
     ]
@@ -132,7 +146,13 @@ def add_friend(db: Session, current_user: UserModel, username: str) -> dict:
         if not db.query(FriendConnectionModel).filter_by(user_id=owner, friend_id=friend).first():
             db.add(FriendConnectionModel(user_id=owner, friend_id=friend, status="accepted"))
     db.commit()
-    return {"id": target.id, "username": _public_username(target), "name": target.name, "status": "accepted"}
+    return {
+        "id": target.id,
+        "username": _public_username(target),
+        "name": target.name,
+        "status": "accepted",
+        **_user_metrics(target),
+    }
 
 
 def remove_friend(db: Session, current_user: UserModel, username: str) -> None:
@@ -156,7 +176,16 @@ def list_friends(db: Session, current_user: UserModel) -> list[dict]:
         .order_by(UserModel.username.asc(), UserModel.id.asc())
         .all()
     )
-    return [{"id": u.id, "username": _public_username(u), "name": u.name, "status": "accepted"} for u in rows]
+    return [
+        {
+            "id": u.id,
+            "username": _public_username(u),
+            "name": u.name,
+            "status": "accepted",
+            **_user_metrics(u),
+        }
+        for u in rows
+    ]
 
 
 def leaderboard(db: Session, current_user: UserModel, scope: str = "global", metric: str = "reward_points") -> dict:
@@ -177,7 +206,7 @@ def leaderboard(db: Session, current_user: UserModel, scope: str = "global", met
     def score(u: UserModel) -> int:
         if metric == "reward_points":
             return int(u.impact_points or 0)
-        return int(u.verified_score if u.verified_score is not None else (u.provisional_score or 650))
+        return _carbon_score(u)
 
     users.sort(key=lambda u: (-score(u), _public_username(u).lower(), u.id))
     entries = []
@@ -188,7 +217,7 @@ def leaderboard(db: Session, current_user: UserModel, scope: str = "global", met
             "username": _public_username(user),
             "name": user.name,
             "reward_points": int(user.impact_points or 0),
-            "carbon_credit_score": score(user) if metric == "carbon_credit_score" else int(user.verified_score if user.verified_score is not None else (user.provisional_score or 650)),
+            "carbon_credit_score": _carbon_score(user),
             "is_current_user": user.id == current_user.id,
             "is_friend": user.id in friend_ids,
         })

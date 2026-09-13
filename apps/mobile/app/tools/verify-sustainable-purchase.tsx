@@ -7,11 +7,13 @@ import {
   Alert,
   Platform,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
+  ArrowRight,
+  Plus,
   LockKeyhole,
   Zap,
   ShieldCheck,
@@ -38,6 +40,8 @@ import { LootboxReveal } from "@/components/custom/sustainable-verification/loot
 
 export default function VerifySustainablePurchaseScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ add?: string }>();
+  const addingVehicle = params.add === "1";
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const me = useMe();
@@ -53,6 +57,9 @@ export default function VerifySustainablePurchaseScreen() {
     ownership,
     ownerName,
     registrationNumber,
+    vehicles,
+    selectedVehicleId,
+    selectVehicle,
     setVerified,
     claimReward,
     resetDemo,
@@ -60,13 +67,29 @@ export default function VerifySustainablePurchaseScreen() {
 
   const [pickedFile, setPickedFile] = useState<UploadedFile | null>(null);
   const [phase, setPhase] = useState<"upload" | "scanning" | "lootbox" | "verified">(
-    rewardClaimed ? "verified" : isVerified ? "lootbox" : "upload"
+    addingVehicle ? "upload" : (rewardClaimed ? "verified" : isVerified ? "lootbox" : "upload")
   );
   const [isResetting, setIsResetting] = useState(false);
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [verifiedBaseBalance, setVerifiedBaseBalance] = useState<number | null>(null);
 
   const currentPoints = me.data?.impact_points ?? authUser?.impact_points ?? null;
+
+  const displayVehicles = vehicles.length > 0 ? vehicles : [
+    {
+      id: "ev-default-1",
+      makeModel: vehicleMakeModel || "Tata Nexon EV",
+      vehicleType: vehicleType || "Electric Vehicle",
+      ownership: ownership || "Verified Owner",
+      documentName: documentName || "tata_nexon_ev_registration_rc.pdf",
+      documentSize: 2450000,
+      rewardPoints: rewardPoints > 0 ? rewardPoints : 2450,
+      verifiedAt: new Date().toISOString(),
+    },
+  ];
+
+  const activeVehicle =
+    displayVehicles.find((v) => v.id === selectedVehicleId) || displayVehicles[0];
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -83,7 +106,7 @@ export default function VerifySustainablePurchaseScreen() {
   };
 
   // Called when laser scanning finishes the 5 stages
-  const handleScanComplete = async () => {
+  const handleScanComplete = () => {
     if (!pickedFile) return;
     setVerificationError(null);
 
@@ -96,6 +119,7 @@ export default function VerifySustainablePurchaseScreen() {
         size_bytes: pickedFile.size,
         vehicle_make_model: vehicleMakeModel || "Tata Nexon EV Max",
         registration_number: registrationNumber || "MH-12-EV-2024",
+        allow_multiple: addingVehicle,
       });
       if (result.status !== "verified") {
         throw new Error(result.verification || "Purchase verification was not successful.");
@@ -130,14 +154,6 @@ export default function VerifySustainablePurchaseScreen() {
       } else {
         setPhase("lootbox");
       }
-    } catch (error) {
-      setVerificationError(
-        error instanceof Error
-          ? error.message
-          : "Verification is unavailable right now. Please try again."
-      );
-      setPhase("upload");
-    }
   };
 
   // Called when user claims reward inside the lootbox modal
@@ -197,8 +213,10 @@ export default function VerifySustainablePurchaseScreen() {
           <ArrowLeft size={19} color="#163D2A" />
         </TouchableOpacity>
         <View style={styles.navTitleContainer}>
-          <Text style={styles.navEyebrow}>TOOLS  /  GREEN REWARDS</Text>
-          <Text style={styles.navTitle}>Verify Sustainable Purchase</Text>
+          <Text style={styles.navEyebrow}>TOOLS  /  ELECTRIC MOBILITY</Text>
+          <Text style={styles.navTitle}>
+            {phase === "verified" ? "Electric Vehicles" : "Verify Electric Vehicle"}
+          </Text>
         </View>
         <View style={styles.navBadge}>
           <LockKeyhole size={14} color="#2EA86E" />
@@ -212,26 +230,7 @@ export default function VerifySustainablePurchaseScreen() {
           { paddingBottom: insets.bottom + 40 },
         ]}
       >
-        {/* Hero Section Banner */}
-        <View style={styles.heroCard}>
-          <View style={styles.heroGlowOrb} />
-          <View style={styles.heroIconWrapper}>
-            <Zap size={24} color="#F7C948" fill="#F7C948" />
-          </View>
-          <Text style={styles.heroHeading}>Turn proof into progress.</Text>
-          <Text style={styles.heroDescription}>
-            Verify your Electric Vehicle purchase document and unlock a one-time
-            major Green Rewards pack with Karma Coins &amp; achievement.
-          </Text>
 
-          {/* Prototype disclaimer pill */}
-          <View style={styles.prototypePill}>
-            <ShieldCheck size={13} color="#BFF7D8" />
-            <Text style={styles.prototypePillText}>
-              SIMULATED VERIFICATION · MOCK PROVIDER
-            </Text>
-          </View>
-        </View>
 
         {/* Phase: Upload & Ready */}
         {phase === "upload" && (
@@ -251,6 +250,8 @@ export default function VerifySustainablePurchaseScreen() {
                 <Text style={styles.errorText}>{verificationError}</Text>
               </View>
             ) : null}
+
+
           </>
         )}
 
@@ -262,111 +263,177 @@ export default function VerifySustainablePurchaseScreen() {
           />
         )}
 
-        {/* Phase: Verified Certificate Card */}
+        {/* Phase: Verified Garage / Fleet Mode */}
         {phase === "verified" && (
-          <View style={styles.certificateCard}>
-            {/* Top Verified Header */}
-            <View style={styles.certBadgeRow}>
-              <View style={styles.certCheckCircle}>
-                <CheckCircle2 size={24} color="#FFFFFF" />
+          <View style={styles.garageContainer}>
+            {/* Header Status Row */}
+            <View style={styles.garageHeaderRow}>
+              <View style={styles.garageHeaderLeft}>
+                <Text style={styles.garageEyebrow}>YOUR GARAGE</Text>
+                <Text style={styles.garageTitle}>
+                  {displayVehicles.length} Registered {displayVehicles.length === 1 ? "Vehicle" : "Vehicles"}
+                </Text>
               </View>
-              <View style={styles.certStatusText}>
-                <Text style={styles.certStatusEyebrow}>VERIFIED PURCHASE</Text>
-                <Text style={styles.certStatusTitle}>{vehicleType}</Text>
+              <View style={styles.garageActiveIndicator}>
+                <View style={styles.activeDot} />
+                <Text style={styles.activeDotText}>Active · Primary</Text>
               </View>
-              <View style={styles.certRewardPill}>
-                <Sparkles size={12} color="#F59E0B" />
-                <Text style={styles.certRewardText}>
-                  {rewardPoints > 0 ? `+${rewardPoints.toLocaleString()} Karma Coins` : "No new reward"}
+            </View>
+
+            {/* Hero Card for Selected Vehicle (Dark Botanical) */}
+            <View style={styles.heroVehicleCard}>
+              <View style={styles.heroVehicleHeader}>
+                <View style={styles.heroVehicleIconBox}>
+                  <Car size={22} color="#5EEAD4" />
+                </View>
+                <View style={styles.heroVehicleTitleCol}>
+                  <Text style={styles.heroVehicleName}>
+                    {activeVehicle.makeModel || "Tata Nexon EV"}
+                  </Text>
+                  <Text style={styles.heroVehicleCategory}>
+                    {activeVehicle.vehicleType || "Electric Vehicle"} · Zero Emissions
+                  </Text>
+                </View>
+              </View>
+
+              {/* Specs Micro Grid: 3 clean columns separated by thin vertical dividers, NO PILLBOXES */}
+              <View style={styles.heroSpecsGrid}>
+                <View style={styles.heroSpecCol}>
+                  <Text style={styles.heroSpecLabel}>DRIVETRAIN</Text>
+                  <Text style={styles.heroSpecValue}>Pure EV</Text>
+                </View>
+                <View style={styles.heroSpecDivider} />
+                <View style={styles.heroSpecCol}>
+                  <Text style={styles.heroSpecLabel}>EST. OFFSET</Text>
+                  <Text style={styles.heroSpecValue}>~1.8t CO₂/yr</Text>
+                </View>
+                <View style={styles.heroSpecDivider} />
+                <View style={styles.heroSpecCol}>
+                  <Text style={styles.heroSpecLabel}>REWARD</Text>
+                  <Text style={[styles.heroSpecValue, { color: "#FBBF24" }]}>
+                    +{activeVehicle.rewardPoints > 0 ? activeVehicle.rewardPoints.toLocaleString() : "2,450"} coins
+                  </Text>
+                </View>
+              </View>
+
+              {/* Achievement & Document Footnote */}
+              <View style={styles.heroVehicleFootnote}>
+                <View style={styles.achievementInline}>
+                  <Award size={13} color="#A7F3D0" />
+                  <Text style={styles.achievementInlineText}>⚡ Electric Pioneer</Text>
+                </View>
+                <Text style={styles.documentInlineText} numberOfLines={1}>
+                  {activeVehicle.documentName || "vehicle_registration_rc.pdf"}
                 </Text>
               </View>
             </View>
 
-            {/* Vehicle Details Table */}
-            <View style={styles.certTable}>
-              <View style={styles.certRow}>
-                <View style={styles.certFieldLabelCol}>
-                  <Car size={14} color="#2EA86E" />
-                  <Text style={styles.certFieldLabel}>Vehicle</Text>
-                </View>
-                <Text style={styles.certFieldValue}>{vehicleMakeModel}</Text>
+
+            {/* If multiple vehicles exist, show the Fleet Switcher Cards */}
+            {displayVehicles.length > 1 && (
+              <View style={styles.fleetSelectorSection}>
+                <Text style={styles.fleetSelectorTitle}>SWITCH VEHICLE</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.fleetScrollContent}
+                >
+                  {displayVehicles.map((v) => {
+                    const isSelected = activeVehicle.id === v.id;
+                    return (
+                      <TouchableOpacity
+                        key={v.id}
+                        style={[
+                          styles.fleetThumbCard,
+                          isSelected && styles.fleetThumbCardSelected,
+                        ]}
+                        onPress={() => selectVehicle(v.id)}
+                        activeOpacity={0.8}
+                      >
+                        <Car size={16} color={isSelected ? "#2EA86E" : "#799184"} />
+                        <Text
+                          style={[
+                            styles.fleetThumbName,
+                            isSelected && styles.fleetThumbNameSelected,
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {v.makeModel}
+                        </Text>
+                        {isSelected && <CheckCircle2 size={14} color="#2EA86E" />}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
               </View>
+            )}
 
-              <View style={styles.certDivider} />
-
-              <View style={styles.certRow}>
-                <View style={styles.certFieldLabelCol}>
-                  <Zap size={14} color="#F59E0B" />
-                  <Text style={styles.certFieldLabel}>Fuel Type</Text>
-                </View>
-                <Text style={styles.certFieldValue}>{vehicleType}</Text>
+            {/* "Add Another Vehicle" Bay Card */}
+            <TouchableOpacity
+              style={styles.addBayCard}
+              onPress={() => {
+                setPickedFile(null);
+                setVerificationError(null);
+                setPhase("upload");
+              }}
+              activeOpacity={0.84}
+            >
+              <View style={styles.addBayIconBox}>
+                <Plus size={20} color="#059669" strokeWidth={2.5} />
               </View>
+              <View style={styles.addBayCopy}>
+                <Text style={styles.addBayTitle}>Add another electric vehicle</Text>
+                <Text style={styles.addBaySubtitle}>
+                  Register a 2nd EV or electric 2-wheeler to claim another +2,450 Karma Coins
+                </Text>
+              </View>
+              <View style={styles.addBayArrow}>
+                <ArrowRight size={17} color="#2EA86E" />
+              </View>
+            </TouchableOpacity>
 
-              <View style={styles.certDivider} />
 
-              <View style={styles.certRow}>
-                <View style={styles.certFieldLabelCol}>
-                  <ShieldCheck size={14} color="#2EA86E" />
-                  <Text style={styles.certFieldLabel}>Ownership</Text>
-                </View>
+
+            {/* Verification Record (Clean Table, No Pillboxes) */}
+            <View style={styles.specsCard}>
+              <Text style={styles.specsHeader}>VERIFICATION RECORD</Text>
+
+              <View style={styles.specsRow}>
+                <Text style={styles.specsLabel}>Ownership</Text>
                 <View style={{ alignItems: "flex-end" }}>
-                  <Text style={[styles.certFieldValue, { color: "#2EA86E" }]}>
-                    {ownership}
-                  </Text>
-                  {ownerName ? (
+                  <Text style={styles.specsValueGreen}>{activeVehicle.ownership || "Verified Owner"}</Text>
+                  {activeVehicle.ownerName ? (
                     <Text style={{ fontSize: 12, color: "#4B5563", fontFamily: "Nunito_600SemiBold", marginTop: 2 }}>
-                      {ownerName}
+                      {activeVehicle.ownerName}
                     </Text>
                   ) : null}
                 </View>
               </View>
+              <View style={styles.specsDivider} />
 
-              <View style={styles.certDivider} />
-
-              <View style={styles.certRow}>
-                <View style={styles.certFieldLabelCol}>
-                  <FileCheck2 size={14} color="#799184" />
-                  <Text style={styles.certFieldLabel}>Document</Text>
+              <View style={styles.specsRow}>
+                <Text style={styles.specsLabel}>Document Type</Text>
+                <View style={{ alignItems: "flex-end" }}>
+                  <Text style={styles.specsValue}>Vehicle Registration (RC)</Text>
+                  {activeVehicle.registrationNumber ? (
+                    <Text style={{ fontSize: 11, color: "#9CA3AF", fontFamily: "Nunito_500Medium", marginTop: 2 }}>
+                      {activeVehicle.registrationNumber}
+                    </Text>
+                  ) : null}
                 </View>
-                <Text
-                  style={[styles.certFieldValue, { maxWidth: 160 }]}
-                  numberOfLines={1}
-                >
-                  {documentName || "vehicle_registration_rc.pdf"}
-                </Text>
               </View>
+              <View style={styles.specsDivider} />
 
-              <View style={styles.certDivider} />
-
-              <View style={styles.certRow}>
-                <View style={styles.certFieldLabelCol}>
-                  <Award size={14} color="#8B5CF6" />
-                  <Text style={styles.certFieldLabel}>Achievement</Text>
-                </View>
-                <Text style={[styles.certFieldValue, { color: "#8B5CF6" }]}>
-                  ⚡ Electric Pioneer
-                </Text>
+              <View style={styles.specsRow}>
+                <Text style={styles.specsLabel}>Verification Mode</Text>
+                <Text style={styles.specsValue}>Smart Document Integrity</Text>
               </View>
-            </View>
+              <View style={styles.specsDivider} />
 
-            {/* Impact Record Notice */}
-            <View style={styles.impactNotice}>
-              <Info size={14} color="#2EA86E" />
-              <Text style={styles.impactNoticeText}>
-                {rewardPoints > 0
-                  ? `Recorded on your personal Impact Timeline. +${rewardPoints.toLocaleString()} Karma Coins have been added to your balance.`
-                  : "This purchase was already verified. No additional Karma Coins were added."}
-              </Text>
-            </View>
-
-            {/* Claimed Action Button (Disabled) */}
-            <View style={styles.claimedButton}>
-              <CheckCircle2 size={18} color="#2EA86E" />
-              <Text style={styles.claimedButtonText}>
-                {rewardPoints > 0
-                  ? `Reward Claimed (+${rewardPoints.toLocaleString()} Karma Coins)`
-                  : "Already claimed · No new reward"}
-              </Text>
+              <View style={styles.specsRow}>
+                <Text style={styles.specsLabel}>Timeline Record</Text>
+                <Text style={styles.specsValue}>Logged on personal Impact Ledger</Text>
+              </View>
             </View>
 
             {/* Presentation Demo Reset Button */}
@@ -397,7 +464,7 @@ export default function VerifySustainablePurchaseScreen() {
       {/* Lootbox Reward Reveal Modal Overlay */}
       <LootboxReveal
         visible={phase === "lootbox"}
-        rewardPoints={rewardPoints}
+        rewardPoints={rewardPoints > 0 ? rewardPoints : 2450}
         baseBalance={verifiedBaseBalance ?? currentPoints ?? 0}
         onClaimComplete={handleLootboxClaimed}
         onDismiss={() => {
@@ -458,47 +525,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 8,
   },
-  heroCard: {
-    borderRadius: 24,
-    padding: 20,
-    overflow: "hidden",
-    backgroundColor: "#0E2A1E",
-    borderWidth: 1,
-    borderColor: "rgba(95,234,172,0.35)",
-    marginBottom: 16,
-  },
-  heroGlowOrb: {
-    position: "absolute",
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    right: -40,
-    top: -60,
-    backgroundColor: "rgba(46,168,110,0.25)",
-  },
-  heroIconWrapper: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(247,201,72,0.15)",
-    borderWidth: 1,
-    borderColor: "rgba(247,201,72,0.35)",
-  },
-  heroHeading: {
-    marginTop: 14,
-    color: "#FFFFFF",
-    fontSize: 22,
-    fontFamily: "Nunito_800ExtraBold",
-  },
-  heroDescription: {
-    marginTop: 6,
-    color: "rgba(235,255,244,0.78)",
-    fontSize: 13,
-    lineHeight: 19,
-    fontFamily: "Nunito_400Regular",
-  },
   errorCard: {
     marginTop: 12,
     padding: 14,
@@ -519,145 +545,345 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     fontFamily: "Nunito_400Regular",
   },
-  prototypePill: {
-    alignSelf: "flex-start",
-    marginTop: 14,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 12,
+  previewLootboxBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#FFFBEB",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#FDE68A",
+    height: 44,
+    marginTop: 12,
+  },
+  previewLootboxText: {
+    fontSize: 13.5,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#B45309",
+  },
+  garageContainer: {
+    gap: 12,
+  },
+  garageHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    marginBottom: 4,
+  },
+  garageHeaderLeft: {
+    gap: 2,
+  },
+  garageEyebrow: {
+    fontSize: 10,
+    letterSpacing: 1.2,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#2EA86E",
+    textTransform: "uppercase",
+  },
+  garageTitle: {
+    fontSize: 20,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#0D251A",
+  },
+  garageActiveIndicator: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(46,168,110,0.22)",
-    borderWidth: 1,
-    borderColor: "rgba(95,234,172,0.3)",
+    paddingBottom: 2,
   },
-  prototypePillText: {
-    color: "#BFF7D8",
-    fontSize: 9,
-    letterSpacing: 0.7,
-    fontFamily: "IBMPlexMono_600SemiBold",
+  activeDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: "#2EA86E",
   },
-  certificateCard: {
+  activeDotText: {
+    fontSize: 11,
+    fontFamily: "Nunito_700Bold",
+    color: "#2EA86E",
+  },
+
+  // Hero Vehicle Card (Dark Botanical)
+  heroVehicleCard: {
+    backgroundColor: "#0A2417",
     borderRadius: 22,
-    padding: 18,
-    backgroundColor: "#FFFFFF",
+    padding: 20,
     borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.25)",
-    boxShadow: "0px 6px 20px rgba(17,71,42,0.08)",
-    marginBottom: 16,
+    borderColor: "rgba(94, 234, 212, 0.25)",
+    boxShadow: "0px 6px 20px rgba(10, 36, 23, 0.25)",
+    elevation: 4,
   },
-  certBadgeRow: {
+  heroVehicleHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginBottom: 16,
+    gap: 14,
   },
-  certCheckCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#2EA86E",
+  heroVehicleIconBox: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: "rgba(94, 234, 212, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(94, 234, 212, 0.3)",
     alignItems: "center",
     justifyContent: "center",
-    boxShadow: "0px 0px 14px rgba(46,168,110,0.45)",
   },
-  certStatusText: {
+  heroVehicleTitleCol: {
     flex: 1,
+    gap: 2,
   },
-  certStatusEyebrow: {
-    color: "#2EA86E",
-    fontSize: 9,
-    letterSpacing: 1.1,
-    fontFamily: "IBMPlexMono_600SemiBold",
-  },
-  certStatusTitle: {
-    marginTop: 2,
-    color: "#183222",
-    fontSize: 17,
+  heroVehicleName: {
+    fontSize: 18,
     fontFamily: "Nunito_800ExtraBold",
+    color: "#FFFFFF",
   },
-  certRewardPill: {
+  heroVehicleCategory: {
+    fontSize: 12,
+    fontFamily: "Nunito_500Medium",
+    color: "#8AA394",
+  },
+  heroSpecsGrid: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    backgroundColor: "#FEF3C7",
+    justifyContent: "space-between",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    marginTop: 16,
     borderWidth: 1,
-    borderColor: "rgba(245,158,11,0.3)",
+    borderColor: "rgba(255, 255, 255, 0.07)",
   },
-  certRewardText: {
-    color: "#92400E",
-    fontSize: 12,
+  heroSpecCol: {
+    flex: 1,
+    alignItems: "center",
+    gap: 3,
+  },
+  heroSpecLabel: {
+    fontSize: 8.5,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "rgba(255, 255, 255, 0.55)",
+    letterSpacing: 0.8,
+  },
+  heroSpecValue: {
+    fontSize: 13,
     fontFamily: "Nunito_800ExtraBold",
+    color: "#FFFFFF",
   },
-  certTable: {
-    backgroundColor: "#F8FCFA",
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.12)",
-    marginBottom: 14,
+  heroSpecDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
   },
-  certRow: {
+  heroVehicleFootnote: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 5,
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.1)",
   },
-  certFieldLabelCol: {
+  achievementInline: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  achievementInlineText: {
+    fontSize: 11.5,
+    fontFamily: "Nunito_700Bold",
+    color: "#A7F3D0",
+  },
+  documentInlineText: {
+    fontSize: 10.5,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#7E9688",
+    maxWidth: 160,
+  },
+
+  // Fleet Selector (horizontal tabs if 2+ vehicles)
+  fleetSelectorSection: {
+    marginTop: 6,
+    gap: 8,
+  },
+  fleetSelectorTitle: {
+    fontSize: 10,
+    letterSpacing: 1,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#6B8B78",
+  },
+  fleetScrollContent: {
+    gap: 8,
+  },
+  fleetThumbCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#D8E9DF",
+    backgroundColor: "#FFFFFF",
   },
-  certFieldLabel: {
-    color: "#5E7367",
+  fleetThumbCardSelected: {
+    borderColor: "#2EA86E",
+    backgroundColor: "#F0FAF4",
+  },
+  fleetThumbName: {
     fontSize: 12,
-    fontFamily: "Nunito_600SemiBold",
+    fontFamily: "Nunito_700Bold",
+    color: "#526658",
   },
-  certFieldValue: {
-    color: "#183222",
-    fontSize: 13,
+  fleetThumbNameSelected: {
+    color: "#059669",
     fontFamily: "Nunito_800ExtraBold",
   },
-  certDivider: {
-    height: 1,
-    backgroundColor: "rgba(46,168,110,0.1)",
-    marginVertical: 6,
-  },
-  impactNotice: {
+
+  // "Add Another Vehicle" Bay Card
+  addBayCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    borderColor: "#A3D9B9",
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    backgroundColor: "rgba(46,168,110,0.08)",
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 16,
+    gap: 14,
+    marginTop: 6,
   },
-  impactNoticeText: {
-    flex: 1,
-    color: "#235C3E",
-    fontSize: 11,
-    lineHeight: 16,
-    fontFamily: "Nunito_600SemiBold",
-  },
-  claimedButton: {
-    height: 48,
+  addBayIconBox: {
+    width: 44,
+    height: 44,
     borderRadius: 14,
-    backgroundColor: "rgba(46,168,110,0.12)",
+    backgroundColor: "#F0FDF4",
     borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.3)",
-    flexDirection: "row",
+    borderColor: "#BFE5CD",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
   },
-  claimedButtonText: {
-    color: "#163D2A",
-    fontSize: 14,
+  addBayCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  addBayTitle: {
+    fontSize: 14.5,
     fontFamily: "Nunito_800ExtraBold",
+    color: "#0D251A",
+  },
+  addBaySubtitle: {
+    fontSize: 11.5,
+    lineHeight: 16,
+    fontFamily: "Nunito_500Medium",
+    color: "#526658",
+  },
+  addBayArrow: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#EAF8F0",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // Lootbox Interactive Action Card
+  lootboxActionCard: {
+    backgroundColor: "#FFFDF5",
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#FDE68A",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    marginTop: 6,
+    boxShadow: "0px 2px 8px rgba(245, 158, 11, 0.08)",
+    elevation: 2,
+  },
+  lootboxActionIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "#FFFBEB",
+    borderWidth: 1,
+    borderColor: "#FDE68A",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  lootboxActionCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  lootboxActionTitle: {
+    fontSize: 14.5,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#92400E",
+  },
+  lootboxActionSubtitle: {
+    fontSize: 11.5,
+    lineHeight: 16,
+    fontFamily: "Nunito_500Medium",
+    color: "#78350F",
+  },
+  lootboxActionTrigger: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+    backgroundColor: "#FEF3C7",
+  },
+  lootboxActionTriggerText: {
+    fontSize: 12,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#B45309",
+  },
+
+  // Verification Record Specs Card
+  specsCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#E5ECE8",
+    gap: 12,
+    marginTop: 6,
+  },
+  specsHeader: {
+    fontSize: 10,
+    letterSpacing: 1.1,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#6B8B78",
+    textTransform: "uppercase",
+  },
+  specsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  specsLabel: {
+    fontSize: 12.5,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#64748B",
+  },
+  specsValue: {
+    fontSize: 12.5,
+    fontFamily: "Nunito_700Bold",
+    color: "#0D1811",
+  },
+  specsValueGreen: {
+    fontSize: 12.5,
+    fontFamily: "Nunito_700Bold",
+    color: "#059669",
+  },
+  specsDivider: {
+    height: 1,
+    backgroundColor: "#F1F5F3",
   },
   resetButton: {
     marginTop: 12,

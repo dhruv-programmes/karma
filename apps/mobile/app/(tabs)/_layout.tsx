@@ -27,6 +27,7 @@ import {
   TAB_DOCK_BOTTOM_GAP,
   TAB_DOCK_HEIGHT,
 } from "@/src/theme/layout";
+import { KarmaChatBot } from "@/components/custom/karma-chatbot";
 
 type TabBarProps = {
   state: { routes: { key: string; name: string }[]; index: number };
@@ -463,23 +464,29 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
   },
+  screenWrapper: {
+    flex: 1,
+  },
 });
 
 export default function TabsLayout() {
   return (
-    <Tabs
-      tabBar={(props) => <CustomTabBar {...props} />}
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Tabs.Screen name="index" options={{ title: "Home" }} />
-      <Tabs.Screen name="tools" options={{ title: "Tools" }} />
-      <Tabs.Screen name="actions" options={{ title: "Actions" }} />
-      <Tabs.Screen name="community" options={{ title: "Community" }} />
-      <Tabs.Screen name="impact" options={{ title: "Impact", href: null }} />
-      <Tabs.Screen name="offers" options={{ title: "Offers", href: null }} />
-      <Tabs.Screen name="profile" options={{ title: "Profile", href: null }} />
-    </Tabs>
+    <View style={styles.screenWrapper}>
+      <Tabs
+        tabBar={(props) => <CustomTabBar {...props} />}
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
+        <Tabs.Screen name="index" options={{ title: "Home" }} />
+        <Tabs.Screen name="tools" options={{ title: "Tools" }} />
+        <Tabs.Screen name="actions" options={{ title: "Actions" }} />
+        <Tabs.Screen name="community" options={{ title: "Community" }} />
+        <Tabs.Screen name="impact" options={{ title: "Impact", href: null }} />
+        <Tabs.Screen name="offers" options={{ title: "Offers", href: null }} />
+        <Tabs.Screen name="profile" options={{ title: "Profile", href: null }} />
+      </Tabs>
+      <KarmaChatBot />
+    </View>
   );
 }

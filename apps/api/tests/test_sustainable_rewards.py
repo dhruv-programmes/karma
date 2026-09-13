@@ -79,3 +79,21 @@ def test_reset_reverses_actual_award_not_a_hardcoded_amount():
     assert reset["reward_points"] == 0
     assert reset["provider"] == "MockVerificationProvider"
     db.close()
+
+
+def test_distinct_model_documents_can_add_multiple_vehicle_assets():
+    db = _db()
+    user = _user(db)
+    first = verify_sustainable_purchase("ev-receipt.pdf", "application/pdf", 2_000_000, user, db)
+    second = verify_sustainable_purchase("second-car.pdf", "application/pdf", 2_000_000, user, db, allow_multiple=True)
+    replay = verify_sustainable_purchase("second-car.pdf", "application/pdf", 2_000_000, user, db, allow_multiple=True)
+
+    assert first["vehicle_make_model"] == "Tata Nexon EV"
+    assert second["vehicle_make_model"] == "Electric Vehicle 2"
+    assert second["already_claimed"] is False
+    assert replay["already_claimed"] is True
+    assert db.query(ActivityEventModel).filter(
+        ActivityEventModel.user_id == user.id,
+        ActivityEventModel.kind == "sustainable_purchase_verification",
+    ).count() == 2
+    db.close()

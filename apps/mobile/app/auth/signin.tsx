@@ -16,7 +16,6 @@ import {
   UserCheck,
 } from "lucide-react-native";
 import { Image } from "react-native";
-import { DecorativeBackground } from "@/components/custom/decorative-background";
 import Svg, { Path } from "react-native-svg";
 import { useQueryClient } from "@tanstack/react-query";
 import { Avatar } from "@/components/ui/avatar";
@@ -61,7 +60,7 @@ const FALLBACK_DEMO_USERS: DemoUserSummary[] = [
     id: "11111111-1111-1111-1111-111111111111",
     name: "Aisha Sharma",
     email: "aisha@example.com",
-    role_description: "Urban Commuter · Carbon Credit Score 740 · 420 Karma Coins",
+    role_description: "Urban eco builder · Carbon Credit Score 740 · 420 Karma Coins",
     circularity_score: 74,
     impact_points: 420,
     streak_days: 5,
@@ -221,28 +220,55 @@ export default function SignInScreen() {
 
   return (
     <Box
-      className="flex-1 bg-background"
+      className="flex-1"
       style={{
+        backgroundColor: "#F4F8F5",
         paddingTop: insets.top + 16,
         paddingBottom: insets.bottom + 20,
         paddingHorizontal: 24,
       }}
     >
-      <DecorativeBackground />
+      {/* 1. Full-Screen Botanical Background (matching Welcome screen) */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+        }}
+      >
+        <Image
+          source={require("@/assets/carbon-loop-welcome-bg.jpg")}
+          style={{
+            width: "100%",
+            height: "100%",
+          }}
+          resizeMode="cover"
+        />
+      </View>
 
       {/* Top Header */}
       <HStack className="items-center justify-between mb-4">
         <Pressable
           onPress={handleBack}
-          className="w-10 h-10 rounded-full bg-card items-center justify-center border border-border"
+          className="w-10 h-10 rounded-full bg-white/90 items-center justify-center border border-[#E1EDE4]"
+          style={{
+            shadowColor: "#184A2C",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.06,
+            shadowRadius: 6,
+            elevation: 1,
+          }}
           hitSlop={8}
         >
-          <ArrowLeft size={18} color="rgb(28,42,36)" />
+          <ArrowLeft size={18} color="#112318" />
         </Pressable>
 
         <Image
           source={require("@/assets/karma-text.png")}
-          style={{ width: 90, height: 26 }}
+          style={{ width: 100, height: 28 }}
           resizeMode="contain"
         />
 
@@ -257,10 +283,10 @@ export default function SignInScreen() {
       >
         {/* Title */}
         <VStack space="xs" className="mt-1">
-          <Heading size="2xl" className="font-heading text-foreground">
+          <Heading size="2xl" className="font-heading text-[#112318] text-[29px] leading-tight">
             Welcome back
           </Heading>
-          <Text size="sm" className="text-muted-foreground mt-1 leading-relaxed font-body">
+          <Text size="sm" className="text-[#527060] mt-1 leading-relaxed font-body">
             Sign in to track your circular actions and impact.
           </Text>
         </VStack>
@@ -278,10 +304,17 @@ export default function SignInScreen() {
           <Pressable
             onPress={handleGoogleSignIn}
             disabled={loading}
-            className="w-full h-13 rounded-2xl bg-card border border-border flex-row items-center justify-center gap-3 px-3 active:bg-secondary/40"
+            className="w-full h-13 rounded-2xl bg-white/95 border border-[#E1EDE4] flex-row items-center justify-center gap-3 px-3 active:bg-[#F4F8F5]"
+            style={{
+              shadowColor: "#184A2C",
+              shadowOffset: { width: 0, height: 3 },
+              shadowOpacity: 0.05,
+              shadowRadius: 6,
+              elevation: 1,
+            }}
           >
             <GoogleLogo />
-            <Text bold size="sm" numberOfLines={1} className="shrink min-w-0 text-foreground font-body">
+            <Text bold size="sm" numberOfLines={1} className="shrink min-w-0 text-[#112318] font-body">
               Continue with Google
             </Text>
           </Pressable>
@@ -289,29 +322,38 @@ export default function SignInScreen() {
 
         {/* Divider */}
         <HStack className="items-center gap-3 my-0.5">
-          <Box className="flex-1 h-[1px] bg-border" />
+          <Box className="flex-1 h-[1px] bg-[#DCEAE0]" />
           <Text
             size="xs"
             numberOfLines={1}
-            className="shrink min-w-0 text-muted-foreground font-body uppercase tracking-wider"
+            className="shrink min-w-0 text-[#6C8879] font-body uppercase tracking-wider text-[11px]"
           >
             or sign in with email
           </Text>
-          <Box className="flex-1 h-[1px] bg-border" />
+          <Box className="flex-1 h-[1px] bg-[#DCEAE0]" />
         </HStack>
 
         {/* Credentials Form */}
-        <Card variant="outline" className="p-4 gap-4 border-border">
+        <View
+          className="p-5 gap-4 rounded-[24px] bg-white/95 border border-[#E1EDE4]"
+          style={{
+            shadowColor: "#184A2C",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.06,
+            shadowRadius: 10,
+            elevation: 2,
+          }}
+        >
           <VStack space="xs">
-            <Text size="xs" bold className="text-foreground font-body">
+            <Text size="xs" bold className="text-[#112318] font-body">
               Email address
             </Text>
-            <Box className="flex-row items-center h-12 px-3.5 rounded-xl border border-border bg-card">
-              <Mail size={18} color="rgb(100,120,110)" />
+            <Box className="flex-row items-center h-12 px-3.5 rounded-xl border border-[#DCEAE0] bg-[#FAFCFA]">
+              <Mail size={18} color="#527060" />
               <TextInput
-                className="flex-1 ml-3 text-foreground font-body text-sm"
+                className="flex-1 ml-3 text-[#112318] font-body text-sm"
                 placeholder="you@example.com"
-                placeholderTextColor="rgb(150,170,160)"
+                placeholderTextColor="#8CA698"
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
@@ -321,24 +363,24 @@ export default function SignInScreen() {
           </VStack>
 
           <VStack space="xs">
-            <Text size="xs" bold className="text-foreground font-body">
+            <Text size="xs" bold className="text-[#112318] font-body">
               Password
             </Text>
-            <Box className="flex-row items-center h-12 px-3.5 rounded-xl border border-border bg-card">
-              <Lock size={18} color="rgb(100,120,110)" />
+            <Box className="flex-row items-center h-12 px-3.5 rounded-xl border border-[#DCEAE0] bg-[#FAFCFA]">
+              <Lock size={18} color="#527060" />
               <TextInput
-                className="flex-1 ml-3 text-foreground font-body text-sm"
+                className="flex-1 ml-3 text-[#112318] font-body text-sm"
                 placeholder="••••••••"
-                placeholderTextColor="rgb(150,170,160)"
+                placeholderTextColor="#8CA698"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
               />
               <Pressable onPress={() => setShowPassword(!showPassword)} hitSlop={8}>
                 {showPassword ? (
-                  <EyeOff size={18} color="rgb(100,120,110)" />
+                  <EyeOff size={18} color="#527060" />
                 ) : (
-                  <Eye size={18} color="rgb(100,120,110)" />
+                  <Eye size={18} color="#527060" />
                 )}
               </Pressable>
             </Box>
@@ -347,78 +389,88 @@ export default function SignInScreen() {
           <Button
             onPress={() => handleSignIn()}
             disabled={loading}
-            className="mt-1 h-12 rounded-xl bg-primary opacity-100"
+            className="mt-1 h-12 rounded-xl bg-[#1E5E3A] active:bg-[#16472C] opacity-100"
           >
             {loading ? (
               <HStack className="items-center gap-2 min-w-0">
                 <ActivityIndicator color="white" size="small" />
-                <ButtonText className="text-primary-foreground font-body">
+                <ButtonText className="text-white font-body">
                   Signing in...
                 </ButtonText>
               </HStack>
             ) : (
               <HStack className="items-center justify-center gap-2 min-w-0">
-                <ButtonText className="text-primary-foreground font-body">
+                <ButtonText className="text-white font-body font-bold">
                   Sign In
                 </ButtonText>
                 <ArrowRight size={16} color="white" />
               </HStack>
             )}
           </Button>
-        </Card>
+        </View>
 
-        {/* Separated Demo Evaluator Card */}
-        <Card variant="soft" className="p-4 gap-3 border border-primary/20 bg-secondary/60">
-          <HStack className="items-center gap-2 min-w-0">
-            <UserCheck size={16} color="rgb(46,168,110)" />
+        {/* Profiles Card */}
+        <View
+          className="p-3.5 gap-2.5 rounded-[20px] border border-[#D4E8DC] bg-white/85"
+          style={{
+            shadowColor: "#184A2C",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.04,
+            shadowRadius: 6,
+            elevation: 1,
+          }}
+        >
+          <HStack className="items-center gap-1.5 min-w-0">
+            <UserCheck size={15} color="#1E5E3A" />
             <Text
               size="xs"
               bold
               numberOfLines={1}
-              className="flex-1 min-w-0 shrink text-primary tracking-wider uppercase font-mono"
+              className="text-[#1E5E3A] tracking-wider uppercase font-mono text-[11px]"
             >
-              Judge & Hackathon Evaluation
+              Profiles
             </Text>
           </HStack>
-          <Text size="xs" className="text-muted-foreground font-body">
-            One-tap instant preview of pre-seeded user profiles with distinct scores:
-          </Text>
 
           <VStack space="xs">
             {demoUsers.map((persona) => (
               <Pressable
                 key={persona.id}
                 onPress={() => launchDemoPersona(persona)}
-                className="p-3 rounded-xl bg-card border border-border/70 flex-row items-center justify-between gap-2 active:bg-secondary"
+                className="h-10 px-3 rounded-xl bg-white border border-[#E1EDE4] flex-row items-center justify-between active:bg-[#F4F8F5]"
               >
                 <HStack className="items-center gap-2.5 flex-1 min-w-0">
-                  <Avatar name={persona.name} size="sm" />
-                  <VStack className="flex-1 min-w-0">
-                    <Text bold size="sm" numberOfLines={1} className="text-foreground font-body">
-                      {persona.name}
+                  <View className="w-6 h-6 rounded-full bg-[#E2F2E8] items-center justify-center border border-[#C5E4D2]">
+                    <Text className="text-[11px] font-bold text-[#1E5E3A]">
+                      {persona.name[0]}
                     </Text>
-                    <Text size="xs" numberOfLines={1} className="text-muted-foreground font-body">
-                      {persona.role_description}
-                    </Text>
-                  </VStack>
+                  </View>
+                  <Text
+                    bold
+                    size="xs"
+                    numberOfLines={1}
+                    className="text-[#112318] font-body"
+                  >
+                    {persona.name}
+                  </Text>
                 </HStack>
-                <ArrowRight size={14} color="rgb(46,168,110)" />
+                <ArrowRight size={13} color="#1E5E3A" />
               </Pressable>
             ))}
           </VStack>
-        </Card>
+        </View>
       </ScrollView>
 
       {/* Footer Navigation */}
       <HStack className="justify-center items-center gap-1.5 pt-2">
-        <Text size="sm" className="text-muted-foreground font-body">
+        <Text size="sm" className="text-[#527060] font-body">
           Don't have an account?
         </Text>
         <Pressable
           onPress={() => router.push("/onboarding/account" as import("expo-router").Href)}
           hitSlop={8}
         >
-          <Text size="sm" bold className="text-primary font-body">
+          <Text size="sm" bold className="text-[#1E5E3A] font-body">
             Get started
           </Text>
         </Pressable>

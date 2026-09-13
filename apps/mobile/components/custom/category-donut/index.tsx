@@ -1,13 +1,12 @@
-import React, { useState } from "react";
+import React from "react";
 import { View, StyleSheet } from "react-native";
 import { PieChart } from "react-native-gifted-charts";
-import { PieChart as PieChartIcon } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 
 const COLOR_MAP = {
-  purchases: "#2EA86E", // Emerald Green
-  transport: "#0284C7", // Sky Blue
-  energy: "#F59E0B",    // Warm Solar Amber
+  purchases: "#2EA86E",
+  transport: "#3B82F6",
+  energy: "#F59E0B",
 };
 
 export function CategoryDonut({
@@ -19,8 +18,6 @@ export function CategoryDonut({
   transport: number;
   energy: number;
 }) {
-  const [containerWidth, setContainerWidth] = useState(0);
-
   const safePurchases = Math.max(0, purchases);
   const safeTransport = Math.max(0, transport);
   const safeEnergy = Math.max(0, energy);
@@ -39,7 +36,6 @@ export function CategoryDonut({
       value: safePurchases,
       pct: purchasesPct,
       color: COLOR_MAP.purchases,
-      sub: "Goods & groceries",
     },
     {
       key: "transport",
@@ -47,7 +43,6 @@ export function CategoryDonut({
       value: safeTransport,
       pct: transportPct,
       color: COLOR_MAP.transport,
-      sub: "Commute & transit",
     },
     {
       key: "energy",
@@ -55,59 +50,39 @@ export function CategoryDonut({
       value: safeEnergy,
       pct: energyPct,
       color: COLOR_MAP.energy,
-      sub: "Home & utilities",
     },
   ];
 
-  // Gifted-charts pie data
   const chartData = rows.map((r) => ({
     value: Math.max(0.1, r.value),
     color: r.color,
     text: `${r.pct}%`,
   }));
 
-  // Find dominant source
-  const dominant = [...rows].sort((a, b) => b.value - a.value)[0];
-
   return (
-    <View
-      style={styles.card}
-      onLayout={(e) => {
-        const w = e.nativeEvent.layout.width;
-        if (w > 0) setContainerWidth(w);
-      }}
-    >
-      {/* Card Header */}
+    <View style={styles.card}>
+      {/* Clean Header */}
       <View style={styles.cardHeader}>
-        <View style={styles.headerLeft}>
-          <View style={styles.iconCircle}>
-            <PieChartIcon size={18} color="#2EA86E" strokeWidth={2.2} />
-          </View>
-          <View style={styles.headerInfo}>
-            <Text style={styles.title}>Emissions Breakdown</Text>
-            <Text style={styles.subtitle}>
-              Distribution across lifestyle sources
-            </Text>
-          </View>
-        </View>
-        <View style={styles.totalBadge}>
-          <Text style={styles.totalBadgeText}>~{Math.round(total)} kg</Text>
+        <View style={styles.headerInfo}>
+          <Text style={styles.title}>Emissions Breakdown</Text>
+          <Text style={styles.subtitle}>
+            Distribution across lifestyle categories
+          </Text>
         </View>
       </View>
 
       {/* Main Chart + Legend Section */}
       <View style={styles.chartAndLegend}>
-        {/* Donut Container with guaranteed compact dimensions */}
+        {/* Compact Donut */}
         <View style={styles.donutWrapper}>
           <PieChart
             data={chartData}
             donut
-            radius={52}
-            innerRadius={32}
+            radius={48}
+            innerRadius={30}
             innerCircleColor="#FFFFFF"
             centerLabelComponent={() => (
               <View style={styles.centerLabel}>
-                <Text style={styles.centerLabelSub}>TOTAL</Text>
                 <Text style={styles.centerLabelNum}>~{Math.round(total)}</Text>
                 <Text style={styles.centerLabelUnit}>kg CO₂</Text>
               </View>
@@ -123,28 +98,19 @@ export function CategoryDonut({
                 <View style={styles.legendNameWrap}>
                   <View style={[styles.colorDot, { backgroundColor: r.color }]} />
                   <Text style={styles.legendLabel}>{r.label}</Text>
-                  <View
-                    style={[
-                      styles.pctPill,
-                      { backgroundColor: `${r.color}18` },
-                    ]}
-                  >
-                    <Text style={[styles.pctText, { color: r.color }]}>
-                      {r.pct}%
-                    </Text>
-                  </View>
+                  <Text style={styles.pctText}>{r.pct}%</Text>
                 </View>
                 <Text style={styles.legendKg}>~{Math.round(r.value)} kg</Text>
               </View>
 
-              {/* Progress Bar Proportion */}
+              {/* Quiet mini progress bar */}
               <View style={styles.progressBarTrack}>
                 <View
                   style={[
                     styles.progressBarFill,
                     {
                       backgroundColor: r.color,
-                      width: `${Math.min(100, Math.max(4, r.pct))}%`,
+                      width: `${Math.min(100, Math.max(3, r.pct))}%`,
                     },
                   ]}
                 />
@@ -153,14 +119,6 @@ export function CategoryDonut({
           ))}
         </View>
       </View>
-
-      {/* Footnote callout */}
-      <View style={styles.footnoteRow}>
-        <Text style={styles.footnoteText}>
-          {dominant.label} is your top emission source ({dominant.pct}%).
-          Reducing this has the fastest impact on your monthly footprint.
-        </Text>
-      </View>
     </View>
   );
 }
@@ -168,94 +126,61 @@ export function CategoryDonut({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 16,
+    borderRadius: 18,
+    padding: 18,
     borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.16)",
-    boxShadow: "0px 2px 8px rgba(0,0,0,0.04)",
-    elevation: 2,
+    borderColor: "#E5ECE8",
+    boxShadow: "0px 1px 4px rgba(0,0,0,0.03)",
+    elevation: 1,
     gap: 14,
   },
   cardHeader: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
-  },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    flex: 1,
-  },
-  iconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#F0FDF4",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.2)",
   },
   headerInfo: {
     flex: 1,
   },
   title: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: "Nunito_800ExtraBold",
     color: "#0D1811",
+    letterSpacing: -0.2,
   },
   subtitle: {
-    fontSize: 11,
-    fontFamily: "Nunito_400Regular",
-    color: "#526658",
-    marginTop: 1,
-  },
-  totalBadge: {
-    backgroundColor: "#F0FDF4",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.2)",
-  },
-  totalBadgeText: {
-    fontSize: 11,
-    fontFamily: "IBMPlexMono_600SemiBold",
-    color: "#059669",
+    fontSize: 12,
+    fontFamily: "Nunito_500Medium",
+    color: "#64748B",
+    marginTop: 2,
   },
   chartAndLegend: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
+    gap: 16,
     width: "100%",
   },
   donutWrapper: {
     alignItems: "center",
     justifyContent: "center",
-    width: 108,
-    height: 108,
+    width: 96,
+    height: 96,
   },
   centerLabel: {
     alignItems: "center",
     justifyContent: "center",
   },
-  centerLabelSub: {
-    fontSize: 8,
-    fontFamily: "Nunito_800ExtraBold",
-    color: "#7A9082",
-    letterSpacing: 0.5,
-  },
   centerLabelNum: {
-    fontSize: 13,
+    fontSize: 15,
     fontFamily: "IBMPlexMono_600SemiBold",
     color: "#0D1811",
-    lineHeight: 16,
+    lineHeight: 18,
   },
   centerLabelUnit: {
-    fontSize: 7.5,
-    fontFamily: "Nunito_600SemiBold",
-    color: "#7A9082",
+    fontSize: 8,
+    fontFamily: "Nunito_700Bold",
+    color: "#94A3B8",
+    marginTop: 1,
   },
   legendWrapper: {
     flex: 1,
@@ -277,31 +202,28 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   colorDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
   legendLabel: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontFamily: "Nunito_700Bold",
-    color: "#183222",
-  },
-  pctPill: {
-    paddingHorizontal: 5,
-    paddingVertical: 1.5,
-    borderRadius: 6,
+    color: "#0D1811",
   },
   pctText: {
-    fontSize: 9.5,
-    fontFamily: "Nunito_800ExtraBold",
+    fontSize: 11,
+    fontFamily: "IBMPlexMono_500Medium",
+    color: "#94A3B8",
+    marginLeft: 2,
   },
   legendKg: {
-    fontSize: 11.5,
+    fontSize: 12.5,
     fontFamily: "IBMPlexMono_600SemiBold",
-    color: "#526658",
+    color: "#475569",
   },
   progressBarTrack: {
-    height: 4,
+    height: 3.5,
     backgroundColor: "#F1F5F3",
     borderRadius: 2,
     overflow: "hidden",
@@ -310,19 +232,5 @@ const styles = StyleSheet.create({
   progressBarFill: {
     height: "100%",
     borderRadius: 2,
-  },
-  footnoteRow: {
-    backgroundColor: "#F8FAF9",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#E5ECE8",
-  },
-  footnoteText: {
-    fontSize: 11,
-    fontFamily: "Nunito_600SemiBold",
-    color: "#166534",
-    lineHeight: 15,
   },
 });

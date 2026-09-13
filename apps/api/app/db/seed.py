@@ -616,22 +616,23 @@ def seed_database_if_empty(db: Session) -> None:
 
         # Maya's transactions (high frequency quick-commerce & ride hailing)
         maya_txns = [
-            ("2026-02-02", "Uber Premier HSR to Indiranagar", 420, ProductCategory.TRANSPORT),
-            ("2026-02-05", "Swiggy Gourmet Dinner", 850, ProductCategory.FOOD),
-            ("2026-02-09", "Zepto 10-minute Groceries", 650, ProductCategory.FOOD),
+            ("2026-02-02", "Uber Premier HSR to Indiranagar", 620, ProductCategory.TRANSPORT),
+            ("2026-02-05", "Swiggy Gourmet Dinner", 1250, ProductCategory.FOOD),
+            ("2026-02-09", "Zepto Express Groceries", 850, ProductCategory.FOOD),
             ("2026-02-13", "Amazon Fast Delivery Electronics", 2499, ProductCategory.ELECTRONICS),
-            ("2026-02-17", "Uber Ride Indiranagar", 380, ProductCategory.TRANSPORT),
-            ("2026-02-22", "BESCOM High Consumption Bill", 3200, ProductCategory.ENERGY),
+            ("2026-02-17", "Uber Ride Indiranagar", 580, ProductCategory.TRANSPORT),
+            ("2026-02-22", "BESCOM High Consumption Bill", 4200, ProductCategory.ENERGY),
             ("2026-02-25", "Blinkit Late Night Order", 720, ProductCategory.FOOD),
-            ("2026-03-01", "Uber Premier Airport Ride", 1100, ProductCategory.TRANSPORT),
-            ("2026-03-04", "Nykaa Cosmetics & Beauty Care", 1450, ProductCategory.PERSONAL_CARE),
-            ("2026-03-07", "Zomato Delivery Bowl", 480, ProductCategory.FOOD),
-            ("2026-03-10", "Croma Gadget Charger Replacement", 1299, ProductCategory.ELECTRONICS),
-            ("2026-03-13", "Uber Trip Whitefield", 540, ProductCategory.TRANSPORT),
-            ("2026-03-16", "BESCOM AC Usage Billing", 3600, ProductCategory.ENERGY),
-            ("2026-03-20", "Swiggy Lunch Order", 390, ProductCategory.FOOD),
-            ("2026-03-23", "Zepto Snacks & Essentials", 510, ProductCategory.FOOD),
-            ("2026-03-25", "Uber Commute", 280, ProductCategory.TRANSPORT),
+            ("2026-03-01", "Uber Premier Airport Ride", 2200, ProductCategory.TRANSPORT),
+            ("2026-03-04", "Nykaa Cosmetics & Beauty Care", 2450, ProductCategory.PERSONAL_CARE),
+            ("2026-03-07", "Zomato Delivery Bowl", 980, ProductCategory.FOOD),
+            ("2026-03-10", "Croma New Wireless Earbuds", 3999, ProductCategory.ELECTRONICS),
+            ("2026-03-13", "Uber Trip Whitefield", 840, ProductCategory.TRANSPORT),
+            ("2026-03-16", "BESCOM Dual AC Usage Billing", 5800, ProductCategory.ENERGY),
+            ("2026-03-20", "Swiggy Lunch Order", 790, ProductCategory.FOOD),
+            ("2026-03-22", "IndiGo Flight Bengaluru-Mumbai", 6500, ProductCategory.TRANSPORT),
+            ("2026-03-23", "Zepto Snacks & Essentials", 850, ProductCategory.FOOD),
+            ("2026-03-25", "Uber Commute Cab", 680, ProductCategory.TRANSPORT),
         ]
         for dt, merch, amt, cat in maya_txns:
             est = estimate_from_spend(cat, amt)
@@ -662,3 +663,90 @@ def seed_database_if_empty(db: Session) -> None:
     _backfill_usernames(db)
     _seed_challenges_and_friendships(db)
     _seed_league_definitions_and_states(db)
+    _reseed_demo_transactions(db)
+
+def _reseed_demo_transactions(db: Session) -> None:
+    """Refresh demo user transactions with calibrated, realistic carbon footprints."""
+    from app.engines.carbon import estimate_from_spend
+    # Reseed Aisha
+    aisha = db.query(UserModel).filter(UserModel.email == "aisha@example.com").first()
+    if aisha:
+        db.query(TransactionModel).filter(TransactionModel.user_id == aisha.id).delete()
+        for t in TRANSACTIONS:
+            est = estimate_from_spend(t.category, t.amount_inr)
+            db.add(TransactionModel(
+                id=str(t.id),
+                user_id=aisha.id,
+                date=t.date,
+                merchant=t.merchant,
+                amount_inr=float(t.amount_inr),
+                category=t.category.value,
+                co2e_kg=float(est.estimated_co2e_kg),
+            ))
+
+    # Reseed Rohan
+    rohan = db.query(UserModel).filter(UserModel.email == "rohan@example.com").first()
+    if rohan:
+        db.query(TransactionModel).filter(TransactionModel.user_id == rohan.id).delete()
+        rohan_txns = [
+            ("2026-02-04", "Namma Metro Card Recharge", 300, ProductCategory.TRANSPORT),
+            ("2026-02-08", "Koramangala Repair Clinic Spare", 450, ProductCategory.ELECTRONICS),
+            ("2026-02-12", "Organic Farmers Market Indiranagar", 680, ProductCategory.FOOD),
+            ("2026-02-16", "BESCOM Solar Meter Billing", 620, ProductCategory.ENERGY),
+            ("2026-02-21", "BMTC Monthly Smart Card", 400, ProductCategory.TRANSPORT),
+            ("2026-02-27", "Secondhand Books Church Street", 250, ProductCategory.OTHER),
+            ("2026-03-02", "Jayanagar Cobbler Sole Fix", 180, ProductCategory.CLOTHING),
+            ("2026-03-05", "Namma Metro Card Recharge", 350, ProductCategory.TRANSPORT),
+            ("2026-03-08", "BESCOM Electricity Base", 590, ProductCategory.ENERGY),
+            ("2026-03-12", "Saahas Zero Waste Composting Bags", 290, ProductCategory.HOME),
+            ("2026-03-15", "BMTC Smart Card Tap", 120, ProductCategory.TRANSPORT),
+            ("2026-03-19", "Wildcraft Zipper Repair Service", 200, ProductCategory.CLOTHING),
+            ("2026-03-22", "GreenCart Local Refill Station", 420, ProductCategory.FOOD),
+            ("2026-03-25", "Namma Metro Pass", 250, ProductCategory.TRANSPORT),
+        ]
+        for dt, merch, amt, cat in rohan_txns:
+            est = estimate_from_spend(cat, amt)
+            db.add(TransactionModel(
+                user_id=rohan.id,
+                date=dt,
+                merchant=merch,
+                amount_inr=float(amt),
+                category=cat.value,
+                co2e_kg=float(est.estimated_co2e_kg),
+            ))
+
+    # Reseed Maya
+    maya = db.query(UserModel).filter(UserModel.email == "maya@example.com").first()
+    if maya:
+        db.query(TransactionModel).filter(TransactionModel.user_id == maya.id).delete()
+        maya_txns = [
+            ("2026-02-02", "Uber Premier HSR to Indiranagar", 620, ProductCategory.TRANSPORT),
+            ("2026-02-05", "Swiggy Gourmet Dinner", 1250, ProductCategory.FOOD),
+            ("2026-02-09", "Zepto Express Groceries", 850, ProductCategory.FOOD),
+            ("2026-02-13", "Amazon Fast Delivery Electronics", 2499, ProductCategory.ELECTRONICS),
+            ("2026-02-17", "Uber Ride Indiranagar", 580, ProductCategory.TRANSPORT),
+            ("2026-02-22", "BESCOM High Consumption Bill", 4200, ProductCategory.ENERGY),
+            ("2026-02-25", "Blinkit Late Night Order", 720, ProductCategory.FOOD),
+            ("2026-03-01", "Uber Premier Airport Ride", 2200, ProductCategory.TRANSPORT),
+            ("2026-03-04", "Nykaa Cosmetics & Beauty Care", 2450, ProductCategory.PERSONAL_CARE),
+            ("2026-03-07", "Zomato Delivery Bowl", 980, ProductCategory.FOOD),
+            ("2026-03-10", "Croma New Wireless Earbuds", 3999, ProductCategory.ELECTRONICS),
+            ("2026-03-13", "Uber Trip Whitefield", 840, ProductCategory.TRANSPORT),
+            ("2026-03-16", "BESCOM Dual AC Usage Billing", 5800, ProductCategory.ENERGY),
+            ("2026-03-20", "Swiggy Lunch Order", 790, ProductCategory.FOOD),
+            ("2026-03-22", "IndiGo Flight Bengaluru-Mumbai", 6500, ProductCategory.TRANSPORT),
+            ("2026-03-23", "Zepto Snacks & Essentials", 850, ProductCategory.FOOD),
+            ("2026-03-25", "Uber Commute Cab", 680, ProductCategory.TRANSPORT),
+        ]
+        for dt, merch, amt, cat in maya_txns:
+            est = estimate_from_spend(cat, amt)
+            db.add(TransactionModel(
+                user_id=maya.id,
+                date=dt,
+                merchant=merch,
+                amount_inr=float(amt),
+                category=cat.value,
+                co2e_kg=float(est.estimated_co2e_kg),
+            ))
+    db.commit()
+

@@ -39,12 +39,14 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontFamily: "IBMPlexMono_500Medium",
     fontSize: 11,
+    lineHeight: 16,
     letterSpacing: 1.5,
     color: "#2EA86E",
   },
   title: {
     fontFamily: "Nunito_800ExtraBold",
     fontSize: 30,
+    lineHeight: 36,
     letterSpacing: -0.6,
     color: "#0D1811",
   },

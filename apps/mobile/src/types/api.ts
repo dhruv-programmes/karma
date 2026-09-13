@@ -312,42 +312,6 @@ export interface StepSummary {
   series: StepSeriesPoint[];
 }
 
-export interface CommuteTripRequest {
-  distance_km: number;
-  duration_min: number;
-  avg_speed_kmh: number;
-  acceleration_rms_mps2?: number;
-}
-
-export interface CommuteTripResult {
-  trip_id: string;
-  mode: "walk" | "cycle" | "motor" | string;
-  distance_km: number;
-  duration_min: number;
-  avg_speed_kmh: number;
-  points_awarded: number;
-  daily_total_points: number;
-  daily_cap: number;
-  message: string;
-}
-
-export interface CommuteSeriesPoint {
-  date: string;
-  label: string;
-  distance_km: number;
-  points_awarded: number;
-  trips: number;
-}
-
-export interface CommuteSummary {
-  date: string;
-  todayDistanceKm: number;
-  todayPoints: number;
-  dailyRewardCap: number;
-  tripsToday: number;
-  series: CommuteSeriesPoint[];
-}
-
 export interface Badge {
   id: string;
   title: string;
@@ -563,6 +527,7 @@ export interface LeaderboardEntry {
   score_state?: "provisional" | "verified";
   rank: number;
   is_current_user?: boolean;
+  is_friend?: boolean;
 }
 
 export interface FriendResult {
@@ -620,6 +585,9 @@ export interface LeagueSummary {
   season_label: string;
   demotion_note: string;
   standings: LeagueStanding[];
+  last_promotion_at?: string | null;
+  last_promotion_from?: LeagueTier | null;
+  last_promotion_to?: LeagueTier | null;
 }
 
 // ============================================================================

@@ -37,7 +37,7 @@ export default function ProductScreen() {
     const facilityType = mapActionToFacilityType(actionType);
     if (!facilityType) {
       if (actionType === "REDUCE") {
-        router.push("/offsets" as import("expo-router").Href);
+        router.push("/actions" as import("expo-router").Href);
         return;
       }
       return;

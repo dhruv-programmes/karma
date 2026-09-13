@@ -1,9 +1,10 @@
 import React, { useEffect } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, Platform } from "react-native";
+import { BlurView } from "expo-blur";
+import { LinearGradient as ExpoLinearGradient } from "expo-linear-gradient";
 import Animated, {
   Easing,
   useAnimatedProps,
-  useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withTiming,
@@ -14,11 +15,29 @@ import { Text } from "@/components/ui/text";
 import type { SolarImpactResponse } from "@/src/types/api";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const GREEN = "#2EA86E";
 const MINT = "#A7E5C2";
 const GOLD = "#F4B942";
 const BLUE = "#64B4E6";
 const DARK_VIEWPORT = "#0B1D14";
+
+function cubicPoint(
+  progress: number,
+  start: number,
+  controlOne: number,
+  controlTwo: number,
+  end: number
+) {
+  "worklet";
+  const inverse = 1 - progress;
+  return (
+    inverse * inverse * inverse * start +
+    3 * inverse * inverse * progress * controlOne +
+    3 * inverse * progress * progress * controlTwo +
+    progress * progress * progress * end
+  );
+}
 
 function FlowNode({
   label,
@@ -47,40 +66,108 @@ function FlowNode({
   );
 }
 
-/** Clean SVG energy scene: isometric depth with live animated routing. */
 export function SolarPanelHero({ data }: { data: SolarImpactResponse }) {
-  const pulse = useSharedValue(0.4);
-  const dash = useSharedValue(0);
-  const intensity = Math.min(1, Math.max(0.25, data.live.solarKw / 5));
+  const dashOffset = useSharedValue(0);
   const batteryKw = data.live.batteryKw ?? 0;
   const evKw = data.live.evKw ?? 0;
-  const hasExport = data.live.gridExportKw > 0.05;
   const hasBattery = batteryKw > 0.05;
   const hasEv = evKw > 0.05;
+  const hasExport = data.live.gridExportKw > 0.05;
+  const intensity = Math.min(1, Math.max(0.25, data.live.solarKw / 5));
+  const panelOpacity = 0.78 + intensity * 0.22;
 
   useEffect(() => {
-    pulse.value = withRepeat(
-      withTiming(0.95, { duration: 1600, easing: Easing.inOut(Easing.quad) }),
-      -1,
-      true
-    );
-    dash.value = withRepeat(
-      withTiming(28, { duration: 1800, easing: Easing.linear }),
+    dashOffset.value = withRepeat(
+      withTiming(72, { duration: 2200, easing: Easing.linear }),
       -1,
       false
     );
-  }, [dash, pulse]);
+  }, [dashOffset]);
 
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: 0.16 + pulse.value * 0.22 * intensity,
-    transform: [{ scale: 0.88 + pulse.value * 0.12 }],
+  const flowProps = useAnimatedProps(() => ({
+    strokeDashoffset: dashOffset.value,
   }));
-  const flowProps = useAnimatedProps(() => ({ strokeDashoffset: -dash.value }));
-  const panelOpacity = 0.78 + intensity * 0.22;
 
+  // Keep the particles tied to the routes instead of rendering fixed blue
+  // points. Fixed points made the export path look like it had debris stuck
+  // in the middle, while the animated dashes did not clearly show where the
+  // energy originated. Each particle starts at the panel edge and travels to
+  // its destination node, then loops back to the panel.
+  const greenDotProps1 = useAnimatedProps(() => {
+    const progress = (dashOffset.value / 72 + 0.04) % 1;
+    const fadeIn = Math.min(1, progress / 0.08);
+    const fadeOut = Math.min(1, (1 - progress) / 0.14);
+    return {
+      cx: cubicPoint(progress, 170, 145, 112, 73),
+      cy: cubicPoint(progress, 149, 172, 185, 193),
+      opacity: Math.min(fadeIn, fadeOut),
+    };
+  });
+  const greenDotProps2 = useAnimatedProps(() => {
+    const progress = (dashOffset.value / 72 + 0.37) % 1;
+    const fadeIn = Math.min(1, progress / 0.08);
+    const fadeOut = Math.min(1, (1 - progress) / 0.14);
+    return {
+      cx: cubicPoint(progress, 170, 145, 112, 73),
+      cy: cubicPoint(progress, 149, 172, 185, 193),
+      opacity: Math.min(fadeIn, fadeOut),
+    };
+  });
+  const greenDotProps3 = useAnimatedProps(() => {
+    const progress = (dashOffset.value / 72 + 0.7) % 1;
+    const fadeIn = Math.min(1, progress / 0.08);
+    const fadeOut = Math.min(1, (1 - progress) / 0.14);
+    return {
+      cx: cubicPoint(progress, 170, 145, 112, 73),
+      cy: cubicPoint(progress, 149, 172, 185, 193),
+      opacity: Math.min(fadeIn, fadeOut),
+    };
+  });
+  const blueDotProps1 = useAnimatedProps(() => {
+    const progress = (dashOffset.value / 72 + 0.04) % 1;
+    const fadeIn = Math.min(1, progress / 0.08);
+    const fadeOut = Math.min(1, (1 - progress) / 0.14);
+    return {
+      cx: cubicPoint(progress, 215, 240, 269, 311),
+      cy: cubicPoint(progress, 140, 161, 177, 185),
+      opacity: Math.min(fadeIn, fadeOut) * (hasExport ? 1 : 0.28),
+    };
+  });
+  const blueDotProps2 = useAnimatedProps(() => {
+    const progress = (dashOffset.value / 72 + 0.37) % 1;
+    const fadeIn = Math.min(1, progress / 0.08);
+    const fadeOut = Math.min(1, (1 - progress) / 0.14);
+    return {
+      cx: cubicPoint(progress, 215, 240, 269, 311),
+      cy: cubicPoint(progress, 140, 161, 177, 185),
+      opacity: Math.min(fadeIn, fadeOut) * (hasExport ? 1 : 0.28),
+    };
+  });
+  const blueDotProps3 = useAnimatedProps(() => {
+    const progress = (dashOffset.value / 72 + 0.7) % 1;
+    const fadeIn = Math.min(1, progress / 0.08);
+    const fadeOut = Math.min(1, (1 - progress) / 0.14);
+    return {
+      cx: cubicPoint(progress, 215, 240, 269, 311),
+      cy: cubicPoint(progress, 140, 161, 177, 185),
+      opacity: Math.min(fadeIn, fadeOut) * (hasExport ? 1 : 0.28),
+    };
+  });
   return (
     <View style={styles.card}>
-      {/* Header Row */}
+      <BlurView
+        intensity={Platform.OS === "ios" ? 50 : 85}
+        tint="light"
+        style={StyleSheet.absoluteFill}
+      />
+      <ExpoLinearGradient
+        colors={["rgba(255,255,255,0.78)", "rgba(255,255,255,0.42)"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* Header */}
       <View style={styles.cardHeader}>
         <View style={styles.headerTextWrap}>
           <Text style={styles.cardTitle}>Solar Power in Motion</Text>
@@ -88,37 +175,23 @@ export function SolarPanelHero({ data }: { data: SolarImpactResponse }) {
             Live generation routed to your home and the grid
           </Text>
         </View>
-        <View style={styles.liveBadge}>
-          <View style={styles.livePulseDot} />
-          <Text style={styles.liveBadgeText}>
-            {data.live.solarKw.toFixed(1)} kW Live
-          </Text>
-        </View>
       </View>
 
-      {/* Viewport Frame */}
+      {/* Isometric Animated Canvas Viewport */}
       <View style={styles.viewport}>
-        <Animated.View
-          style={[styles.glowOrb, glowStyle, { pointerEvents: "none" }]}
-        />
-        <Svg width="100%" height="216" viewBox="0 0 360 216">
+        <Svg width="100%" height="240" viewBox="0 0 360 240">
           <Defs>
             <LinearGradient id="solarFace" x1="0" y1="0" x2="1" y2="1">
-              <Stop offset="0" stopColor="#2A8C69" stopOpacity={panelOpacity} />
-              <Stop offset="0.48" stopColor="#185A50" stopOpacity={panelOpacity} />
+              <Stop offset="0" stopColor="#1C5E45" stopOpacity={panelOpacity} />
+              <Stop offset="0.6" stopColor="#103F35" stopOpacity={panelOpacity} />
               <Stop offset="1" stopColor="#0B2932" stopOpacity={panelOpacity} />
             </LinearGradient>
             <LinearGradient id="solarEdge" x1="0" y1="0" x2="1" y2="0">
               <Stop offset="0" stopColor="#081B20" />
               <Stop offset="1" stopColor="#071218" />
             </LinearGradient>
-            <LinearGradient id="sunDisc" x1="0" y1="0" x2="1" y2="1">
-              <Stop offset="0" stopColor="#FFF0B7" stopOpacity="0.85" />
-              <Stop offset="1" stopColor="#E1A92E" stopOpacity="0.08" />
-            </LinearGradient>
           </Defs>
 
-          <Circle cx="295" cy="38" r="32" fill="url(#sunDisc)" />
           <Circle cx="295" cy="38" r="10" fill={GOLD} />
           <Path
             d="M295 18v-7M295 58v7M275 38h-7M315 38h7M281 24l-5-5M309 52l5 5M309 24l5-5M281 52l-5 5"
@@ -178,6 +251,12 @@ export function SolarPanelHero({ data }: { data: SolarImpactResponse }) {
             animatedProps={flowProps}
             opacity={hasExport ? 0.95 : 0.3}
           />
+          <AnimatedCircle r="2.8" fill={MINT} animatedProps={greenDotProps1} />
+          <AnimatedCircle r="2.8" fill={MINT} animatedProps={greenDotProps2} />
+          <AnimatedCircle r="2.8" fill={MINT} animatedProps={greenDotProps3} />
+          <AnimatedCircle r="2.8" fill={BLUE} animatedProps={blueDotProps1} />
+          <AnimatedCircle r="2.8" fill={BLUE} animatedProps={blueDotProps2} />
+          <AnimatedCircle r="2.8" fill={BLUE} animatedProps={blueDotProps3} />
           <AnimatedPath
             d="M187 145C188 164 188 179 187 195"
             fill="none"
@@ -211,26 +290,26 @@ export function SolarPanelHero({ data }: { data: SolarImpactResponse }) {
         </View>
       </View>
 
-      {/* Flow Pills Row */}
-      <View style={styles.flowPillsRow}>
-        <View style={styles.flowPillGreen}>
-          <View style={styles.dotGreen} />
-          <Text style={styles.flowPillGreenText}>
+      {/* Clean Inline Flow Items (No Pill Boxes) */}
+      <View style={styles.flowItemsRow}>
+        <View style={styles.flowItem}>
+          <View style={[styles.flowDot, { backgroundColor: "#2EA86E" }]} />
+          <Text style={styles.flowText}>
             Solar → Home {data.live.homeKw.toFixed(1)} kW
           </Text>
         </View>
-        <View style={styles.flowPillBlue}>
-          <View style={styles.dotBlue} />
-          <Text style={styles.flowPillBlueText}>
+        <View style={styles.flowItem}>
+          <View style={[styles.flowDot, { backgroundColor: "#0284C7" }]} />
+          <Text style={styles.flowText}>
             {hasExport
               ? `Grid Export ${data.live.gridExportKw.toFixed(1)} kW`
               : "Grid Balanced"}
           </Text>
         </View>
         {hasEv ? (
-          <View style={styles.flowPillGold}>
-            <View style={styles.dotGold} />
-            <Text style={styles.flowPillGoldText}>
+          <View style={styles.flowItem}>
+            <View style={[styles.flowDot, { backgroundColor: "#D97706" }]} />
+            <Text style={styles.flowText}>
               EV Charge {evKw.toFixed(1)} kW
             </Text>
           </View>
@@ -242,14 +321,16 @@ export function SolarPanelHero({ data }: { data: SolarImpactResponse }) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.16)",
-    boxShadow: "0px 2px 8px rgba(0,0,0,0.04)",
+    backgroundColor: "transparent",
+    borderRadius: 22,
+    padding: 18,
+    borderWidth: 1.2,
+    borderColor: "rgba(255, 255, 255, 0.82)",
+    boxShadow: "0px 2px 10px rgba(10,36,21,0.06)",
     elevation: 2,
-    gap: 12,
+    gap: 14,
+    overflow: "hidden",
+    position: "relative",
   },
   cardHeader: {
     flexDirection: "row",
@@ -264,35 +345,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Nunito_800ExtraBold",
     color: "#0D1811",
+    letterSpacing: -0.2,
   },
   cardSubtitle: {
     fontSize: 12,
-    fontFamily: "Nunito_400Regular",
-    color: "#526658",
-    marginTop: 1,
-  },
-  liveBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: "#ECFDF5",
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.25)",
-  },
-  livePulseDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#059669",
-  },
-  liveBadgeText: {
-    fontSize: 10,
-    fontFamily: "Nunito_800ExtraBold",
-    color: "#059669",
-    letterSpacing: 0.4,
+    fontFamily: "Nunito_500Medium",
+    color: "#64748B",
+    marginTop: 2,
   },
   viewport: {
     position: "relative",
@@ -303,15 +362,6 @@ const styles = StyleSheet.create({
     backgroundColor: DARK_VIEWPORT,
     borderWidth: 1,
     borderColor: "#18442D",
-  },
-  glowOrb: {
-    position: "absolute",
-    right: 28,
-    top: 10,
-    height: 100,
-    width: 100,
-    borderRadius: 50,
-    backgroundColor: "#D8A82F",
   },
   nodesRow: {
     position: "absolute",
@@ -343,76 +393,25 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: "IBMPlexMono_600SemiBold",
   },
-  flowPillsRow: {
+  flowItemsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    gap: 16,
     paddingTop: 2,
   },
-  flowPillGreen: {
+  flowItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    backgroundColor: "#F0FDF4",
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.18)",
+    gap: 6,
   },
-  dotGreen: {
+  flowDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#2EA86E",
   },
-  flowPillGreenText: {
-    fontSize: 11,
-    fontFamily: "Nunito_700Bold",
-    color: "#166534",
-  },
-  flowPillBlue: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: "#F0F9FF",
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "rgba(59,130,246,0.18)",
-  },
-  dotBlue: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#0284C7",
-  },
-  flowPillBlueText: {
-    fontSize: 11,
-    fontFamily: "Nunito_700Bold",
-    color: "#0369A1",
-  },
-  flowPillGold: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: "#FFFBEB",
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "rgba(245,158,11,0.2)",
-  },
-  dotGold: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#D97706",
-  },
-  flowPillGoldText: {
-    fontSize: 11,
-    fontFamily: "Nunito_700Bold",
-    color: "#B45309",
+  flowText: {
+    fontSize: 11.5,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#526658",
   },
 });

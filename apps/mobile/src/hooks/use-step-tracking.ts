@@ -88,16 +88,21 @@ export function useStepTracking(serverSteps = 0) {
   const refreshNativeSteps = useCallback(async () => {
     if (!trackingEnabledRef.current) return;
 
-    if (Platform.OS === "ios") {
-      try {
-        const result = await Pedometer.getStepCountAsync(
-          startOfToday(),
-          new Date()
-        );
+    // Some Android vendors expose the historical query even though older
+    // Expo versions documented it as iOS-only. Prefer it when available so
+    // returning to the app immediately reflects the device's real total.
+    try {
+      const result = await Pedometer.getStepCountAsync(startOfToday(), new Date());
+      if (Number.isFinite(result.steps)) {
         await syncTotal(result.steps);
-      } catch {
-        setState("error");
+        return;
       }
+    } catch {
+      // Android commonly rejects this query; fall back to the live listener.
+    }
+
+    if (Platform.OS === "ios") {
+      setState("error");
       return;
     }
 

@@ -273,6 +273,11 @@ export function useLeague() {
     queryKey: ["league"],
     queryFn: api.getLeague,
     staleTime: 30_000,
+    // A phone can briefly race the local API while Wi-Fi/Expo Go is
+    // connecting. Retry transient failures before presenting "unavailable".
+    retry: 2,
+    retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 3_000),
+    refetchOnReconnect: true,
   });
 }
 

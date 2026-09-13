@@ -25,7 +25,7 @@ export function StatTile({
             ? "text-warning"
             : "text-foreground";
   return (
-    <Card variant="soft" className="flex-1 p-3 min-w-[96px]">
+    <Card variant="soft" className="flex-1 min-w-0 p-3">
       <VStack space="xs">
         <Text size="xs" className="text-muted-foreground">
           {label}

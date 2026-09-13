@@ -41,29 +41,29 @@ type DockTab = {
 
 const LEFT_TABS: DockTab[] = [
   { name: "index", label: "Home", icon: Home },
-  { name: "tools", label: "Tools", icon: Wrench },
+  { name: "impact", label: "Impact", icon: Leaf },
 ];
 
 const RIGHT_TABS: DockTab[] = [
-  { name: "community", label: "Community", icon: Users },
+  { name: "offers", label: "Offers", icon: TicketPercent },
 ];
 
 const MORE_DESTINATIONS = [
   {
-    name: "impact",
-    title: "Impact",
-    detail: "Live carbon footprint, solar & rewards",
-    icon: Leaf,
-    tint: "#5EEAD4",
-    soft: "rgba(94,234,212,0.14)",
+    name: "tools",
+    title: "Tools",
+    detail: "Scan, receipts, hubs & support",
+    icon: Wrench,
+    tint: "#86EFAC",
+    soft: "rgba(134,239,172,0.16)",
   },
   {
-    name: "offers",
-    title: "Offers",
-    detail: "Govt subsidies, brand perks & offsets",
-    icon: TicketPercent,
-    tint: "#F5D08A",
-    soft: "rgba(245,208,138,0.16)",
+    name: "community",
+    title: "Community",
+    detail: "Challenges, leagues & leaderboard",
+    icon: Users,
+    tint: "#5EEAD4",
+    soft: "rgba(94,234,212,0.14)",
   },
   {
     name: "profile",
@@ -144,7 +144,11 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
 
   const activeRoute = state.routes[state.index]?.name;
   const moreActive =
-    activeRoute === "impact" || activeRoute === "offers" || activeRoute === "actions" || moreOpen;
+    activeRoute === "tools" ||
+    activeRoute === "community" ||
+    activeRoute === "profile" ||
+    activeRoute === "actions" ||
+    moreOpen;
 
   const openMore = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

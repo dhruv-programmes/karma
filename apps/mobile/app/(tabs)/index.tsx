@@ -7,6 +7,7 @@ import {
   Pressable,
   Image,
   Platform,
+  useWindowDimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -134,6 +135,7 @@ function ScoreRing({
   trackColor,
   insight,
   label,
+  size = 256,
 }: {
   score: number | null;
   color: string;
@@ -141,9 +143,9 @@ function ScoreRing({
   trackColor: string;
   insight: string;
   label: string;
+  size?: number;
 }) {
   // Outer box is sized so glow/bead never get clipped.
-  const size = 256;
   const strokeMax = 12;
   const stroke = 2.6;
   const r = (size - strokeMax) / 2;
@@ -354,6 +356,9 @@ function ScoreRing({
             marginBottom: 3,
             maxWidth: 210,
             letterSpacing: -0.5,
+            textAlign: "center",
+            alignSelf: "center",
+            includeFontPadding: false,
             ...Platform.select({
               ios: {
                 textShadowColor: "rgba(0,0,0,0.25)",
@@ -454,6 +459,8 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const tabClearance = useTabBarClearance();
   const router = useRouter();
+  const { width: viewportWidth } = useWindowDimensions();
+  const isCompactPhone = viewportWidth < 360;
 
   const user = useAuthStore((s) => s.user);
   const startingFootprintKg = useAuthStore((s) => s.startingFootprintKg);
@@ -550,6 +557,10 @@ export default function HomeScreen() {
     <View style={styles.root}>
       <ScrollView
         showsVerticalScrollIndicator={false}
+        bounces={false}
+        alwaysBounceVertical={false}
+        overScrollMode="never"
+        contentInsetAdjustmentBehavior="never"
         contentContainerStyle={{
           paddingBottom: tabClearance,
         }}
@@ -604,6 +615,7 @@ export default function HomeScreen() {
           <View style={styles.ringContainer}>
             <ScoreRing
               score={displayScore}
+              size={isCompactPhone ? Math.min(232, viewportWidth - 48) : 256}
               color={rating.color}
               glowColor={rating.glowColor}
               trackColor={rating.trackColor}
@@ -689,7 +701,7 @@ export default function HomeScreen() {
               style={StyleSheet.absoluteFill}
             />
             {/* Footprint */}
-            <View style={styles.threeStatItem}>
+            <View style={[styles.threeStatItem, isCompactPhone && styles.threeStatItemCompact]}>
               <View style={styles.threeStatIconBox}>
                 <Footprints size={17} color="#1E5E3A" strokeWidth={2.2} />
               </View>
@@ -705,7 +717,7 @@ export default function HomeScreen() {
             <View style={styles.threeStatDivider} />
 
             {/* Target */}
-            <View style={styles.threeStatItem}>
+            <View style={[styles.threeStatItem, isCompactPhone && styles.threeStatItemCompact]}>
               <View style={styles.threeStatIconBox}>
                 <Target size={17} color="#1E5E3A" strokeWidth={2.2} />
               </View>
@@ -721,7 +733,7 @@ export default function HomeScreen() {
             <View style={styles.threeStatDivider} />
 
             {/* Streak */}
-            <View style={styles.threeStatItem}>
+            <View style={[styles.threeStatItem, isCompactPhone && styles.threeStatItemCompact]}>
               <View style={styles.threeStatIconBox}>
                 <Flame size={17} color="#1E5E3A" strokeWidth={2.2} />
               </View>
@@ -1576,6 +1588,7 @@ const styles = StyleSheet.create({
   },
   sideCard: {
     flex: 1,
+    minWidth: 0,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -1596,6 +1609,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 9,
+    minWidth: 0,
   },
   sideCardIconBox: {
     width: 36,
@@ -1612,6 +1626,7 @@ const styles = StyleSheet.create({
     fontFamily: "Nunito_800ExtraBold",
     color: "#0E2918",
     lineHeight: 22,
+    flexShrink: 1,
   },
   sideCardLabel: {
     fontSize: 11.5,
@@ -1662,10 +1677,17 @@ const styles = StyleSheet.create({
   },
   threeStatItem: {
     flex: 1,
+    minWidth: 0,
     flexDirection: "row",
     alignItems: "center",
     gap: 7,
     paddingHorizontal: 3,
+  },
+  threeStatItemCompact: {
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 1,
   },
   threeStatIconBox: {
     width: 34,

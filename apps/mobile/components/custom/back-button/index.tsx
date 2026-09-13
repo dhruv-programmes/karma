@@ -30,11 +30,15 @@ export function BackButton({
       onPress();
       return;
     }
-    // A screen can be opened directly from a deep link or a web refresh. In
-    // those cases React Navigation may report a stale back stack and dispatch
-    // an unhandled GO_BACK action. The explicit destination is deterministic
-    // on native and web, and still gives every screen its intended parent.
-    router.replace(fallbackRoute as any);
+    // Pop the existing route when there is a navigation history. This keeps
+    // the previous screen mounted (important for the Home dashboard) instead
+    // of replacing it and causing a full remount/reload. Direct links and
+    // browser refreshes have no history, so retain the deterministic fallback.
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace(fallbackRoute as any);
+    }
   };
 
   if (variant === "circle") {

@@ -47,21 +47,61 @@ const DEFAULT_REQUEST_TIMEOUT_MS = 8_000;
 const AUTH_REQUEST_TIMEOUT_MS = 15_000;
 
 function resolveDevHost(): string | null {
-  const hostUri =
-    Constants.expoConfig?.hostUri ??
-    Constants.experienceUrl?.replace(/^[a-z]+:\/\//, "") ??
-    null;
-  if (!hostUri) return null;
-  const host = hostUri.split(":")[0]?.trim();
-  if (!host || host === "localhost" || host === "127.0.0.1") return null;
-  return host;
+  // Expo Go has exposed the Metro host through several manifest shapes over
+  // time. Read all of them so a physical iPhone/Android device does not try
+  // to call its own 127.0.0.1 when the API is running on the host laptop.
+  const constants = Constants as typeof Constants & {
+    expoGoConfig?: { debuggerHost?: string };
+    manifest?: { debuggerHost?: string };
+    manifest2?: { extra?: { expoClient?: { hostUri?: string } } };
+  };
+  const hostUris = [
+    constants.expoConfig?.hostUri,
+    constants.expoGoConfig?.debuggerHost,
+    constants.manifest2?.extra?.expoClient?.hostUri,
+    constants.manifest?.debuggerHost,
+    constants.linkingUri,
+    constants.experienceUrl,
+  ];
+
+  // Expo may expose a loopback hostUri before a usable LAN debuggerHost. Try
+  // every candidate instead of allowing the first (unusable) value to win.
+  for (const hostUri of hostUris) {
+    if (!hostUri) continue;
+
+    // Values may be a bare `192.168.x.x:8081` or a URI such as
+    // `exp://192.168.x.x:8081`; strip the scheme before extracting the host.
+    const address = hostUri.replace(/^[a-z][a-z\d+.-]*:\/\//i, "");
+    const host = address.includes("]")
+      ? address.slice(0, address.indexOf("]") + 1).replace(/^\[/, "").replace(/\]$/, "")
+      : address.split(":")[0]?.split("/")[0]?.trim();
+
+    // Expo tunnel hosts are not the machine running the API. In that mode the
+    // caller must provide a reachable EXPO_PUBLIC_API_URL explicitly.
+    if (!host || /^(localhost|127\.0\.0\.1|::1|u\.expo\.dev|expo\.dev)$/i.test(host)) {
+      continue;
+    }
+    return host.includes(":") ? `[${host}]` : host;
+  }
+  return null;
 }
 
-function getBaseUrl() {
+export function getApiBaseUrl() {
   const configured = process.env.EXPO_PUBLIC_API_URL?.trim();
   const isLoopback =
     !configured ||
     /^(https?:\/\/)?(localhost|127\.0\.0\.1)(:|\/|$)/i.test(configured);
+
+  // On web, the browser's host is the most reliable source. This matters when
+  // Expo is opened on another laptop over LAN and EXPO_PUBLIC_API_URL was
+  // left at its developer-local loopback default.
+  const browserHost =
+    Platform.OS === "web" && typeof window !== "undefined"
+      ? window.location.hostname
+      : null;
+  if (browserHost && !/^(localhost|127\.0\.0\.1|::1)$/i.test(browserHost) && isLoopback) {
+    return `http://${browserHost}:${API_PORT}`;
+  }
 
   // Physical device / LAN: reuse Metro's host IP so the phone can reach the API.
   const lanHost = resolveDevHost();
@@ -93,7 +133,7 @@ async function request<T>(
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const res = await fetch(`${getBaseUrl()}${path}`, {
+    const res = await fetch(`${getApiBaseUrl()}${path}`, {
       ...init,
       signal: init?.signal ?? controller.signal,
       headers: {
@@ -506,18 +546,31 @@ export const api = {  // Authentication
 
   /** League state is intentionally not replaced with a fabricated tier offline. */
   getLeague: async (): Promise<LeagueSummary> => {
-    const remote = await request<any>("/api/v1/league/status");
+    // Fetch status and standings together. Status is the authoritative league
+    // payload; a slow/broken standings query must not block the whole page.
+    const [statusResult, standingsResult] = await Promise.all([
+      request<any>("/api/v1/league/status"),
+      request<any>("/api/v1/league/standings").catch(() => null),
+    ]);
+    const remote = statusResult;
     const current = remote.current_league ?? {};
     const tier = current.slug as LeagueTier;
     if (!["bronze", "silver", "gold", "platinum"].includes(tier)) {
       throw new Error("League service returned an unknown tier");
     }
-    let standings: LeagueSummary["standings"] = [];
-    try {
-      standings = await api.getLeagueStandings();
-    } catch {
-      // Current tier remains trustworthy; standings are shown as unavailable.
-    }
+    const entries = Array.isArray(standingsResult)
+      ? standingsResult
+      : standingsResult?.entries ?? standingsResult?.standings ?? [];
+    const standings: LeagueSummary["standings"] = Array.isArray(entries)
+      ? entries.map((entry: any) => ({
+          id: String(entry.user_id ?? entry.id),
+          display_name: String(entry.name ?? entry.display_name ?? "Member"),
+          username: String(entry.username ?? "member"),
+          league_points: Number(entry.season_league_points ?? entry.league_points ?? 0),
+          rank: Number(entry.rank ?? 0),
+          is_current_user: Boolean(entry.is_current_user),
+        }))
+      : [];
     const status: LeaguePromotionStatus =
       remote.promotion_status === "ready" || remote.promotion_status === "promoted"
         ? "promoted"

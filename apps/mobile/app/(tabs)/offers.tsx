@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
 import {
   TicketPercent,
   Leaf,
@@ -35,6 +36,7 @@ import {
   Trees,
   Waves,
   Flame,
+  History,
 } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { useMe, useRedeemReward } from "@/src/hooks/queries";
@@ -365,6 +367,7 @@ const STATIC_OFFSETS: OffsetProject[] = [
 export default function OffersScreen() {
   const insets = useSafeAreaInsets();
   const tabClearance = useTabBarClearance();
+  const router = useRouter();
   const me = useMe();
   const redeemCoupon = useRedeemReward();
   const authUser = useAuthStore((state) => state.user);
@@ -509,6 +512,10 @@ export default function OffersScreen() {
     <View style={styles.root}>
       <ScrollView
         style={styles.container}
+        bounces={false}
+        alwaysBounceVertical={false}
+        overScrollMode="never"
+        contentInsetAdjustmentBehavior="never"
         contentContainerStyle={{
           paddingTop: insets.top + 16,
           paddingHorizontal: 20,
@@ -519,10 +526,10 @@ export default function OffersScreen() {
         {/* Top Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.headerEyebrow}>OFFERS & REWARDS</Text>
-            <Text style={styles.title}>Coupons & Offsets</Text>
+            <Text style={styles.headerEyebrow}>GREEN REWARDS</Text>
+            <Text style={styles.title}>Rewards & offers</Text>
             <Text style={styles.subtitle}>
-              Partner discounts, govt green subsidies & Karma Coin donations
+              Earn, track, and spend Karma Coins on verified circular benefits
             </Text>
           </View>
         </View>
@@ -579,6 +586,25 @@ export default function OffersScreen() {
             </View>
           </View>
         </LinearGradient>
+
+        <TouchableOpacity
+          style={styles.historyLink}
+          onPress={() => router.push("/rewards/history")}
+          activeOpacity={0.82}
+          accessibilityRole="button"
+          accessibilityLabel="Open Karma Coin wallet history"
+        >
+          <View style={styles.historyIcon}>
+            <History size={17} color="#047857" strokeWidth={2.2} />
+          </View>
+          <View style={styles.historyCopy}>
+            <Text style={styles.historyTitle}>Wallet history</Text>
+            <Text style={styles.historySubtitle}>
+              See every Karma Coin earned, spent, and redeemed
+            </Text>
+          </View>
+          <ChevronRight size={17} color="#047857" strokeWidth={2.2} />
+        </TouchableOpacity>
 
         {/* Error Toast Notification */}
         {errorToast ? (
@@ -791,7 +817,7 @@ export default function OffersScreen() {
                       >
                         <ProjectIcon size={20} color={project.color} strokeWidth={2} />
                       </View>
-                      <View style={{ flex: 1 }}>
+                      <View style={styles.offsetCopy}>
                         <Text style={styles.offsetCertifier}>
                           {project.certifier}
                         </Text>
@@ -1087,7 +1113,7 @@ export default function OffersScreen() {
                   activeOpacity={0.85}
                 >
                   <Text style={styles.modalDoneButtonText}>
-                    Great, Return to Offers
+                    Great, Return to rewards & offers
                   </Text>
                 </TouchableOpacity>
               </>
@@ -1157,6 +1183,41 @@ const styles = StyleSheet.create({
     boxShadow: "0px 8px 16px rgba(13,36,24,0.25)",
     elevation: 6,
   },
+  historyLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(46,168,110,0.24)",
+    paddingHorizontal: 13,
+    paddingVertical: 12,
+    marginBottom: 2,
+  },
+  historyIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 11,
+    backgroundColor: "#E8F7EE",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  historyCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  historyTitle: {
+    fontSize: 14,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#183222",
+  },
+  historySubtitle: {
+    fontSize: 11,
+    fontFamily: "Nunito_400Regular",
+    color: "#6B7D72",
+  },
   heroGlowOrb: {
     position: "absolute",
     top: -40,
@@ -1168,9 +1229,11 @@ const styles = StyleSheet.create({
   },
   heroHeaderRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 12,
+    gap: 8,
   },
   coinsPill: {
     flexDirection: "row",
@@ -1180,12 +1243,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
+    maxWidth: "100%",
+    flexShrink: 1,
   },
   coinsPillText: {
     fontSize: 10,
     fontFamily: "Nunito_700Bold",
     color: "#5EEAD4",
     letterSpacing: 0.8,
+    flexShrink: 1,
   },
   levelBadge: {
     flexDirection: "row",
@@ -1203,6 +1269,7 @@ const styles = StyleSheet.create({
   },
   balanceRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "baseline",
     gap: 10,
     marginBottom: 18,
@@ -1215,6 +1282,8 @@ const styles = StyleSheet.create({
   },
   balanceMeta: {
     justifyContent: "center",
+    minWidth: 0,
+    flexShrink: 1,
   },
   balanceUnit: {
     fontSize: 16,
@@ -1236,6 +1305,8 @@ const styles = StyleSheet.create({
   },
   heroStatItem: {
     alignItems: "center",
+    flex: 1,
+    minWidth: 0,
   },
   heroStatValue: {
     fontSize: 16,
@@ -1247,6 +1318,8 @@ const styles = StyleSheet.create({
     fontFamily: "Nunito_400Regular",
     color: "rgba(255,255,255,0.65)",
     marginTop: 2,
+    textAlign: "center",
+    flexShrink: 1,
   },
   heroStatDivider: {
     width: 1,
@@ -1342,6 +1415,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
+    minWidth: 0,
     fontSize: 13,
     fontFamily: "Nunito_400Regular",
     color: "#0D1811",
@@ -1415,6 +1489,10 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 8,
   },
+  offsetCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
   offsetIconBox: {
     width: 40,
     height: 40,
@@ -1441,6 +1519,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: "#A7F3D0",
+    flexShrink: 0,
   },
   offsetImpactText: {
     fontSize: 12,
@@ -1456,11 +1535,13 @@ const styles = StyleSheet.create({
   },
   offsetCardBottom: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
     justifyContent: "space-between",
     borderTopWidth: 1,
     borderTopColor: "rgba(0,0,0,0.05)",
     paddingTop: 10,
+    gap: 8,
   },
   offsetCostWrap: {
     flexDirection: "row",
@@ -1477,6 +1558,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 14,
+    maxWidth: "60%",
+    flexShrink: 1,
   },
   offsetDonateButtonDisabled: {
     backgroundColor: "#9CA3AF",
@@ -1500,9 +1583,11 @@ const styles = StyleSheet.create({
   },
   couponCardHeader: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 8,
+    gap: 6,
   },
   categoryBadge: {
     flexDirection: "row",
@@ -1511,6 +1596,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
+    maxWidth: "100%",
+    flexShrink: 1,
   },
   categoryBadgeGovt: {
     backgroundColor: "rgba(4,120,87,0.1)",
@@ -1523,16 +1610,20 @@ const styles = StyleSheet.create({
     fontFamily: "Nunito_700Bold",
     color: "#047857",
     letterSpacing: 0.5,
+    flexShrink: 1,
   },
   verifiedBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+    maxWidth: "100%",
+    flexShrink: 1,
   },
   verifiedText: {
     fontSize: 10,
     fontFamily: "Nunito_600SemiBold",
     color: "#2EA86E",
+    flexShrink: 1,
   },
   couponBody: {
     marginBottom: 12,
@@ -1572,19 +1663,24 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 8,
     alignSelf: "flex-start",
+    maxWidth: "100%",
+    flexShrink: 1,
   },
   impactHighlightText: {
     fontSize: 11,
     fontFamily: "Nunito_600SemiBold",
     color: "#166534",
+    flexShrink: 1,
   },
   couponFooter: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
     justifyContent: "space-between",
     borderTopWidth: 1,
     borderTopColor: "rgba(0,0,0,0.05)",
     paddingTop: 10,
+    gap: 8,
   },
   couponCostPill: {
     flexDirection: "row",
@@ -1601,6 +1697,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 14,
+    maxWidth: "62%",
+    flexShrink: 1,
   },
   redeemButtonClaimed: {
     backgroundColor: "#059669",

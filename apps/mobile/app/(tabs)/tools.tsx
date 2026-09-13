@@ -67,6 +67,10 @@ export default function ToolsScreen() {
   return (
     <ScrollView
       style={styles.root}
+      bounces={false}
+      alwaysBounceVertical={false}
+      overScrollMode="never"
+      contentInsetAdjustmentBehavior="never"
       contentContainerStyle={{
         paddingTop: insets.top + 16,
         paddingHorizontal: 20,

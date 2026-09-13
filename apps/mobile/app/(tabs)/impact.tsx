@@ -31,6 +31,7 @@ import { CategoryDonut } from "@/components/custom/category-donut";
 import { CompareBars } from "@/components/custom/compare-bars";
 import { FootprintTrend } from "@/components/custom/footprint-trend";
 import { InsightCard } from "@/components/custom/insight-card";
+import { SolarImpactDashboard } from "@/components/custom/solar-impact-dashboard";
 import { ScreenHeader } from "@/components/custom/screen-header";
 import { SkeletonCard } from "@/components/custom/skeleton-card";
 import { Card } from "@/components/ui/card";
@@ -67,14 +68,6 @@ export default function ImpactScreen() {
   const rewards = useRewards();
   const [tab, setTab] = useState("overview");
 
-  const tabs = [
-    { label: "Overview", value: "overview" },
-    { label: "Solar", value: "solar" },
-    { label: "Carbon", value: "spend" },
-    { label: "Financial", value: "financial" },
-    { label: "Rewards", value: "rewards" },
-  ];
-
   const sustainableStore = useSustainablePurchaseStore();
   const isEvVerified = sustainableStore.isVerified || sustainableStore.rewardClaimed;
   const sustainableRewardPoints = sustainableStore.rewardPoints;
@@ -92,6 +85,10 @@ export default function ImpactScreen() {
     <View style={styles.root}>
       <ScrollView
         style={styles.scroll}
+        bounces={false}
+        alwaysBounceVertical={false}
+        overScrollMode="never"
+        contentInsetAdjustmentBehavior="never"
         contentContainerStyle={{
           paddingTop: insets.top + 16,
           paddingBottom: tabClearance,
@@ -110,11 +107,18 @@ export default function ImpactScreen() {
           onChange={setTab}
           options={[
             { label: "Overview", value: "overview" },
+            { label: "Solar", value: "solar" },
             { label: "Spend", value: "spend" },
           ]}
         />
 
-        {impact.isLoading || !impact.data ? (
+        {tab === "solar" ? (
+          solar.isLoading || !solar.data ? (
+            <SkeletonCard height={280} />
+          ) : (
+            <SolarImpactDashboard data={solar.data} />
+          )
+        ) : impact.isLoading || !impact.data ? (
           <SkeletonCard height={220} />
         ) : (
           <>
@@ -259,6 +263,7 @@ const styles = StyleSheet.create({
   tileRow: {
     flexDirection: "row",
     gap: 10,
+    minWidth: 0,
   },
   frost: {
     backgroundColor: "rgba(255,255,255,0.88)",

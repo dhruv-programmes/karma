@@ -142,8 +142,10 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: 8,
   },
   categoryBadge: {
     flexDirection: "row",
@@ -155,12 +157,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "rgba(46,168,110,0.2)",
+    maxWidth: "100%",
+    flexShrink: 1,
   },
   categoryBadgeText: {
     fontSize: 9.5,
     fontFamily: "Nunito_800ExtraBold",
     color: "#059669",
     letterSpacing: 0.6,
+    flexShrink: 1,
   },
   pointsBadge: {
     flexDirection: "row",
@@ -172,12 +177,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "rgba(245,158,11,0.3)",
+    maxWidth: "100%",
+    flexShrink: 1,
   },
   pointsBadgeText: {
     fontSize: 9.5,
     fontFamily: "Nunito_800ExtraBold",
     color: "#B45309",
     letterSpacing: 0.3,
+    flexShrink: 1,
   },
   titleSection: {
     gap: 3,
@@ -216,6 +224,7 @@ const styles = StyleSheet.create({
   },
   metricTile: {
     flex: 1,
+    minWidth: 0,
     backgroundColor: "#F8FAF9",
     borderRadius: 14,
     padding: 10,
@@ -233,12 +242,14 @@ const styles = StyleSheet.create({
     fontFamily: "IBMPlexMono_600SemiBold",
     color: "#059669",
     marginTop: 2,
+    flexShrink: 1,
   },
   metricValueDark: {
     fontSize: 17,
     fontFamily: "IBMPlexMono_600SemiBold",
     color: "#0D1811",
     marginTop: 2,
+    flexShrink: 1,
   },
   metricSub: {
     fontSize: 9.5,
@@ -259,11 +270,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3.5,
     borderRadius: 7,
+    maxWidth: "100%",
+    flexShrink: 1,
   },
   metaPillText: {
     fontSize: 9.5,
     fontFamily: "Nunito_700Bold",
     color: "#526658",
+    flexShrink: 1,
   },
   ctaButton: {
     flexDirection: "row",

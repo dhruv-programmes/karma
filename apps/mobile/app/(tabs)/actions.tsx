@@ -78,6 +78,12 @@ export default function ActionsScreen() {
     <View style={styles.root}>
       <ScrollView
         style={styles.scrollView}
+        // Keep the action list from stretching past its intended top edge on
+        // iOS. The dock already supplies the bottom breathing room.
+        bounces={false}
+        alwaysBounceVertical={false}
+        overScrollMode="never"
+        contentInsetAdjustmentBehavior="never"
         contentContainerStyle={{
           paddingTop: insets.top + 16,
           paddingHorizontal: 20,
@@ -104,9 +110,9 @@ export default function ActionsScreen() {
             <View style={styles.rewardsBarMeta}>
               <View style={styles.rewardsPointsRow}>
                 <Text style={styles.rewardsPointsVal}>+{totalCoins}</Text>
-                <Text style={styles.rewardsPointsLabel}>Karma Coins Ready</Text>
+                <Text style={styles.rewardsPointsLabel} numberOfLines={2}>Karma Coins Ready</Text>
               </View>
-              <Text style={styles.rewardsSubCopy}>
+              <Text style={styles.rewardsSubCopy} numberOfLines={2}>
                 ~{Math.round(totalCo2e)} kg CO₂e potential · ₹{Math.round(totalMoney).toLocaleString("en-IN")} savings
               </Text>
             </View>
@@ -212,7 +218,7 @@ const styles = StyleSheet.create({
   // Persuasion Bar (Matching Solar & Impact)
   rewardsPersuasionBar: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
@@ -222,12 +228,14 @@ const styles = StyleSheet.create({
     borderColor: "rgba(245,158,11,0.25)",
     boxShadow: "0px 2px 6px rgba(0,0,0,0.04)",
     elevation: 1,
+    gap: 8,
   },
   rewardsBarLeft: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
     flex: 1,
+    minWidth: 0,
   },
   rewardsCoinIconWrap: {
     width: 34,
@@ -242,9 +250,11 @@ const styles = StyleSheet.create({
   rewardsBarMeta: {
     gap: 1,
     flex: 1,
+    minWidth: 0,
   },
   rewardsPointsRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "baseline",
     gap: 6,
   },
@@ -257,11 +267,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: "Nunito_700Bold",
     color: "#B45309",
+    flexShrink: 1,
   },
   rewardsSubCopy: {
     fontSize: 10,
     fontFamily: "Nunito_400Regular",
     color: "#7A9082",
+    flexShrink: 1,
   },
   rewardsBarBtn: {
     flexDirection: "row",
@@ -271,6 +283,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 7,
     borderRadius: 10,
+    flexShrink: 0,
   },
   rewardsBarBtnText: {
     fontSize: 11,

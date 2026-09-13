@@ -37,6 +37,7 @@
       "bundleIdentifier": "com.carbonloop.app",
       "infoPlist": {
         "NSCameraUsageDescription": "Scan product barcodes for circular decisions.",
+        "NSMotionUsageDescription": "Allow Carbon Loop to read motion activity so it can count steps and award walking points.",
         "NSLocationWhenInUseUsageDescription": "Allow Carbon Loop to detect walking and cycling commutes.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow Carbon Loop to track walking and cycling trips in the background to award green commute points.",
         "UIBackgroundModes": ["location"]

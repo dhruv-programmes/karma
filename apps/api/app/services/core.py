@@ -689,20 +689,30 @@ def verify_sustainable_purchase(
     size_bytes: int | None,
     user: UserModel,
     db: Session,
+    allow_multiple: bool = False,
 ) -> dict:
-    """Award the one-time demo EV verification reward idempotently.
+    """Verify one EV document and award its bounded reward idempotently.
 
-    The uploaded file is deliberately treated as metadata only. This keeps the
-    prototype honest while leaving a provider seam for DigiLocker later.
+    The normal flow is idempotent; the explicit multi-asset mode lets each
+    distinct document add another vehicle asset. The uploaded file is
+    deliberately treated as metadata only, keeping the local prototype honest
+    while leaving a provider seam for DigiLocker later.
     """
-    existing = (
-        db.query(ActivityEventModel)
-        .filter(
-            ActivityEventModel.user_id == user.id,
-            ActivityEventModel.kind == "sustainable_purchase_verification",
-        )
-        .first()
-    )
+    filename_key = str(filename or "").strip().lower()
+    existing = None
+    existing_events = db.query(ActivityEventModel).filter(
+        ActivityEventModel.user_id == user.id,
+        ActivityEventModel.kind == "sustainable_purchase_verification",
+    ).all()
+    for event in existing_events:
+        metadata = event.meta or {}
+        if str(metadata.get("filename", "")).strip().lower() == filename_key:
+            existing = event
+            break
+    # The default flow remains a one-record demo flow for backwards
+    # compatibility. The explicit Add another EV CTA opts into new assets.
+    if existing is None and existing_events and not allow_multiple:
+        existing = existing_events[0]
     if existing:
         metadata = existing.meta
         return {
@@ -723,6 +733,17 @@ def verify_sustainable_purchase(
         }
 
     category = "Electric Vehicle"
+    model_by_keyword = (
+        ("nexon", "Tata Nexon EV"),
+        ("mg", "MG ZS EV"),
+        ("kona", "Hyundai Kona Electric"),
+        ("x1", "BMW iX1"),
+        ("ev6", "Kia EV6"),
+    )
+    vehicle_model = next(
+        (model for keyword, model in model_by_keyword if keyword in filename_key),
+        "Tata Nexon EV" if not existing_events else f"Electric Vehicle {len(existing_events) + 1}",
+    )
     reward_points = calculate_sustainable_purchase_reward(size_bytes, category)
     size_mb = round(max(0, int(size_bytes or 0)) / (1024 * 1024), 2)
     user.impact_points = int(user.impact_points) + reward_points
@@ -730,15 +751,15 @@ def verify_sustainable_purchase(
         user,
         db,
         "sustainable_purchase_verification",
-        "EV purchase verified",
-        f"Verified demo purchase · +{reward_points} Impact Points",
+        f"{vehicle_model} verified",
+        f"Verified purchase document · +{reward_points} Impact Points",
         points_delta=reward_points,
         meta={
             "filename": filename,
             "mime_type": mime_type,
             "size_bytes": size_bytes,
             "vehicle_type": "Electric Vehicle",
-            "vehicle_make_model": "Tata Nexon EV",
+            "vehicle_make_model": vehicle_model,
             "provider": "MockVerificationProvider",
             "reward_formula_version": SUSTAINABLE_REWARD_FORMULA_VERSION,
             "reward_basis": f"Document quality proxy ({size_mb:g} MB) × Electric Vehicle multiplier",
@@ -752,7 +773,7 @@ def verify_sustainable_purchase(
         "reward_points": reward_points,
         "total_points": int(user.impact_points),
         "already_claimed": False,
-        "vehicle_make_model": "Tata Nexon EV",
+        "vehicle_make_model": vehicle_model,
         "vehicle_type": "Electric Vehicle",
         "ownership": "Verified",
         "verification": "Successful",
@@ -1332,19 +1353,31 @@ def user_impact(user: UserModel | None = None, db: Session | None = None) -> dic
     for t in txns:
         kg = t.co2e_kg
         cat_str = t.category
-        by_category[cat_str] = round(by_category.get(cat_str, 0.0) + kg, 1)
-
-        if cat_str == ProductCategory.TRANSPORT.value:
-            transport += kg
-        elif cat_str == ProductCategory.ENERGY.value:
-            energy += kg
-        else:
-            purchases += kg
 
         if t.date.startswith(current_prefix):
             this_m += kg
+            by_category[cat_str] = round(by_category.get(cat_str, 0.0) + kg, 1)
+            if cat_str == ProductCategory.TRANSPORT.value:
+                transport += kg
+            elif cat_str == ProductCategory.ENERGY.value:
+                energy += kg
+            else:
+                purchases += kg
         elif t.date.startswith(prev_prefix):
             prev_m += kg
+
+    if this_m == 0.0 and txns:
+        for t in txns:
+            kg = t.co2e_kg
+            cat_str = t.category
+            by_category[cat_str] = round(by_category.get(cat_str, 0.0) + kg, 1)
+            if cat_str == ProductCategory.TRANSPORT.value:
+                transport += kg
+            elif cat_str == ProductCategory.ENERGY.value:
+                energy += kg
+            else:
+                purchases += kg
+        this_m = purchases + transport + energy
 
     total = purchases + transport + energy
     buckets = {

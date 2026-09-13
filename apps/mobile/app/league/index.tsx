@@ -8,6 +8,7 @@ import { Text } from "@/components/ui/text";
 import { useLeague } from "@/src/hooks/queries";
 import type { LeagueTier } from "@/src/types/api";
 import { formatLeagueNumber, leagueBadgeSource } from "@/src/lib/league";
+import { LeagueTransitionCelebration } from "@/components/custom/league-transition-celebration";
 
 const green = "#0E2A1E";
 const mint = "#2EA86E";
@@ -45,7 +46,7 @@ export default function LeagueScreen() {
           <Text style={styles.emptyText}>
             {leagueQuery.isLoading
               ? "Checking your current Carbon Loop league and badge."
-              : "We could not verify your current league right now. Your tier will appear when the server responds."}
+              : `We could not verify your current league right now. ${leagueQuery.error instanceof Error ? leagueQuery.error.message : "Your tier will appear when the server responds."}`}
           </Text>
           {!leagueQuery.isLoading ? (
             <Pressable style={styles.retryButton} onPress={() => void leagueQuery.refetch()}>
@@ -69,11 +70,12 @@ export default function LeagueScreen() {
       : "In the promotion race";
 
   return (
-    <ScrollView
-      style={styles.root}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 36 }]}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void leagueQuery.refetch()} tintColor={mint} />}
-    >
+    <>
+      <ScrollView
+        style={styles.root}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 36 }]}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void leagueQuery.refetch()} tintColor={mint} />}
+      >
       <BackButton label="Community" fallbackRoute="/community" variant="circle" />
 
       <View style={styles.hero}>
@@ -142,7 +144,9 @@ export default function LeagueScreen() {
 
       <View style={styles.noteCard}><Text style={styles.noteTitle}>How leagues work</Text><Text style={styles.noteText}>{league.demotion_note}</Text><Text style={styles.noteText}>League points measure verified challenge progress only — they never replace your Carbon Credit Score or Karma Coins.</Text></View>
       <Pressable style={styles.backToCommunity} onPress={() => router.replace("/community")}><Text style={styles.backToCommunityText}>Back to Community</Text><ChevronRight size={16} color={mint} /></Pressable>
-    </ScrollView>
+      </ScrollView>
+      <LeagueTransitionCelebration league={league} />
+    </>
   );
 }
 

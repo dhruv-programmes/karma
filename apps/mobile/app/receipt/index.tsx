@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { Asset } from "expo-asset";
@@ -56,6 +56,8 @@ export default function ReceiptScanScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const setDocumentDraft = useAppStore((s) => s.setDocumentDraft);
+  const receiptCapture = useAppStore((s) => s.receiptCapture);
+  const setReceiptCapture = useAppStore((s) => s.setReceiptCapture);
 
   const [picked, setPicked] = useState<PickedFile | null>(null);
   const [extracting, setExtracting] = useState(false);
@@ -66,25 +68,11 @@ export default function ReceiptScanScreen() {
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  async function takePhoto() {
-    setError(null);
-    const perm = await ImagePicker.requestCameraPermissionsAsync();
-    if (!perm.granted) {
-      setError("Camera permission is required.");
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({
-      quality: 0.75,
-      allowsEditing: false,
-    });
-    if (result.canceled || !result.assets?.[0]) return;
-    const asset = result.assets[0];
-    setPicked({
-      uri: asset.uri,
-      name: asset.fileName ?? `receipt_${Date.now()}.jpg`,
-      kind: "image",
-    });
-  }
+  useEffect(() => {
+    if (!receiptCapture) return;
+    setPicked(receiptCapture);
+    setReceiptCapture(null);
+  }, [receiptCapture, setReceiptCapture]);
 
   async function choosePhoto() {
     setError(null);
@@ -233,7 +221,13 @@ export default function ReceiptScanScreen() {
         </Text>
 
         <VStack className="gap-3 mt-1">
-          <Pressable disabled={extracting} onPress={() => void takePhoto()}>
+          <Pressable
+            disabled={extracting}
+            onPress={() => {
+              setError(null);
+              router.push("/receipt/camera");
+            }}
+          >
             <Card variant="soft">
               <HStack className="items-center gap-3">
                 <Box className="w-11 h-11 rounded-full bg-primary/15 items-center justify-center">

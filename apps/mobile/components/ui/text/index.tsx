@@ -1,5 +1,5 @@
 import React from "react";
-import { Text as RNText, type TextProps as RNTextProps } from "react-native";
+import { Platform, Text as RNText, type TextProps as RNTextProps } from "react-native";
 
 const sizeMap = {
   "2xs": "text-2xs",
@@ -42,6 +42,9 @@ export function Text({
         .join(" ")}
       style={[
         {
+          // Android adds extra font ascent/descent padding by default. Removing
+          // it keeps card labels and metrics vertically aligned with iOS/web.
+          ...(Platform.OS === "android" ? { includeFontPadding: false } : {}),
           fontFamily: className?.includes("font-mono")
             ? bold
               ? "IBMPlexMono_600SemiBold"

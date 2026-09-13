@@ -14,6 +14,8 @@ import { ScrollView } from "@/components/ui/scroll-view";
 import { Text } from "@/components/ui/text";
 import { useCompleteAction, useFacilitiesNearby, useMe } from "@/src/hooks/queries";
 import { useAppStore } from "@/src/store/app";
+import { useAuthStore } from "@/src/store/auth";
+import { remapSeededFacilities, seededLocationCenter } from "@/src/lib/seeded-location";
 import { DEMO_RECYCLE_ACTION_ID, DEMO_REPAIR_ACTION_ID } from "@/src/types/api";
 import { MapPin } from "lucide-react-native";
 
@@ -46,12 +48,14 @@ export default function MapScreen() {
     actionType?: string;
   }>();
   const facilityType = params.type || "repair";
+  const manualLocation = useAuthStore((state) => state.manualLocation);
   const [coords, setCoords] = useState(BLR);
+  const mapLocation = manualLocation ? seededLocationCenter(manualLocation) : coords;
   const facilitiesQuery = useFacilitiesNearby(
     facilityType,
-    coords.lat,
-    coords.lng,
-    { allowFallback: false },
+    mapLocation.lat,
+    mapLocation.lng,
+    { allowFallback: true },
   );
   const me = useMe();
   const complete = useCompleteAction();
@@ -69,7 +73,7 @@ export default function MapScreen() {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== "granted") return;
         const loc = await Location.getCurrentPositionAsync({});
-        if (!cancelled) {
+        if (!cancelled && !manualLocation) {
           setCoords({
             lat: loc.coords.latitude,
             lng: loc.coords.longitude,
@@ -82,18 +86,21 @@ export default function MapScreen() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [manualLocation]);
 
   const facilities = useMemo(() => {
-    return [...(facilitiesQuery.data ?? [])].sort(
+    const seeded = manualLocation
+      ? remapSeededFacilities(facilitiesQuery.data ?? [], manualLocation)
+      : facilitiesQuery.data ?? [];
+    return [...seeded].sort(
       (a, b) =>
         (a.distance_km ?? Number.POSITIVE_INFINITY) -
         (b.distance_km ?? Number.POSITIVE_INFINITY),
     );
-  }, [facilitiesQuery.data]);
+  }, [facilitiesQuery.data, manualLocation]);
 
   const mapPoints = useMemo(() => {
-    const points = [...facilities, { lat: coords.lat, lng: coords.lng }];
+    const points = [...facilities, { lat: mapLocation.lat, lng: mapLocation.lng }];
     const latitudes = points.map((point) => point.lat);
     const longitudes = points.map((point) => point.lng);
     const latSpan = Math.max(0.01, Math.max(...latitudes) - Math.min(...latitudes));
@@ -107,7 +114,7 @@ export default function MapScreen() {
       left: Math.min(94, Math.max(6, ((facility.lng - minLng) / paddedLngSpan) * 100)),
       top: Math.min(90, Math.max(10, (1 - (facility.lat - minLat) / paddedLatSpan) * 100)),
     }));
-  }, [coords.lat, coords.lng, facilities]);
+  }, [mapLocation.lat, mapLocation.lng, facilities]);
   const [mapZoom, setMapZoom] = useState(1);
 
   async function markComplete() {
@@ -178,7 +185,7 @@ export default function MapScreen() {
         <Box className="mx-6 mb-2 rounded-2xl border border-destructive/30 bg-card px-4 py-3 gap-2">
           <Text className="text-foreground font-medium">Nearby places are unavailable.</Text>
           <Text className="text-muted-foreground text-xs">
-            Check your connection and try again. We will not show made-up locations.
+            Check your connection and try again. Demo-seeded locations remain available offline.
           </Text>
           <Button size="sm" variant="outline" onPress={() => void facilitiesQuery.refetch()}>
             Try again
@@ -196,11 +203,11 @@ export default function MapScreen() {
       <Box className="px-6 mb-2">
         <Chip
           tone="info"
-          label={
-            coords.lat === BLR.lat
+          label={manualLocation
+            ? `Seeded places near ${manualLocation}`
+            : coords.lat === BLR.lat
               ? "Using Bengaluru demo location"
-              : "Sorted from your location"
-          }
+              : "Sorted from your location"}
         />
       </Box>
 

@@ -11,6 +11,8 @@ export interface SustainablePurchaseState {
   vehicleMakeModel: string;
   vehicleType: string;
   ownership: string;
+  vehicles: VerifiedVehicle[];
+  selectedVehicleId: string | null;
   setVerified: (data?: {
     documentName?: string;
     documentSize?: number;
@@ -20,7 +22,19 @@ export interface SustainablePurchaseState {
     rewardPoints?: number;
   }) => void;
   claimReward: () => void;
+  selectVehicle: (id: string) => void;
   resetDemo: () => void;
+}
+
+export interface VerifiedVehicle {
+  id: string;
+  makeModel: string;
+  vehicleType: string;
+  ownership: string;
+  documentName: string;
+  documentSize: number | null;
+  rewardPoints: number;
+  verifiedAt: string;
 }
 
 export const useSustainablePurchaseStore = create<SustainablePurchaseState>((set) => ({
@@ -30,23 +44,73 @@ export const useSustainablePurchaseStore = create<SustainablePurchaseState>((set
   verifiedAt: null,
   documentName: null,
   documentSize: null,
-  vehicleMakeModel: "Tata Nexon EV",
-  vehicleType: "Electric Vehicle",
-  ownership: "Verified Owner",
+  vehicleMakeModel: "",
+  vehicleType: "",
+  ownership: "",
+  vehicles: [],
+  selectedVehicleId: null,
   setVerified: (data) =>
-    set({
-      isVerified: true,
-      verifiedAt: new Date().toISOString(),
-      documentName: data?.documentName ?? "vehicle_registration_rc.pdf",
-      documentSize: data?.documentSize ?? 2450000,
-      vehicleMakeModel: data?.vehicleMakeModel ?? "Tata Nexon EV",
-      vehicleType: data?.vehicleType ?? "Electric Vehicle",
-      ownership: data?.ownership ?? "Verified Owner",
-      rewardPoints: Math.max(0, Math.round(data?.rewardPoints ?? 0)),
+    set((state) => {
+      const verifiedAt = new Date().toISOString();
+      const vehicle: VerifiedVehicle = {
+        id: `ev-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        makeModel: data?.vehicleMakeModel ?? "Electric Vehicle",
+        vehicleType: data?.vehicleType ?? "Electric Vehicle",
+        ownership: data?.ownership ?? "Verified Owner",
+        documentName: data?.documentName ?? "vehicle_registration_rc.pdf",
+        documentSize: data?.documentSize ?? 2450000,
+        rewardPoints: Math.max(0, Math.round(data?.rewardPoints ?? 0)),
+        verifiedAt,
+      };
+      const duplicate = state.vehicles.find(
+        (item) => item.documentName.trim().toLowerCase() === vehicle.documentName.trim().toLowerCase()
+      );
+      if (duplicate) {
+        return {
+          ...state,
+          isVerified: true,
+          selectedVehicleId: duplicate.id,
+          verifiedAt: duplicate.verifiedAt,
+          documentName: duplicate.documentName,
+          documentSize: duplicate.documentSize,
+          vehicleMakeModel: duplicate.makeModel,
+          vehicleType: duplicate.vehicleType,
+          ownership: duplicate.ownership,
+          rewardPoints: duplicate.rewardPoints,
+        };
+      }
+      return {
+        isVerified: true,
+        verifiedAt,
+        documentName: vehicle.documentName,
+        documentSize: vehicle.documentSize,
+        vehicleMakeModel: vehicle.makeModel,
+        vehicleType: vehicle.vehicleType,
+        ownership: vehicle.ownership,
+        rewardPoints: vehicle.rewardPoints,
+        vehicles: [...state.vehicles, vehicle],
+        selectedVehicleId: vehicle.id,
+      };
     }),
   claimReward: () =>
     set({
       rewardClaimed: true,
+    }),
+  selectVehicle: (id) =>
+    set((state) => {
+      const vehicle = state.vehicles.find((item) => item.id === id);
+      if (!vehicle) return state;
+      return {
+        selectedVehicleId: id,
+        isVerified: true,
+        verifiedAt: vehicle.verifiedAt,
+        documentName: vehicle.documentName,
+        documentSize: vehicle.documentSize,
+        vehicleMakeModel: vehicle.makeModel,
+        vehicleType: vehicle.vehicleType,
+        ownership: vehicle.ownership,
+        rewardPoints: vehicle.rewardPoints,
+      };
     }),
   resetDemo: () =>
     set({
@@ -56,5 +120,7 @@ export const useSustainablePurchaseStore = create<SustainablePurchaseState>((set
       verifiedAt: null,
       documentName: null,
       documentSize: null,
+      vehicles: [],
+      selectedVehicleId: null,
     }),
 }));

@@ -50,6 +50,30 @@ export function Button({
   ...props
 }: ButtonProps) {
   const isDisabled = Boolean(disabled || loading);
+  // React Native requires every text node inside a Pressable/View to be
+  // wrapped in a Text component. Most buttons contain a single string, but
+  // icon buttons (for example Camera + "Take photo") pass an array of
+  // children. Normalize those text children as well so the native renderer
+  // never receives a bare string and crashes with "Unexpected text node".
+  const normalizedChildren: React.ReactNode | RNPressableProps["children"] =
+    typeof children === "function"
+      ? children
+      : React.Children.map(children, (child, index) => {
+          if (typeof child === "string" || typeof child === "number") {
+            return (
+              <Text
+                key={`button-text-${index}`}
+                bold
+                numberOfLines={1}
+                className={`shrink min-w-0 ${textVariantMap[variant]}`}
+              >
+                {child}
+              </Text>
+            );
+          }
+          return child;
+        });
+
   return (
     <RNPressable
       accessibilityRole="button"
@@ -82,7 +106,7 @@ export function Button({
           {children}
         </Text>
       ) : (
-        children
+        normalizedChildren
       )}
     </RNPressable>
   );

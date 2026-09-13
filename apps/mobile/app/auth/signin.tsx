@@ -60,7 +60,7 @@ const FALLBACK_DEMO_USERS: DemoUserSummary[] = [
     id: "11111111-1111-1111-1111-111111111111",
     name: "Aisha Sharma",
     email: "aisha@example.com",
-    role_description: "Urban Commuter · Carbon Credit Score 740 · 420 Karma Coins",
+    role_description: "Urban eco builder · Carbon Credit Score 740 · 420 Karma Coins",
     circularity_score: 74,
     impact_points: 420,
     streak_days: 5,

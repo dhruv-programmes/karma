@@ -9,9 +9,6 @@ import type {
   Challenge,
   ChallengePeriod,
   CircularOptionsResponse,
-  CommuteSummary,
-  CommuteTripRequest,
-  CommuteTripResult,
   CompletedActionResult,
   DemoUserSummary,
   Facility,
@@ -373,32 +370,6 @@ export function normalizeSolarImpact(raw: any): SolarImpactResponse {
   };
 }
 
-/** Normalize commute summary payload to camelCase */
-export function normalizeCommuteSummary(raw: any): CommuteSummary {
-  const src = raw && typeof raw === "object" ? raw : {};
-  const num = (v: unknown, dflt = 0): number =>
-    typeof v === "number" && Number.isFinite(v) ? v : dflt;
-  const rawSeries = src.series;
-
-  return {
-    date: String(src.date ?? ""),
-    todayDistanceKm: num(src.todayDistanceKm ?? src.today_distance_km, 0),
-    todayPoints: num(src.todayPoints ?? src.today_points, 0),
-    dailyRewardCap: num(src.dailyRewardCap ?? src.daily_reward_cap, 150),
-    tripsToday: num(src.tripsToday ?? src.trips_today, 0),
-    series: Array.isArray(rawSeries)
-      ? rawSeries.map((item: any) => ({
-          date: String(item.date ?? ""),
-          label: String(item.label ?? ""),
-          distance_km: num(item.distance_km ?? item.distanceKm, 0),
-          points_awarded: num(item.points_awarded ?? item.pointsAwarded, 0),
-          trips: num(item.trips, 0),
-        }))
-      : [],
-
-  };
-}
-
 export const api = {  // Authentication
   signin: (email: string, password = "password123") =>
     request<AuthResponse>("/api/v1/auth/signin", {
@@ -459,17 +430,11 @@ export const api = {  // Authentication
       method: "POST",
       body: JSON.stringify({ steps: Math.max(0, Math.round(steps)) }),
     }).then(normalizeStepSummary),
-  getCommuteSummary: () =>
-    request<any>("/api/v1/commute/summary").then(normalizeCommuteSummary),
-  logCommute: (payload: CommuteTripRequest) =>
-    request<CommuteTripResult>("/api/v1/commute/log", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
   verifySustainablePurchase: (payload: {
     filename: string;
     mime_type?: string | null;
     size_bytes?: number | null;
+    allow_multiple?: boolean;
   }) =>
     request<import("@/src/types/api").SustainablePurchaseVerification>(
       "/api/v1/sustainable-purchases/verify",
@@ -507,6 +472,7 @@ export const api = {  // Authentication
         carbon_score: Number(item.carbon_score ?? item.carbon_credit_score ?? 650),
         rank: Number(item.rank ?? index + 1),
         is_current_user: Boolean(item.is_current_user),
+        is_friend: Boolean(item.is_friend),
       } as LeaderboardEntry))),
   searchFriends: (username: string) =>
     request<any[]>(`/api/v1/users/search?q=${encodeURIComponent(username)}`).then((items) => items.map((item: any) => ({
@@ -514,7 +480,14 @@ export const api = {  // Authentication
       impact_points: Number(item.impact_points ?? 0), carbon_score: Number(item.carbon_score ?? 650), is_friend: item.status === "accepted",
     } as FriendResult))),
   addFriend: (username: string) =>
-    request<FriendResult>(`/api/v1/friends/${encodeURIComponent(username)}`, { method: "POST" }),
+    request<any>(`/api/v1/friends/${encodeURIComponent(username)}`, { method: "POST" }).then((item) => ({
+      id: String(item.id),
+      username: String(item.username ?? ""),
+      display_name: String(item.display_name ?? item.name ?? "Member"),
+      impact_points: Number(item.impact_points ?? 0),
+      carbon_score: Number(item.carbon_score ?? 650),
+      is_friend: true,
+    } as FriendResult)),
   removeFriend: (username: string) =>
     request<{ status: string }>(`/api/v1/friends/${encodeURIComponent(username)}`, {
       method: "DELETE",
@@ -548,9 +521,29 @@ export const api = {  // Authentication
   getLeague: async (): Promise<LeagueSummary> => {
     // Fetch status and standings together. Status is the authoritative league
     // payload; a slow/broken standings query must not block the whole page.
+    const getStatus = async () => {
+      try {
+        return await request<any>("/api/v1/league/status");
+      } catch (primaryError) {
+        // Older local/deployed API instances exposed the plural alias only.
+        // Keep Expo clients compatible while teammates restart their server.
+        try {
+          return await request<any>("/api/v1/leagues/me");
+        } catch {
+          throw primaryError;
+        }
+      }
+    };
+    const getStandings = async () => {
+      try {
+        return await request<any>("/api/v1/league/standings");
+      } catch {
+        return request<any>("/api/v1/leagues/standings").catch(() => null);
+      }
+    };
     const [statusResult, standingsResult] = await Promise.all([
-      request<any>("/api/v1/league/status"),
-      request<any>("/api/v1/league/standings").catch(() => null),
+      getStatus(),
+      getStandings(),
     ]);
     const remote = statusResult;
     const current = remote.current_league ?? {};
@@ -594,6 +587,13 @@ export const api = {  // Authentication
       promotion_status: status,
       season_label: `${remote.season_key ?? "Current"} season`,
       demotion_note: "On the first day of each month, every league drops one tier. Bronze is protected.",
+      last_promotion_at: typeof remote.last_promotion_at === "string" ? remote.last_promotion_at : null,
+      last_promotion_from: ["bronze", "silver", "gold", "platinum"].includes(String(remote.last_promotion_from))
+        ? (remote.last_promotion_from as LeagueTier)
+        : null,
+      last_promotion_to: ["bronze", "silver", "gold", "platinum"].includes(String(remote.last_promotion_to))
+        ? (remote.last_promotion_to as LeagueTier)
+        : null,
       standings,
     };
   },

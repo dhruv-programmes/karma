@@ -72,7 +72,15 @@ export default function LeaderboardScreen() {
   async function loadLeaderboard(nextScope = scope, nextMetric = metric) {
     try {
       const remote = await api.getLeaderboard(nextScope, nextMetric);
-      if (remote.length) setPeople(remote);
+      if (!remote.length) return;
+      if (nextScope === "friends") {
+        // The friends tab is another view of the same leaderboard rows. Keep
+        // the canonical balances returned by the server instead of retaining
+        // the initial demo row after a friend is added.
+        setFriends(remote.map((person: LeaderboardEntry) => ({ ...person, is_friend: true })));
+      } else {
+        setPeople(remote);
+      }
     } catch { /* offline demo remains visible */ }
   }
 
@@ -107,8 +115,26 @@ export default function LeaderboardScreen() {
   }
 
   async function addFriend(person: FriendResult) {
-    try { await api.addFriend(person.username); } catch { /* local demo mode */ }
-    setFriends((current) => current.some((friend) => friend.id === person.id) ? current : [...current, { ...person, is_friend: true }]);
+    let added = person;
+    try {
+      const remote = await api.addFriend(person.username);
+      // API responses are canonical, but retain the global row as a safe
+      // compatibility merge with older servers that return identity only.
+      const globalRow = people.find((entry) => entry.id === person.id);
+      added = {
+        ...(globalRow ?? {}),
+        ...person,
+        ...remote,
+        display_name: remote.display_name ?? person.display_name,
+        is_friend: true,
+      };
+    } catch {
+      const globalRow = people.find((entry) => entry.id === person.id);
+      added = { ...(globalRow ?? {}), ...person, is_friend: true };
+    }
+    setFriends((current) => current.some((friend) => friend.id === added.id)
+      ? current.map((friend) => friend.id === added.id ? { ...friend, ...added, is_friend: true } : friend)
+      : [...current, added]);
     setSearchResults((current) => current.filter((item) => item.id !== person.id));
     setNotice(`${person.display_name} added to your friends leaderboard.`);
   }
@@ -143,7 +169,10 @@ export default function LeaderboardScreen() {
           <View style={styles.segment}><Pressable onPress={() => { setScope("global"); void loadLeaderboard("global", metric); }} style={[styles.segmentItem, scope === "global" && styles.segmentActive]}><Text style={[styles.segmentText, scope === "global" && styles.segmentActiveText]}>Global</Text></Pressable><Pressable onPress={() => { setScope("friends"); void loadLeaderboard("friends", metric); }} style={[styles.segmentItem, scope === "friends" && styles.segmentActive]}><Users size={14} color={scope === "friends" ? "#fff" : "#668074"} /><Text style={[styles.segmentText, scope === "friends" && styles.segmentActiveText]}>Friends</Text></Pressable></View>
           <View style={styles.metricRow}><Text style={styles.sectionTitle}>Rank by</Text><View style={styles.metricPills}><Pressable onPress={() => { setMetric("impact_points"); void loadLeaderboard(scope, "impact_points"); }} style={[styles.metricPill, metric === "impact_points" && styles.metricPillActive]}><Text style={[styles.metricText, metric === "impact_points" && styles.metricTextActive]}>Karma Coins</Text></Pressable><Pressable onPress={() => { setMetric("kcs"); void loadLeaderboard(scope, "kcs"); }} style={[styles.metricPill, metric === "kcs" && styles.metricPillActive]}><Text style={[styles.metricText, metric === "kcs" && styles.metricTextActive]}>Carbon Score</Text></Pressable></View></View>
 
-          <View style={styles.card}><View style={styles.cardHeader}><Text style={styles.cardTitle}>{scope === "global" ? "Global rankings" : "Your circle"}</Text><Text style={styles.cardHint}>{metric === "impact_points" ? "Karma Coins" : "Provisional / verified score"}</Text></View>{rows.map((row, index) => <View key={row.id} style={[styles.rankRow, row.is_current_user && styles.currentRow]}><Text style={[styles.rank, index === 0 && styles.topRank]}>{index + 1}</Text><View style={styles.avatar}><Text style={styles.avatarText}>{row.display_name.slice(0, 1)}</Text></View><View style={{ flex: 1 }}><Text style={styles.person}>{row.display_name}{row.is_current_user ? " · You" : ""}</Text><Text style={styles.username}>@{row.username}</Text></View><View style={{ alignItems: "flex-end" }}><Text style={styles.rankValue}>{metric === "impact_points" ? formatLeagueNumber(row.impact_points) : formatLeagueNumber(row.carbon_score)}</Text><Text style={styles.rankUnit}>{metric === "impact_points" ? "coins" : "score"}</Text></View></View>)}</View>
+          <View style={styles.card}><View style={styles.cardHeader}><Text style={styles.cardTitle}>{scope === "global" ? "Global rankings" : "Your circle"}</Text><Text style={styles.cardHint}>{metric === "impact_points" ? "Karma Coins" : "Provisional / verified score"}</Text></View>{rows.map((row, index) => {
+            const isFriend = row.is_friend || friends.some((friend) => friend.id === row.id);
+            return <View key={row.id} style={[styles.rankRow, row.is_current_user && styles.currentRow]}><Text numberOfLines={1} style={[styles.rank, index === 0 && styles.topRank]}>{index + 1}</Text><View style={styles.avatar}><Text style={styles.avatarText}>{row.display_name.slice(0, 1)}</Text></View><View style={{ flex: 1, minWidth: 0 }}><Text style={styles.person} numberOfLines={1}>{row.display_name}{row.is_current_user ? " · You" : ""}</Text><Text style={styles.username} numberOfLines={1}>@{row.username}</Text></View><View style={{ alignItems: "flex-end", flexShrink: 0 }}><Text style={styles.rankValue} numberOfLines={1}>{metric === "impact_points" ? formatLeagueNumber(row.impact_points) : formatLeagueNumber(row.carbon_score)}</Text><Text style={styles.rankUnit}>{metric === "impact_points" ? "coins" : "score"}</Text></View>{scope === "global" && !row.is_current_user && !isFriend ? <Pressable onPress={() => void addFriend({ ...row, is_friend: false })} style={styles.rankAddButton}><UserPlus size={14} color="#fff" /></Pressable> : null}</View>;
+          })}</View>
 
           <View style={styles.card}><View style={styles.cardHeader}><Text style={styles.cardTitle}>Add friends</Text><Text style={styles.cardHint}>Username only</Text></View><View style={styles.searchRow}><Search size={17} color="#789185" /><TextInput value={username} onChangeText={setUsername} onSubmitEditing={() => void search()} placeholder="Search @username" placeholderTextColor="#91A59A" style={styles.input} autoCapitalize="none" /><Pressable onPress={() => void search()} style={styles.searchButton}>{busy ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.searchButtonText}>Find</Text>}</Pressable></View>{notice ? <Text style={styles.notice}>{notice}</Text> : null}{searchResults.map((person) => <View key={person.id} style={styles.friendRow}><View style={{ flex: 1 }}><Text style={styles.person}>{person.display_name}</Text><Text style={styles.username}>@{person.username}</Text></View><Pressable onPress={() => void addFriend(person)} style={styles.addButton}><UserPlus size={15} color="#fff" /><Text style={styles.addText}>Add</Text></Pressable></View>)}{friends.length > 0 ? <View style={styles.friendsList}><Text style={styles.miniLabel}>YOUR FRIENDS</Text>{friends.map((person) => <View key={person.id} style={styles.friendRow}><View style={{ flex: 1 }}><Text style={styles.person}>{person.display_name}</Text><Text style={styles.username}>@{person.username}</Text></View><Pressable onPress={() => void removeFriend(person)}><X size={17} color="#8BA097" /></Pressable></View>)}</View> : null}</View>
 
@@ -169,7 +198,7 @@ const styles = StyleSheet.create({
   metricRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, sectionTitle: { color: green, fontWeight: "800", fontSize: 14 },
   metricPills: { flexDirection: "row", gap: 6 }, metricPill: { borderWidth: 1, borderColor: "#CDE2D5", borderRadius: 20, paddingHorizontal: 11, paddingVertical: 8 }, metricPillActive: { backgroundColor: "#D7F0E1", borderColor: mint }, metricText: { color: "#668074", fontSize: 12, fontWeight: "700" }, metricTextActive: { color: green },
   card: { backgroundColor: "#fff", borderRadius: 20, borderWidth: 1, borderColor: "#D8E9DF", padding: 16 }, cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }, cardTitle: { color: green, fontWeight: "800", fontSize: 17 }, cardHint: { color: "#789185", fontSize: 11 },
-  rankRow: { minHeight: 62, flexDirection: "row", alignItems: "center", gap: 10, borderTopWidth: 1, borderTopColor: "#EDF3EF" }, currentRow: { backgroundColor: "#F0FAF4", marginHorizontal: -8, paddingHorizontal: 8, borderRadius: 12 }, rank: { width: 18, color: "#789185", fontWeight: "800", textAlign: "center" }, topRank: { color: "#E79D16" }, avatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: "#D7F0E1", alignItems: "center", justifyContent: "center" }, avatarText: { color: mint, fontWeight: "800" }, person: { color: green, fontWeight: "800", fontSize: 14 }, username: { color: "#789185", fontSize: 11, marginTop: 2 }, rankValue: { color: green, fontWeight: "800", fontSize: 15 }, rankUnit: { color: "#789185", fontSize: 10 },
+  rankRow: { minHeight: 62, flexDirection: "row", alignItems: "center", gap: 10, borderTopWidth: 1, borderTopColor: "#EDF3EF" }, currentRow: { backgroundColor: "#F0FAF4", marginHorizontal: -8, paddingHorizontal: 8, borderRadius: 12 }, rank: { width: 28, minWidth: 28, flexShrink: 0, color: "#789185", fontWeight: "800", textAlign: "center" }, topRank: { color: "#E79D16" }, avatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: "#D7F0E1", alignItems: "center", justifyContent: "center", flexShrink: 0 }, avatarText: { color: mint, fontWeight: "800" }, person: { color: green, fontWeight: "800", fontSize: 14 }, username: { color: "#789185", fontSize: 11, marginTop: 2 }, rankValue: { color: green, fontWeight: "800", fontSize: 15 }, rankUnit: { color: "#789185", fontSize: 10 }, rankAddButton: { width: 30, height: 30, borderRadius: 10, backgroundColor: mint, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   searchRow: { borderWidth: 1, borderColor: "#CDE2D5", borderRadius: 13, minHeight: 46, paddingLeft: 12, flexDirection: "row", alignItems: "center", gap: 8 }, input: { flex: 1, color: green, fontSize: 14, paddingVertical: 8 }, searchButton: { backgroundColor: green, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9, marginRight: 4 }, searchButtonText: { color: "#fff", fontWeight: "800", fontSize: 12 }, notice: { color: mint, fontSize: 12, marginTop: 8 }, friendRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, borderTopWidth: 1, borderTopColor: "#EDF3EF" }, addButton: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: mint, borderRadius: 10, paddingHorizontal: 11, paddingVertical: 8 }, addText: { color: "#fff", fontWeight: "800", fontSize: 12 }, friendsList: { marginTop: 8 }, miniLabel: { color: "#789185", letterSpacing: 1.2, fontSize: 10, fontWeight: "800", marginBottom: 3 },
   challengeHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginTop: 5 }, sectionHeading: { color: green, fontSize: 22, fontWeight: "800", marginTop: 3 }, periodRow: { flexDirection: "row", gap: 8 }, periodPill: { borderRadius: 20, borderWidth: 1, borderColor: "#CDE2D5", paddingHorizontal: 16, paddingVertical: 9 }, periodActive: { backgroundColor: mint, borderColor: mint }, periodText: { color: "#668074", fontWeight: "800", fontSize: 13 }, periodTextActive: { color: "#fff" },
   challengeLink: { backgroundColor: "#E3F5EA", borderRadius: 14, padding: 13, flexDirection: "row", alignItems: "center", gap: 8 }, challengeLinkText: { flex: 1, color: green, fontWeight: "800", fontSize: 13 }, chevron: { color: mint, fontSize: 24 },

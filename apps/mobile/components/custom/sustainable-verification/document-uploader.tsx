@@ -1,6 +1,8 @@
 import React from "react";
+import { useState } from "react";
 import { View, StyleSheet, TouchableOpacity } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
+import * as ImagePicker from "expo-image-picker";
 import {
   Upload,
   FileText,
@@ -9,6 +11,7 @@ import {
   FileCheck2,
   RefreshCw,
   Sparkles,
+  Camera,
 } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 
@@ -38,7 +41,38 @@ export function DocumentUploader({
   onVerify,
   onClear,
 }: DocumentUploaderProps) {
+  const [pickerError, setPickerError] = useState<string | null>(null);
+
+  const handleTakePhoto = async () => {
+    setPickerError(null);
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        setPickerError("Camera access is required to photograph a document.");
+        return;
+      }
+
+      const res = await ImagePicker.launchCameraAsync({
+        mediaTypes: ["images"],
+        quality: 0.75,
+        allowsEditing: false,
+      });
+
+      if (res.canceled || !res.assets?.[0]) return;
+      const asset = res.assets[0];
+      onFileSelect({
+        name: asset.fileName || `ev-document-${Date.now()}.jpg`,
+        size: asset.fileSize,
+        uri: asset.uri,
+        mimeType: asset.mimeType || "image/jpeg",
+      });
+    } catch {
+      setPickerError("Could not open the camera. Check camera permission and try again.");
+    }
+  };
+
   const handlePickDocument = async () => {
+    setPickerError(null);
     try {
       const res = await DocumentPicker.getDocumentAsync({
         type: ["application/pdf", "image/*"],
@@ -56,8 +90,7 @@ export function DocumentUploader({
         });
       }
     } catch {
-      // Fallback to demo file if picker fails on platform
-      handleUseDemoFile();
+      setPickerError("Could not open the document picker. Try taking a photo instead.");
     }
   };
 
@@ -92,6 +125,19 @@ export function DocumentUploader({
             <Upload size={17} color="#FFFFFF" strokeWidth={2.4} />
             <Text style={styles.uploadButtonText}>Upload Document</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.cameraButton}
+            onPress={() => void handleTakePhoto()}
+            activeOpacity={0.86}
+          >
+            <Camera size={17} color="#167345" strokeWidth={2.3} />
+            <Text style={styles.cameraButtonText}>Take photo</Text>
+          </TouchableOpacity>
+
+          {pickerError ? (
+            <Text style={styles.pickerError}>{pickerError}</Text>
+          ) : null}
 
           {/* Quick Demo Pre-fill for judges */}
           <TouchableOpacity
@@ -210,6 +256,31 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: "Nunito_800ExtraBold",
     color: "#FFFFFF",
+  },
+  cameraButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#EAF8F0",
+    width: "100%",
+    paddingVertical: 13,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#BFE5CD",
+  },
+  cameraButtonText: {
+    fontSize: 14,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#167345",
+  },
+  pickerError: {
+    fontSize: 11,
+    lineHeight: 16,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#A43C32",
+    textAlign: "center",
+    maxWidth: 300,
   },
   demoFillButton: {
     flexDirection: "row",

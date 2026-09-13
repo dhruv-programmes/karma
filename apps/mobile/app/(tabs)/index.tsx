@@ -16,21 +16,14 @@ import { BlurView } from "expo-blur";
 import {
   ArrowRight,
   Award,
-  Bike,
   Camera,
-  CheckCircle2,
   ChevronRight,
   Coins,
-  Compass,
   Flame,
   Footprints,
   Leaf,
-  Navigation,
-  Play,
   Receipt,
   Recycle,
-  Send,
-  Square,
   Target,
   TrendingUp,
   Wrench,
@@ -52,16 +45,15 @@ import {
   useRecommendations,
   useScore,
   useSteps,
-  useCommuteSummary,
   useLeague,
 } from "@/src/hooks/queries";
 import { useStepTracking } from "@/src/hooks/use-step-tracking";
-import { useCommuteTracking } from "@/src/hooks/use-commute-tracking";
 import { useAuthStore } from "@/src/store/auth";
 import { DEMO_REPAIR_ACTION_ID, LeagueTier } from "@/src/types/api";
 import { formatLeagueNumber, leagueBadgeSource } from "@/src/lib/league";
 import { useTabBarClearance } from "@/src/theme/layout";
 import { FootprintTrend } from "@/components/custom/footprint-trend";
+import { LeagueTransitionCelebration } from "@/components/custom/league-transition-celebration";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const KCS_MIN = 480;
@@ -434,27 +426,6 @@ function ToolCard({
   );
 }
 
-function WalkingPersonIcon({
-  size = 20,
-  color = "#1E5E3A",
-}: {
-  size?: number;
-  color?: string;
-}) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Circle cx="13.5" cy="4.5" r="2.2" fill={color} />
-      <Path
-        d="M13 9 L10.5 13 L7 17 M10.5 13 L13.5 16.5 L16.5 21 M13 9 L15.5 11.5 L18.5 12 M13 9 L11 11 L8.5 9.5"
-        stroke={color}
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const tabClearance = useTabBarClearance();
@@ -474,9 +445,7 @@ export default function HomeScreen() {
   const activity = useActivity();
   const steps = useSteps();
   const stepTracking = useStepTracking(steps.data?.todaySteps ?? 0);
-  const commuteSummary = useCommuteSummary();
   const league = useLeague();
-  const commuteTracking = useCommuteTracking();
   const best = recs.data?.[0];
 
   const leagueData = league.data;
@@ -865,7 +834,7 @@ export default function HomeScreen() {
             </View>
           </TouchableOpacity>
 
-          {/* ── WALK & EARN (STEP COUNTER) ── */}
+          {/* ── WALK TO LEARN (STEP COUNTER) ── */}
           <View style={styles.walkCard}>
             <Image
               source={require("@/assets/home-hero-bg.jpg")}
@@ -879,7 +848,7 @@ export default function HomeScreen() {
               </View>
               <View style={styles.walkHeaderCopy}>
                 <Text style={styles.walkTitle} numberOfLines={2}>
-                  Turn steps into Impact Points
+                  Walk to Learn
                 </Text>
                 <Text style={styles.walkSubtitle}>
                   {stepData?.rating ? stepData.rating : "Starting"}
@@ -1012,268 +981,6 @@ export default function HomeScreen() {
                 <ArrowRight size={17} color="#FFFFFF" strokeWidth={2.4} />
               </View>
             </TouchableOpacity>
-          </View>
-
-          {/* ── GREEN COMMUTE (GPS) ── */}
-          <View style={styles.commuteCard}>
-            <Image
-              source={require("@/assets/home-hero-bg.jpg")}
-              style={styles.commuteBgLeaf}
-              resizeMode="cover"
-            />
-            {/* Eyebrow row */}
-            <View style={styles.commuteEyebrowRow}>
-              <Text style={styles.commuteEyebrow}>GREEN COMMUTE (GPS)</Text>
-              <View style={styles.gpsPill}>
-                <View style={styles.gpsDot} />
-                <Text style={styles.gpsPillText}>
-                  {commuteTracking.isTracking ? "Tracking" : "GPS active"}
-                </Text>
-              </View>
-            </View>
-
-            {/* Decorative Route Artwork Top Right */}
-            <View style={styles.commuteRouteArt} pointerEvents="none">
-              <Svg width={88} height={42} viewBox="0 0 88 42" fill="none">
-                <Path
-                  d="M 6 36 C 24 34, 48 8, 76 10"
-                  stroke="#38B375"
-                  strokeWidth="3.5"
-                  strokeLinecap="round"
-                />
-                <Circle
-                  cx="7"
-                  cy="36"
-                  r="4.5"
-                  fill="#FFFFFF"
-                  stroke="#38B375"
-                  strokeWidth="2.5"
-                />
-                <Circle cx="76" cy="10" r="8.5" fill="#184A2C" />
-                <Path
-                  d="M74 13 C 72 10, 74 7, 78 7 C 78 11, 76 13, 74 13 Z"
-                  fill="#A7F3D0"
-                />
-              </Svg>
-              <View style={styles.commuteFloatingPill}>
-                <Compass size={12} color="#184A2C" strokeWidth={2.2} />
-                <Text style={styles.commuteFloatingPillText}>
-                  +{commuteSummary.data?.todayPoints ?? 0} coins today
-                </Text>
-              </View>
-            </View>
-
-            {/* Main Header Row */}
-            <View style={styles.commuteHeaderRow}>
-              <View style={styles.commuteOuterIconRing}>
-                <View style={styles.commuteIconBox}>
-                  <Send
-                    size={22}
-                    color="#1E5E3A"
-                    strokeWidth={2.2}
-                  />
-                </View>
-              </View>
-              <View style={styles.commuteHeaderCopy}>
-                <Text style={styles.commuteTitle} numberOfLines={1}>
-                  {commuteTracking.isTracking
-                    ? "Recording Commute..."
-                    : "Walk or Cycle to Earn"}
-                </Text>
-                <Text style={styles.commuteSubtitle}>
-                  {commuteTracking.isTracking
-                    ? `${commuteTracking.currentSpeedKmh.toFixed(1)} km/h • Auto-detecting`
-                    : "No motor vehicle • GPS verified"}
-                </Text>
-                <Text style={styles.commuteTagline}>
-                  Cleaner commutes, brighter tomorrows.
-                </Text>
-              </View>
-            </View>
-
-            {/* Trip Result Banner */}
-            {commuteTracking.lastResult ? (
-              <View style={styles.tripResultBanner}>
-                <View style={styles.tripResultHeader}>
-                  <CheckCircle2 size={16} color="#2EA86E" />
-                  <Text style={styles.tripResultTitle}>
-                    {commuteTracking.lastResult.mode === "walk"
-                      ? "🚶 Walk Logged"
-                      : commuteTracking.lastResult.mode === "cycle"
-                      ? "🚴 Cycle Logged"
-                      : "🚗 Motor Transit"}
-                  </Text>
-                </View>
-                <Text style={styles.tripResultDesc}>
-                  {commuteTracking.lastResult.message}
-                </Text>
-                <TouchableOpacity
-                  onPress={commuteTracking.dismissResult}
-                  style={styles.tripResultDismiss}
-                >
-                  <Text style={styles.tripResultDismissText}>Dismiss</Text>
-                </TouchableOpacity>
-              </View>
-            ) : null}
-
-            {/* Active Trip Telemetry */}
-            {commuteTracking.isTracking ? (
-              <View style={styles.liveTelemetryBox}>
-                <View style={styles.telemetryItem}>
-                  <Text style={styles.telemetryValue}>
-                    {commuteTracking.distanceKm.toFixed(2)}
-                  </Text>
-                  <Text style={styles.telemetryLabel}>km traveled</Text>
-                </View>
-                <View style={styles.telemetryDivider} />
-                <View style={styles.telemetryItem}>
-                  <Text style={styles.telemetryValue}>
-                    {Math.floor(commuteTracking.elapsedSec / 60)}:
-                    {(commuteTracking.elapsedSec % 60).toString().padStart(2, "0")}
-                  </Text>
-                  <Text style={styles.telemetryLabel}>duration</Text>
-                </View>
-                <View style={styles.telemetryDivider} />
-                <View style={styles.telemetryItem}>
-                  <Text style={styles.telemetryValue}>
-                    {commuteTracking.currentSpeedKmh.toFixed(1)}
-                  </Text>
-                  <Text style={styles.telemetryLabel}>km/h speed</Text>
-                </View>
-              </View>
-            ) : (
-              /* Inner White Rounded Card */
-              <View style={styles.commuteInnerWhiteCard}>
-                <View style={styles.commuteInnerTop}>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={styles.commuteDistanceBig}>
-                      {(commuteSummary.data?.todayDistanceKm ?? 0).toFixed(2)} km
-                    </Text>
-                    <Text style={styles.commuteDistanceSub} numberOfLines={1}>
-                      Clean distance today ({commuteSummary.data?.tripsToday ?? 0} trips)
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    style={styles.viewHistoryPill}
-                    onPress={() => router.push("/rewards")}
-                    activeOpacity={0.8}
-                  >
-                    <Svg width={12} height={12} viewBox="0 0 14 14" fill="#184A2C">
-                      <Rect x="1" y="6.5" width="2.5" height="6.5" rx="1.2" />
-                      <Rect x="5.5" y="2.5" width="2.5" height="10.5" rx="1.2" />
-                      <Rect x="10" y="4.5" width="2.5" height="8.5" rx="1.2" />
-                    </Svg>
-                    <Text style={styles.viewHistoryText}>View History</Text>
-                    <ChevronRight size={13} color="#184A2C" strokeWidth={2.4} />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Progress bar */}
-                <View style={styles.commuteProgressRow}>
-                  <View style={styles.commuteProgressBarTrack}>
-                    <View
-                      style={[
-                        styles.commuteProgressBarFill,
-                        {
-                          width: `${Math.min(
-                            100,
-                            Math.max(
-                              4,
-                              (((commuteSummary.data?.todayDistanceKm ?? 0) / 5) *
-                                100)
-                            )
-                          )}%`,
-                        },
-                      ]}
-                    />
-                  </View>
-                  <Text style={styles.commuteGoalText}>Daily goal: 5 km</Text>
-                </View>
-
-                {/* Mode boxes */}
-                <View style={styles.commuteModesRow}>
-                  <View style={styles.commuteModeBox}>
-                    <WalkingPersonIcon size={21} color="#1E5E3A" />
-                    <View>
-                      <Text style={styles.commuteModeTitle}>Walk</Text>
-                      <Text style={styles.commuteModeRate}>10 coins/km</Text>
-                    </View>
-                  </View>
-                  <View style={styles.commuteModeBox}>
-                    <Bike size={21} color="#1E5E3A" strokeWidth={2.2} />
-                    <View>
-                      <Text style={styles.commuteModeTitle}>Cycle</Text>
-                      <Text style={styles.commuteModeRate}>5 coins/km</Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-            )}
-
-            {/* Action CTA button */}
-            <TouchableOpacity
-              style={styles.greenCapsuleBtn}
-              onPress={
-                commuteTracking.isTracking
-                  ? commuteTracking.stopTracking
-                  : commuteTracking.startTracking
-              }
-              disabled={isWeb || commuteTracking.isSyncing}
-              activeOpacity={0.88}
-            >
-              <LinearGradient
-                colors={
-                  commuteTracking.isTracking
-                    ? ["#B83232", "#871C1C"]
-                    : ["#275E3B", "#174428"]
-                }
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={StyleSheet.absoluteFill}
-              />
-              <View style={styles.greenCapsuleContent}>
-                {commuteTracking.isTracking ? (
-                  <Square size={16} color="#FFFFFF" fill="#FFFFFF" />
-                ) : (
-                  <Play size={16} color="#FFFFFF" fill="#FFFFFF" />
-                )}
-                <Text style={styles.greenCapsuleText}>
-                  {commuteTracking.isTracking
-                    ? "End Trip & Claim Karma Coins"
-                    : commuteTracking.isSyncing
-                    ? "Saving Trip..."
-                    : isWeb
-                    ? "Phone GPS Required"
-                    : "Start Commute Tracking"}
-                </Text>
-                <ArrowRight size={17} color="#FFFFFF" strokeWidth={2.4} />
-              </View>
-            </TouchableOpacity>
-
-            {/* Footer Row */}
-            <View style={styles.commuteFooterRow}>
-              <View style={styles.commuteFooterLeft}>
-                <View style={styles.commuteFooterLeafBox}>
-                  <Leaf size={16} color="#1E5E3A" strokeWidth={2.2} />
-                </View>
-                <View>
-                  <Text style={styles.commuteFooterHeadline}>
-                    Every green kilometre counts.
-                  </Text>
-                  <Text style={styles.commuteFooterSub}>
-                    Move cleaner. Earn brighter.
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.commuteFooterRight}>
-                <View style={styles.commuteFooterDivider} />
-                <View>
-                  <Text style={styles.commuteFooterTag}>A CLEANER</Text>
-                  <Text style={styles.commuteFooterTag}>TOMORROW</Text>
-                  <Text style={styles.commuteFooterTag}>TOGETHER</Text>
-                </View>
-              </View>
-            </View>
           </View>
 
           {/* ── NEXT BEST ACTION ── */}
@@ -1463,6 +1170,7 @@ export default function HomeScreen() {
           </View>
         </View>
       </ScrollView>
+      <LeagueTransitionCelebration league={leagueData} />
     </View>
   );
 }
@@ -2121,317 +1829,6 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "center",
   },
-
-  // Commute Card
-  commuteCard: {
-    backgroundColor: "#F9FCFA",
-    borderRadius: 26,
-    padding: 18,
-    borderWidth: 1.5,
-    borderColor: "rgba(215, 235, 222, 0.95)",
-    position: "relative",
-    overflow: "hidden",
-    shadowColor: "#0F281B",
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
-  commuteBgLeaf: {
-    position: "absolute",
-    right: -20,
-    top: -15,
-    width: 170,
-    height: 170,
-    opacity: 0.14,
-    borderRadius: 85,
-  },
-  commuteEyebrowRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  commuteEyebrow: {
-    fontSize: 10,
-    fontFamily: "Nunito_800ExtraBold",
-    letterSpacing: 1.8,
-    color: "#547160",
-  },
-  gpsPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: "#E2F2E8",
-    paddingHorizontal: 9,
-    paddingVertical: 3.5,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "rgba(185, 218, 198, 0.5)",
-  },
-  gpsDot: {
-    width: 6.5,
-    height: 6.5,
-    borderRadius: 3.25,
-    backgroundColor: "#2EA86E",
-  },
-  gpsPillText: {
-    fontSize: 10.5,
-    fontFamily: "Nunito_800ExtraBold",
-    color: "#1E653D",
-  },
-  commuteHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingRight: 100,
-    zIndex: 2,
-  },
-  commuteOuterIconRing: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: "rgba(224, 244, 233, 0.45)",
-    borderWidth: 1.5,
-    borderColor: "rgba(180, 222, 198, 0.55)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  commuteIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#E4F4EC",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  commuteHeaderCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  commuteTitle: {
-    fontSize: 16.5,
-    fontFamily: "Nunito_800ExtraBold",
-    color: "#0B1D12",
-  },
-  commuteSubtitle: {
-    fontSize: 11,
-    fontFamily: "Nunito_600SemiBold",
-    color: "#527060",
-    marginTop: 1.5,
-  },
-  commuteTagline: {
-    fontSize: 10.5,
-    fontFamily: "Nunito_400Regular",
-    color: "#748E7E",
-    marginTop: 1,
-  },
-  commuteRouteArt: {
-    position: "absolute",
-    top: 38,
-    right: 14,
-    alignItems: "flex-end",
-    gap: 4,
-    zIndex: 1,
-  },
-  commuteFloatingPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
-    paddingHorizontal: 8,
-    paddingVertical: 3.5,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(200, 225, 210, 0.7)",
-    shadowColor: "#0F281B",
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
-  },
-  commuteFloatingPillText: {
-    fontSize: 10.5,
-    fontFamily: "Nunito_800ExtraBold",
-    color: "#184A2C",
-  },
-  commuteInnerWhiteCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "rgba(224, 238, 229, 0.9)",
-    marginTop: 14,
-    shadowColor: "#0F281B",
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
-  },
-  commuteInnerTop: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 8,
-  },
-  commuteDistanceBig: {
-    fontSize: 28,
-    fontFamily: "Nunito_800ExtraBold",
-    color: "#0B1D12",
-    lineHeight: 30,
-  },
-  commuteDistanceSub: {
-    fontSize: 11.5,
-    fontFamily: "Nunito_600SemiBold",
-    color: "#60796B",
-    marginTop: 2,
-  },
-  viewHistoryPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "#F1F7F3",
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "rgba(195, 225, 208, 0.7)",
-  },
-  viewHistoryText: {
-    fontSize: 11,
-    fontFamily: "Nunito_700Bold",
-    color: "#184A2C",
-  },
-  commuteProgressRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 10,
-    marginBottom: 10,
-  },
-  commuteProgressBarTrack: {
-    flex: 1,
-    height: 6.5,
-    borderRadius: 3.25,
-    backgroundColor: "#E2EFE7",
-    overflow: "hidden",
-  },
-  commuteProgressBarFill: {
-    height: "100%",
-    borderRadius: 3.25,
-    backgroundColor: "#52B582",
-  },
-  commuteGoalText: {
-    fontSize: 11,
-    fontFamily: "Nunito_600SemiBold",
-    color: "#60796B",
-    marginLeft: 9,
-  },
-  commuteModesRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  commuteModeBox: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "rgba(235, 246, 240, 0.65)",
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "rgba(215, 235, 222, 0.6)",
-  },
-  commuteModeTitle: {
-    fontSize: 12,
-    fontFamily: "Nunito_800ExtraBold",
-    color: "#123320",
-  },
-  commuteModeRate: {
-    fontSize: 11,
-    fontFamily: "Nunito_800ExtraBold",
-    color: "#2EA86E",
-    marginTop: 0.5,
-  },
-  commuteFooterRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 14,
-    paddingTop: 4,
-  },
-  commuteFooterLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 9,
-    flex: 1,
-  },
-  commuteFooterLeafBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#E3F3EB",
-    borderWidth: 1,
-    borderColor: "rgba(185, 218, 198, 0.6)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  commuteFooterHeadline: {
-    fontSize: 11,
-    fontFamily: "Nunito_700Bold",
-    color: "#183624",
-  },
-  commuteFooterSub: {
-    fontSize: 10.5,
-    fontFamily: "Nunito_400Regular",
-    color: "#6D8678",
-  },
-  commuteFooterRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  commuteFooterDivider: {
-    width: 1,
-    height: 26,
-    backgroundColor: "rgba(24, 74, 44, 0.14)",
-  },
-  commuteFooterTag: {
-    fontSize: 8,
-    fontFamily: "Nunito_800ExtraBold",
-    letterSpacing: 1.4,
-    color: "#839B8E",
-    lineHeight: 10.5,
-  },
-  liveTelemetryBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-around",
-    backgroundColor: "#EBF7F0",
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 8,
-    borderWidth: 1,
-    borderColor: "#A7E5C2",
-    marginTop: 12,
-  },
-  telemetryItem: { alignItems: "center" },
-  telemetryValue: { fontSize: 20, fontFamily: "Nunito_800ExtraBold", color: "#183222" },
-  telemetryLabel: { fontSize: 10, fontFamily: "Nunito_600SemiBold", color: "#6A8372", marginTop: 2 },
-  telemetryDivider: { width: 1, height: 28, backgroundColor: "#C3EBD4" },
-  tripResultBanner: {
-    backgroundColor: "#EBF7F0",
-    borderRadius: 14,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#A7E5C2",
-    gap: 6,
-    marginTop: 12,
-  },
-  tripResultHeader: { flexDirection: "row", alignItems: "center", gap: 6 },
-  tripResultTitle: { fontSize: 13, fontFamily: "Nunito_700Bold", color: "#183222" },
-  tripResultDesc: { fontSize: 12, fontFamily: "Nunito_400Regular", color: "#45614F", lineHeight: 16 },
-  tripResultDismiss: { alignSelf: "flex-end", paddingVertical: 2, paddingHorizontal: 6 },
-  tripResultDismissText: { fontSize: 11, fontFamily: "Nunito_700Bold", color: "#2EA86E" },
 
   // Sections
   section: {

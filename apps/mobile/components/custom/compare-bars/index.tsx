@@ -1,70 +1,61 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
-import { BarChart3, TrendingDown, TrendingUp, Sparkles } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 
 export function CompareBars({
-  previousKg,
-  thisKg,
+  previousKg = 0,
+  thisKg = 0,
 }: {
   previousKg: number;
   thisKg: number;
 }) {
-  const prev = Math.round(previousKg || 88);
-  const curr = Math.round(thisKg || 74);
-  const diff = prev - curr;
-  const pct = prev > 0 ? Math.round((diff / prev) * 100) : 0;
+  const prev = Math.round(previousKg);
+  const curr = Math.round(thisKg);
 
-  // Proportional scale with 25% headroom to guarantee top labels never clip
-  const maxVal = Math.max(prev, curr, 100) * 1.25;
-  const prevHeightPct = Math.min(100, Math.max(10, Math.round((prev / maxVal) * 100)));
-  const currHeightPct = Math.min(100, Math.max(10, Math.round((curr / maxVal) * 100)));
+  const diff = prev - curr;
+  const pct = prev > 0 ? Math.round((Math.abs(diff) / prev) * 100) : 0;
+
+  const maxVal = Math.max(prev, curr, 1);
+  const prevHeightPct = Math.max(12, Math.round((prev / maxVal) * 100));
+  const currHeightPct = Math.max(12, Math.round((curr / maxVal) * 100));
+
+  const isReduced = diff > 0;
+  const isIncreased = diff < 0;
 
   return (
     <View style={styles.card}>
-      {/* Header */}
+      {/* Clean Header with quiet inline delta */}
       <View style={styles.cardHeader}>
-        <View style={styles.headerLeft}>
-          <View style={styles.iconCircle}>
-            <BarChart3 size={18} color="#2EA86E" strokeWidth={2.2} />
-          </View>
-          <View style={styles.headerInfo}>
-            <Text style={styles.title}>Month-over-Month Reduction</Text>
-            <Text style={styles.subtitle}>
-              Comparing total embodied emissions
-            </Text>
-          </View>
+        <View style={styles.headerInfo}>
+          <Text style={styles.title}>Month-over-Month</Text>
+          <Text style={styles.subtitle}>
+            Comparing total monthly emissions
+          </Text>
         </View>
-
-        {pct > 0 ? (
-          <View style={styles.deltaBadge}>
-            <TrendingDown size={11} color="#059669" strokeWidth={2.4} />
-            <Text style={styles.deltaText}>↓ {pct}% Saved</Text>
-          </View>
-        ) : null}
+        <Text
+          style={[
+            styles.deltaLabel,
+            isReduced
+              ? styles.deltaGreen
+              : isIncreased
+                ? styles.deltaRose
+                : styles.deltaMuted,
+          ]}
+        >
+          {isReduced
+            ? `-${diff} kg (-${pct}%)`
+            : isIncreased
+              ? `+${Math.abs(diff)} kg (+${pct}%)`
+              : "0% change"}
+        </Text>
       </View>
 
-      {/* Main Grounded Bar Comparison Area */}
+      {/* Visual Bars Comparison */}
       <View style={styles.chartStage}>
-        {/* Subtle Horizontal Reference Guidelines */}
-        <View style={styles.guideLines}>
-          <View style={styles.guideLine} />
-          <View style={styles.guideLine} />
-          <View style={styles.guideLine} />
-        </View>
-
-        {/* The Two Comparison Bar Columns */}
         <View style={styles.barsContainer}>
           {/* Column 1: Last Month */}
           <View style={styles.barColumn}>
-            {/* Top Value Label (with full headroom, zero clipping) */}
-            <View style={styles.barTopLabelWrap}>
-              <Text style={styles.barValueMuted}>
-                ~{prev.toLocaleString()} kg
-              </Text>
-            </View>
-
-            {/* Vertical Track & Filled Bar */}
+            <Text style={styles.barTopValue}>~{prev} kg</Text>
             <View style={styles.trackColumn}>
               <View
                 style={[
@@ -73,77 +64,33 @@ export function CompareBars({
                 ]}
               />
             </View>
-
-            {/* Bottom X-Axis Labels (Ample space, never truncated) */}
-            <View style={styles.barBottomLabels}>
-              <Text style={styles.barTitle}>Last Month</Text>
-              <Text style={styles.barSubMuted}>Baseline</Text>
-            </View>
-          </View>
-
-          {/* Center Delta Pill Indicator */}
-          <View style={styles.centerDeltaContainer}>
-            {diff > 0 ? (
-              <View style={styles.centerDeltaPill}>
-                <TrendingDown size={13} color="#059669" strokeWidth={2.4} />
-                <Text style={styles.centerDeltaVal}>-{diff} kg</Text>
-                <Text style={styles.centerDeltaSub}>↓ {pct}% saved</Text>
-              </View>
-            ) : diff < 0 ? (
-              <View style={styles.centerDeltaPillOver}>
-                <TrendingUp size={13} color="#DC2626" strokeWidth={2.4} />
-                <Text style={styles.centerDeltaValOver}>+{Math.abs(diff)} kg</Text>
-                <Text style={styles.centerDeltaSubOver}>↑ {Math.abs(pct)}%</Text>
-              </View>
-            ) : (
-              <View style={styles.centerDeltaPillEqual}>
-                <Text style={styles.centerDeltaValEqual}>Same</Text>
-                <Text style={styles.centerDeltaSubEqual}>0% change</Text>
-              </View>
-            )}
+            <Text style={styles.barBottomLabel}>Last Month</Text>
           </View>
 
           {/* Column 2: This Month */}
           <View style={styles.barColumn}>
-            {/* Top Value Label (with full headroom, zero clipping) */}
-            <View style={styles.barTopLabelWrap}>
-              <Text style={styles.barValueActive}>
-                ~{curr.toLocaleString()} kg
-              </Text>
-            </View>
-
-            {/* Vertical Track & Filled Bar */}
+            <Text style={[styles.barTopValue, styles.barTopValueActive]}>
+              ~{curr} kg
+            </Text>
             <View style={[styles.trackColumn, styles.trackColumnActive]}>
               <View
                 style={[
                   styles.barFillCurr,
-                  { height: `${currHeightPct}%` },
+                  {
+                    height: `${currHeightPct}%`,
+                    backgroundColor: isReduced ? "#2EA86E" : isIncreased ? "#F59E0B" : "#2EA86E",
+                  },
                 ]}
               />
             </View>
-
-            {/* Bottom X-Axis Labels (Ample space, never truncated) */}
-            <View style={styles.barBottomLabels}>
-              <Text style={[styles.barTitle, styles.barTitleActive]}>
-                This Month
-              </Text>
-              <Text style={styles.barSubActive}>Current</Text>
-            </View>
+            <Text style={[styles.barBottomLabel, styles.barBottomLabelActive]}>
+              This Month
+            </Text>
           </View>
         </View>
 
-        {/* Solid Ground Baseline */}
+        {/* Crisp baseline */}
         <View style={styles.groundBaseline} />
-      </View>
-
-      {/* Footnote callout */}
-      <View style={styles.footnoteRow}>
-        <Sparkles size={13} color="#166534" strokeWidth={2.2} />
-        <Text style={styles.footnoteText}>
-          {diff > 0
-            ? `🎉 You reduced emissions by ${diff.toLocaleString()} kg CO₂e compared to last month!`
-            : "Complete circular actions to bring your monthly footprint down."}
-        </Text>
       </View>
     </View>
   );
@@ -152,253 +99,106 @@ export function CompareBars({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 16,
+    borderRadius: 18,
+    padding: 18,
     borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.16)",
-    boxShadow: "0px 2px 8px rgba(0,0,0,0.04)",
-    elevation: 2,
-    gap: 14,
+    borderColor: "#E5ECE8",
+    boxShadow: "0px 1px 4px rgba(0,0,0,0.03)",
+    elevation: 1,
+    gap: 16,
   },
   cardHeader: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
-  },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    flex: 1,
-  },
-  iconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#F0FDF4",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.2)",
   },
   headerInfo: {
     flex: 1,
   },
   title: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: "Nunito_800ExtraBold",
     color: "#0D1811",
+    letterSpacing: -0.2,
   },
   subtitle: {
-    fontSize: 11,
-    fontFamily: "Nunito_400Regular",
-    color: "#526658",
-    marginTop: 1,
+    fontSize: 12,
+    fontFamily: "Nunito_500Medium",
+    color: "#64748B",
+    marginTop: 2,
   },
-  deltaBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "#ECFDF5",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.25)",
+  deltaLabel: {
+    fontSize: 12.5,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    marginLeft: 8,
   },
-  deltaText: {
-    fontSize: 10.5,
-    fontFamily: "Nunito_800ExtraBold",
+  deltaGreen: {
     color: "#059669",
   },
-
-  // Chart Stage
+  deltaRose: {
+    color: "#EF4444",
+  },
+  deltaMuted: {
+    color: "#64748B",
+  },
   chartStage: {
     width: "100%",
-    position: "relative",
-    paddingTop: 8,
-    paddingBottom: 4,
-  },
-  guideLines: {
-    position: "absolute",
-    top: 36,
-    bottom: 46,
-    left: 10,
-    right: 10,
-    justifyContent: "space-between",
-  },
-  guideLine: {
-    height: 1,
-    backgroundColor: "rgba(46,168,110,0.08)",
+    alignItems: "center",
+    paddingTop: 6,
   },
   barsContainer: {
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "center",
-    gap: 24,
+    gap: 40,
   },
   barColumn: {
     alignItems: "center",
-    width: 84,
+    width: 80,
   },
-  barTopLabelWrap: {
-    height: 22,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  barValueMuted: {
-    fontSize: 11.5,
+  barTopValue: {
+    fontSize: 12,
     fontFamily: "IBMPlexMono_600SemiBold",
-    color: "#64748B",
+    color: "#94A3B8",
+    marginBottom: 8,
   },
-  barValueActive: {
-    fontSize: 11.5,
-    fontFamily: "IBMPlexMono_600SemiBold",
-    color: "#059669",
+  barTopValueActive: {
+    color: "#0D1811",
   },
   trackColumn: {
-    width: 52,
-    height: 120,
+    width: 48,
+    height: 110,
     backgroundColor: "#F1F5F3",
-    borderRadius: 12,
+    borderRadius: 10,
     justifyContent: "flex-end",
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#E5ECE8",
   },
   trackColumnActive: {
     backgroundColor: "#F0FDF4",
-    borderColor: "rgba(46,168,110,0.25)",
   },
   barFillPrev: {
     width: "100%",
     backgroundColor: "#94A3B8",
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
+    borderRadius: 8,
   },
   barFillCurr: {
     width: "100%",
-    backgroundColor: "#2EA86E",
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
+    borderRadius: 8,
   },
-  barBottomLabels: {
-    alignItems: "center",
-    marginTop: 8,
-    gap: 1,
-  },
-  barTitle: {
+  barBottomLabel: {
     fontSize: 12,
-    fontFamily: "Nunito_700Bold",
-    color: "#183222",
+    fontFamily: "Nunito_600SemiBold",
+    color: "#94A3B8",
+    marginTop: 8,
   },
-  barTitleActive: {
+  barBottomLabelActive: {
     color: "#0D1811",
-    fontFamily: "Nunito_800ExtraBold",
-  },
-  barSubMuted: {
-    fontSize: 9.5,
-    fontFamily: "Nunito_600SemiBold",
-    color: "#7A9082",
-  },
-  barSubActive: {
-    fontSize: 9.5,
-    fontFamily: "Nunito_800ExtraBold",
-    color: "#059669",
-  },
-
-  // Center Delta Pill
-  centerDeltaContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 54,
-  },
-  centerDeltaPill: {
-    alignItems: "center",
-    backgroundColor: "#ECFDF5",
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.3)",
-    gap: 1,
-  },
-  centerDeltaVal: {
-    fontSize: 10.5,
-    fontFamily: "IBMPlexMono_600SemiBold",
-    color: "#059669",
-  },
-  centerDeltaSub: {
-    fontSize: 8.5,
-    fontFamily: "Nunito_800ExtraBold",
-    color: "#059669",
-  },
-  centerDeltaPillOver: {
-    alignItems: "center",
-    backgroundColor: "#FEF2F2",
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(239,68,68,0.25)",
-    gap: 1,
-  },
-  centerDeltaValOver: {
-    fontSize: 10.5,
-    fontFamily: "IBMPlexMono_600SemiBold",
-    color: "#DC2626",
-  },
-  centerDeltaSubOver: {
-    fontSize: 8.5,
-    fontFamily: "Nunito_800ExtraBold",
-    color: "#DC2626",
-  },
-  centerDeltaPillEqual: {
-    alignItems: "center",
-    backgroundColor: "#F8FAF9",
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#E5ECE8",
-    gap: 1,
-  },
-  centerDeltaValEqual: {
-    fontSize: 10.5,
-    fontFamily: "IBMPlexMono_600SemiBold",
-    color: "#526658",
-  },
-  centerDeltaSubEqual: {
-    fontSize: 8.5,
     fontFamily: "Nunito_700Bold",
-    color: "#7A9082",
   },
-
-  // Ground Baseline
   groundBaseline: {
-    height: 1.5,
+    height: 1,
     backgroundColor: "#E2E8F0",
-    marginTop: -38,
-    width: "100%",
-  },
-
-  footnoteRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "#F8FAF9",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#E5ECE8",
-  },
-  footnoteText: {
-    fontSize: 11,
-    fontFamily: "Nunito_600SemiBold",
-    color: "#166534",
-    lineHeight: 15,
-    flex: 1,
+    marginTop: -28,
+    width: "90%",
   },
 });

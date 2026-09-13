@@ -15,6 +15,7 @@ import {
   IBMPlexMono_600SemiBold,
 } from "@expo-google-fonts/ibm-plex-mono";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { View } from "react-native";
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 import { useAuthStore } from "@/src/store/auth";
@@ -48,16 +49,17 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <GluestackUIProvider mode="light">
-        <QueryClientProvider client={queryClient}>
-          <StatusBar style="dark" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: "rgb(244, 250, 246)" },
-            }}
-          >
+    <SafeAreaProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <GluestackUIProvider mode="light">
+          <QueryClientProvider client={queryClient}>
+            <StatusBar style="dark" />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: "rgb(244, 250, 246)" },
+              }}
+            >
             <Stack.Screen name="index" />
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="onboarding/index" options={{ animation: "fade" }} />
@@ -84,13 +86,16 @@ export default function RootLayout() {
             <Stack.Screen name="leaderboard/index" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="offsets/index" />
             <Stack.Screen name="tools/verify-sustainable-purchase" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="tools/add-solar" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="receipt/index" />
+            <Stack.Screen name="receipt/camera" />
             <Stack.Screen name="receipt/review" />
             <Stack.Screen name="receipt/result" />
             <Stack.Screen name="support/index" />
-          </Stack>
-        </QueryClientProvider>
-      </GluestackUIProvider>
-    </GestureHandlerRootView>
+            </Stack>
+          </QueryClientProvider>
+        </GluestackUIProvider>
+      </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }

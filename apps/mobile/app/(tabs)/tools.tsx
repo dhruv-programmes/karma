@@ -4,11 +4,13 @@ import { useRouter } from "expo-router";
 import {
   Camera,
   CheckCircle2,
+  Car,
   Leaf,
   MessageCircle,
   Receipt,
   Recycle,
   ShieldCheck,
+  Sun,
   Zap,
 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -17,6 +19,7 @@ import { ScreenHeader } from "@/components/custom/screen-header";
 import { Text } from "@/components/ui/text";
 import { useTabBarClearance } from "@/src/theme/layout";
 import { useSustainablePurchaseStore } from "@/src/store/sustainable-purchase";
+import { useSolarAssetsStore } from "@/src/store/solar-assets";
 
 const tools = [
   {
@@ -44,6 +47,12 @@ const tools = [
     route: "/offsets",
   },
   {
+    label: "Add Solar",
+    hint: "Add a rooftop system and track its impact",
+    icon: Sun,
+    route: "/tools/add-solar",
+  },
+  {
     label: "Support",
     hint: "Ask about Karma, your score, and the app",
     icon: MessageCircle,
@@ -61,7 +70,13 @@ export default function ToolsScreen() {
     rewardPoints,
     vehicleMakeModel,
     vehicleType,
+    vehicles,
+    selectedVehicleId,
+    selectVehicle,
   } = useSustainablePurchaseStore();
+  const solarPanels = useSolarAssetsStore((state) => state.panels);
+  const selectedPanelId = useSolarAssetsStore((state) => state.selectedPanelId);
+  const selectPanel = useSolarAssetsStore((state) => state.selectPanel);
   const verified = isVerified || rewardClaimed;
 
   return (
@@ -168,6 +183,42 @@ export default function ToolsScreen() {
           )}
         </TouchableOpacity>
 
+        <View style={styles.assetSection}>
+          <View style={styles.assetSectionHeader}>
+            <View>
+              <Text style={styles.assetEyebrow}>YOUR ELECTRIC VEHICLES</Text>
+              <Text style={styles.assetTitle}>{vehicles.length ? `${vehicles.length} vehicle${vehicles.length === 1 ? "" : "s"} added` : "No vehicle added yet"}</Text>
+            </View>
+            <TouchableOpacity style={styles.addSmallButton} onPress={() => router.push("/tools/verify-sustainable-purchase?add=1")}>
+              <Text style={styles.addSmallText}>+ Add EV</Text>
+            </TouchableOpacity>
+          </View>
+          {vehicles.length ? vehicles.map((vehicle) => (
+            <TouchableOpacity key={vehicle.id} style={[styles.assetRow, selectedVehicleId === vehicle.id && styles.assetRowSelected]} onPress={() => selectVehicle(vehicle.id)}>
+              <View style={styles.assetIcon}><Car size={19} color="#2EA86E" /></View>
+              <View style={styles.assetCopy}><Text style={styles.assetName} numberOfLines={1}>{vehicle.makeModel}</Text><Text style={styles.assetDetail}>{vehicle.ownership} · {vehicle.rewardPoints > 0 ? `+${vehicle.rewardPoints.toLocaleString()} coins` : "verified"}</Text></View>
+              {selectedVehicleId === vehicle.id ? <CheckCircle2 size={18} color="#2EA86E" /> : null}
+            </TouchableOpacity>
+          )) : <Text style={styles.assetEmpty}>Verify an EV document to add your first vehicle.</Text>}
+        </View>
+
+        <View style={styles.assetSection}>
+          <View style={styles.assetSectionHeader}>
+            <View>
+              <Text style={styles.assetEyebrow}>YOUR SOLAR SYSTEMS</Text>
+              <Text style={styles.assetTitle}>{solarPanels.length ? `${solarPanels.length} system${solarPanels.length === 1 ? "" : "s"} added` : "No solar system added yet"}</Text>
+            </View>
+            <TouchableOpacity style={styles.addSmallButton} onPress={() => router.push("/tools/add-solar")}><Text style={styles.addSmallText}>+ Add solar</Text></TouchableOpacity>
+          </View>
+          {solarPanels.length ? solarPanels.map((panel) => (
+            <TouchableOpacity key={panel.id} style={[styles.assetRow, selectedPanelId === panel.id && styles.assetRowSelected]} onPress={() => selectPanel(panel.id)}>
+              <View style={[styles.assetIcon, styles.assetIconSolar]}><Sun size={19} color="#B7791F" /></View>
+              <View style={styles.assetCopy}><Text style={styles.assetName} numberOfLines={1}>{panel.name}</Text><Text style={styles.assetDetail}>{panel.location} · {panel.systemSizeKw} kW · +{panel.rewardPoints.toLocaleString()} coins</Text></View>
+              {selectedPanelId === panel.id ? <CheckCircle2 size={18} color="#2EA86E" /> : null}
+            </TouchableOpacity>
+          )) : <Text style={styles.assetEmpty}>Add a solar system to unlock solar intelligence and rewards.</Text>}
+        </View>
+
         <View style={styles.grid}>
           {tools.map(({ label, hint, icon: Icon, route }) => (
             <TouchableOpacity
@@ -192,6 +243,20 @@ export default function ToolsScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#F8FAF8" },
   grid: { marginTop: 16, gap: 14 },
+  assetSection: { backgroundColor: "#FFFFFF", borderRadius: 20, borderWidth: 1, borderColor: "#D8E9DF", padding: 16, gap: 10 },
+  assetSectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
+  assetEyebrow: { color: "#6B8B78", fontSize: 10, letterSpacing: 1, fontWeight: "800" },
+  assetTitle: { color: "#0E2A1E", fontSize: 16, fontWeight: "800", marginTop: 3 },
+  addSmallButton: { backgroundColor: "#EAF8F0", borderRadius: 12, paddingHorizontal: 11, paddingVertical: 8 },
+  addSmallText: { color: "#167345", fontSize: 12, fontWeight: "800" },
+  assetRow: { minHeight: 52, flexDirection: "row", alignItems: "center", gap: 10, padding: 9, borderRadius: 14, borderWidth: 1, borderColor: "#E5F0E9" },
+  assetRowSelected: { borderColor: "#2EA86E", backgroundColor: "#F2FBF5" },
+  assetIcon: { width: 34, height: 34, borderRadius: 12, backgroundColor: "#EAF8F0", alignItems: "center", justifyContent: "center" },
+  assetIconSolar: { backgroundColor: "#FFF5D9" },
+  assetCopy: { flex: 1, minWidth: 0 },
+  assetName: { color: "#153523", fontSize: 14, fontWeight: "800" },
+  assetDetail: { color: "#718A7B", fontSize: 11, marginTop: 2 },
+  assetEmpty: { color: "#718A7B", fontSize: 12, lineHeight: 17 },
   verificationCard: {
     marginTop: 22,
     minHeight: 222,

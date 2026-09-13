@@ -1,21 +1,14 @@
 import React, { useMemo, useState } from "react";
-import { View, StyleSheet, TouchableOpacity } from "react-native";
+import { View, StyleSheet, TouchableOpacity, Platform } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
 import {
-  Sun,
-  Zap,
-  Leaf,
-  BatteryCharging,
+  Coins,
   Clock,
   Check,
   Sparkles,
-  Award,
-  CircleDollarSign,
-  Coins,
-  Gauge,
   ArrowRight,
-  TrendingUp,
-  Gift,
+  Leaf,
 } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { SolarPanelHero } from "@/components/custom/solar-panel-hero";
@@ -49,7 +42,6 @@ export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
     if (nextStatus === "completed") actions.complete.mutate(id);
   };
 
-  const score = Math.max(0, Math.min(100, Math.round(data.solarScore)));
   const totalPoints = data.rewards.reduce((sum, r) => sum + r.points, 0);
   const pendingPoints = recommendations
     .filter((r) => r.status !== "completed")
@@ -58,17 +50,13 @@ export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
   // Comparison values
   const { current, optimized } = data.comparison;
   const usedGain = Math.max(0, optimized.usedKwh - current.usedKwh);
-  const selfUseGain = Math.max(
-    0,
-    optimized.selfConsumptionPct - current.selfConsumptionPct
-  );
   const additionalSavings = Math.max(0, data.comparison.additionalSavingsInr);
   const maxUsed = Math.max(current.generatedKwh, optimized.generatedKwh, 1);
 
   return (
     <View style={styles.container}>
       {/* ========================================================= */}
-      {/* 1. HERO SOLAR TELEMETRY BANNER (With Prominent Points)    */}
+      {/* 1. HERO SOLAR TELEMETRY BANNER (No Pill Boxes)            */}
       {/* ========================================================= */}
       <LinearGradient
         colors={["#0C2518", "#143C28", "#0B1D14"]}
@@ -78,15 +66,14 @@ export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
       >
         <View style={styles.heroGlowOrb} />
 
-        {/* Top Header Row with Points Spotlight */}
+        {/* Header Row: Quiet Eyebrow + Clean Inline Points */}
         <View style={styles.heroHeaderRow}>
-          <View style={styles.heroPill}>
-            <Sun size={13} color="#5EEAD4" strokeWidth={2.4} />
-            <Text style={styles.heroPillText}>SOLAR TELEMETRY</Text>
-          </View>
-          <View style={styles.heroPointsBadge}>
+          <Text style={styles.heroEyebrow}>ROOFTOP SOLAR</Text>
+          <View style={styles.heroPointsWrap}>
             <Coins size={13} color="#FBBF24" strokeWidth={2.4} />
-            <Text style={styles.heroPointsBadgeText}>+{totalPoints} Karma Coins Earned</Text>
+            <Text style={styles.heroPointsText}>
+              +{totalPoints} Coins
+            </Text>
           </View>
         </View>
 
@@ -138,84 +125,76 @@ export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
       </LinearGradient>
 
       {/* ========================================================= */}
-      {/* 2. REWARDS & POINTS SPOTLIGHT (Placed ABOVE for Persuasion)*/}
+      {/* 2. REWARDS BREAKDOWN (Clean Frosted Glass Card)            */}
       {/* ========================================================= */}
-      <View style={styles.rewardsSpotlightCard}>
-        {/* Top Header Row: Category Badge on Left, Waiting Points on Right */}
-        <View style={styles.spotlightTopRow}>
-          <View style={styles.spotlightCategoryTag}>
-            <Award size={13} color="#059669" strokeWidth={2.4} />
-            <Text style={styles.spotlightCategoryText}>DAILY GREEN REWARDS</Text>
-          </View>
+      <View style={styles.glassCard}>
+        <BlurView
+          intensity={Platform.OS === "ios" ? 50 : 85}
+          tint="light"
+          style={StyleSheet.absoluteFill}
+        />
+        <LinearGradient
+          colors={["rgba(255,255,255,0.78)", "rgba(255,255,255,0.42)"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0.85, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
 
+        <View style={styles.cardHeaderRow}>
+          <View style={styles.cardHeaderInfo}>
+            <Text style={styles.cardTitle}>Daily Green Rewards</Text>
+            <Text style={styles.cardSubtitle}>
+              Milestones from solar telemetry & clean routine
+            </Text>
+          </View>
           {pendingPoints > 0 ? (
-            <View style={styles.pendingPointsPill}>
-              <Sparkles size={11} color="#B45309" strokeWidth={2.4} />
-              <Text style={styles.pendingPointsText}>
-                +{pendingPoints} Karma Coins Waiting
+            <View style={styles.waitingWrap}>
+              <Sparkles size={12} color="#D97706" strokeWidth={2.2} />
+              <Text style={styles.waitingText}>
+                +{pendingPoints} coins waiting
               </Text>
             </View>
           ) : (
-            <View style={styles.allClaimedPill}>
-              <Check size={11} color="#059669" strokeWidth={2.4} />
+            <View style={styles.allClaimedWrap}>
+              <Check size={12} color="#059669" strokeWidth={2.4} />
               <Text style={styles.allClaimedText}>All Claimed</Text>
             </View>
           )}
         </View>
 
-        {/* Main Metric Row: Icon + Large Points + Subtitle */}
-        <View style={styles.spotlightMainRow}>
-          <View style={styles.rewardsIconWrap}>
-            <Coins size={22} color="#059669" strokeWidth={2.4} />
-          </View>
-          <View style={styles.spotlightMainInfo}>
-            <View style={styles.spotlightPointsRow}>
-              <Text style={styles.rewardsBigPoints}>+{totalPoints}</Text>
-              <Text style={styles.rewardsPointsUnit}>Karma Coins Today</Text>
-            </View>
-            <Text style={styles.rewardsSpotlightSub}>
-              Liquid reward currency · Redeemable on Offers tab
-            </Text>
-          </View>
-        </View>
-
-        {/* Milestone checklist row (wrapping cleanly to prevent ellipsis truncation) */}
-        <View style={styles.milestonesRow}>
-          {data.rewards.slice(0, 3).map((r) => (
-            <View key={r.label} style={styles.milestoneItem}>
-              <View style={styles.milestoneDot} />
-              <Text style={styles.milestoneLabel}>
-                {r.label}
-              </Text>
-              <Text style={styles.milestonePts}>+{r.points} coins</Text>
+        {/* Milestone checklist items */}
+        <View style={styles.milestoneList}>
+          {data.rewards.map((r, idx) => (
+            <View
+              key={r.label}
+              style={[
+                styles.milestoneRow,
+                idx < data.rewards.length - 1 && styles.milestoneRowBorder,
+              ]}
+            >
+              <View style={styles.milestoneRowLeft}>
+                <Check size={13} color="#059669" strokeWidth={2.4} />
+                <Text style={styles.milestoneLabel}>{r.label}</Text>
+              </View>
+              <Text style={styles.milestonePoints}>+{r.points} coins</Text>
             </View>
           ))}
-        </View>
-
-        {/* Motivational nudge */}
-        <View style={styles.rewardsNudgeBox}>
-          <Gift size={14} color="#166534" strokeWidth={2.2} />
-          <Text style={styles.rewardsNudgeText}>
-            Complete the smart actions below to unlock +{pendingPoints || 40} more Karma Coins immediately!
-          </Text>
         </View>
       </View>
 
       {/* ========================================================= */}
-      {/* 3. SOLAR POWER IN MOTION (Animated Isometric Flow)        */}
+      {/* 3. SOLAR POWER IN MOTION (Isometric Animated Flow)        */}
       {/* ========================================================= */}
       <SolarPanelHero data={data} />
 
       {/* ========================================================= */}
-      {/* 4. SMART SOLAR ACTIONS (Points Highlighted Above Title)   */}
+      {/* 4. SMART SOLAR ACTIONS (No Pill Boxes)                    */}
       {/* ========================================================= */}
       <View style={styles.sectionHeader}>
-        <View>
-          <Text style={styles.sectionTitle}>Smart Solar Actions</Text>
-          <Text style={styles.sectionSubtitle}>
-            Act now during peak sunlight to earn immediate Karma Coins
-          </Text>
-        </View>
+        <Text style={styles.sectionTitle}>Smart Solar Actions</Text>
+        <Text style={styles.sectionSubtitle}>
+          Act during peak sunlight to earn immediate Karma Coins
+        </Text>
       </View>
 
       <View style={styles.recommendationsList}>
@@ -226,58 +205,49 @@ export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
 
           return (
             <View key={item.id} style={styles.actionCard}>
-              {/* Card Header: Category Badge + High-Impact Points Rewarded Above */}
-              <View style={styles.actionCardHeader}>
-                <View style={styles.actionCategoryBadge}>
-                  <Sun size={11} color="#047857" strokeWidth={2.4} />
-                  <Text style={styles.actionCategoryBadgeText}>
-                    SMART TIMING
-                  </Text>
-                </View>
+              <BlurView
+                intensity={Platform.OS === "ios" ? 50 : 85}
+                tint="light"
+                style={StyleSheet.absoluteFill}
+              />
+              <LinearGradient
+                colors={["rgba(255,255,255,0.82)", "rgba(255,255,255,0.45)"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0.85, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
 
-                {/* Points Rewarded Placed Above for Persuasion */}
-                <View style={styles.actionPointsPillTop}>
-                  <Coins size={12} color="#B45309" strokeWidth={2.4} />
-                  <Text style={styles.actionPointsTextTop}>
-                    +{item.points} KARMA COINS
+              {/* Action Top Header: Eyebrow + Clean Inline Points */}
+              <View style={styles.actionCardHeader}>
+                <Text style={styles.actionEyebrow}>SMART TIMING</Text>
+                <View style={styles.actionGoldWrap}>
+                  <Coins size={12} color="#D97706" strokeWidth={2.4} />
+                  <Text style={styles.actionGoldText}>
+                    +{item.points} COINS
                   </Text>
                 </View>
               </View>
 
-              {/* Card Body */}
+              {/* Action Body */}
               <View style={styles.actionBody}>
-                <View style={styles.actionRewardHeadlineRow}>
-                  <Text style={styles.actionPerk}>
-                    Earn +{item.points} Karma Coins · Save ₹{Math.round(item.expectedSavingsInr)}
-                  </Text>
-                  {isDone ? (
-                    <View style={styles.statusBadgeDone}>
-                      <Check size={10} color="#059669" strokeWidth={2.4} />
-                      <Text style={styles.statusBadgeDoneText}>COMPLETED</Text>
-                    </View>
-                  ) : isAccepted ? (
-                    <View style={styles.statusBadgeAccepted}>
-                      <Clock size={10} color="#B45309" strokeWidth={2.2} />
-                      <Text style={styles.statusBadgeAcceptedText}>IN PROGRESS</Text>
-                    </View>
-                  ) : null}
-                </View>
-
+                <Text style={styles.actionPerk}>
+                  Earn +{item.points} Coins · Save ₹{Math.round(item.expectedSavingsInr)}
+                </Text>
                 <Text style={styles.actionTitle}>{item.title}</Text>
                 <Text style={styles.actionDescription}>{item.body}</Text>
 
-                {/* Timing Highlight Pill (Offers Style) */}
-                <View style={styles.actionTimePill}>
-                  <Clock size={12} color="#166534" strokeWidth={2.2} />
-                  <Text style={styles.actionTimePillText}>
-                    Peak Window: {item.window} · Avoids {item.co2AvoidedKg.toFixed(1)} kg CO₂
+                {/* Quiet Peak Window Metadata */}
+                <View style={styles.actionMetaRow}>
+                  <Clock size={12} color="#64748B" strokeWidth={2} />
+                  <Text style={styles.actionMetaText}>
+                    Window: {item.window} · Avoids {item.co2AvoidedKg.toFixed(1)} kg CO₂
                   </Text>
                 </View>
               </View>
 
-              {/* Card Footer: Action Button */}
+              {/* Action Footer */}
               <View style={styles.actionFooter}>
-                <View style={styles.actionSavingsPill}>
+                <View style={styles.actionSavingsWrap}>
                   <Leaf size={13} color="#059669" strokeWidth={2.2} />
                   <Text style={styles.actionSavingsText}>
                     Saves ₹{Math.round(item.expectedSavingsInr)} today
@@ -287,13 +257,13 @@ export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
                 {isDone ? (
                   <View style={styles.actionBtnDone}>
                     <Check size={13} color="#FFFFFF" strokeWidth={2.4} />
-                    <Text style={styles.actionBtnTextDone}>Karma Coins Claimed ✓</Text>
+                    <Text style={styles.actionBtnTextDone}>Claimed ✓</Text>
                   </View>
                 ) : (
                   <TouchableOpacity
                     style={[
                       styles.actionBtn,
-                      isAccepted ? styles.actionBtnAccepted : null,
+                      isAccepted && styles.actionBtnAccepted,
                     ]}
                     onPress={() =>
                       handleStatusChange(
@@ -301,12 +271,12 @@ export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
                         isAccepted ? "completed" : "accepted"
                       )
                     }
-                    activeOpacity={0.8}
+                    activeOpacity={0.82}
                   >
                     <Text style={styles.actionBtnText}>
                       {isAccepted
-                        ? `Complete for +${item.points} Karma Coins`
-                        : `Claim +${item.points} Karma Coins`}
+                        ? `Complete for +${item.points} Coins`
+                        : `Claim +${item.points} Coins`}
                     </Text>
                     <ArrowRight size={13} color="#FFFFFF" strokeWidth={2.2} />
                   </TouchableOpacity>
@@ -318,27 +288,34 @@ export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
       </View>
 
       {/* ========================================================= */}
-      {/* 5. PERFORMANCE & SMART TIMING                             */}
+      {/* 5. PERFORMANCE & DIVIDENDS                                */}
       {/* ========================================================= */}
       <View style={styles.sectionHeader}>
-        <View>
-          <Text style={styles.sectionTitle}>Performance & Dividends</Text>
-          <Text style={styles.sectionSubtitle}>
-            Self-consumption metrics, load shifting, and rupee savings
-          </Text>
-        </View>
+        <Text style={styles.sectionTitle}>Performance & Dividends</Text>
+        <Text style={styles.sectionSubtitle}>
+          Self-consumption metrics, load shifting, and rupee savings
+        </Text>
       </View>
 
-      {/* Card A: Load Shifting & Optimization */}
-      <View style={styles.cleanCard}>
+      {/* Card A: Smart Load Shifting */}
+      <View style={styles.glassCard}>
+        <BlurView
+          intensity={Platform.OS === "ios" ? 50 : 85}
+          tint="light"
+          style={StyleSheet.absoluteFill}
+        />
+        <LinearGradient
+          colors={["rgba(255,255,255,0.78)", "rgba(255,255,255,0.42)"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0.85, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+
         <View style={styles.cardHeaderRow}>
-          <View style={styles.iconCircle}>
-            <BatteryCharging size={18} color="#2EA86E" strokeWidth={2.2} />
-          </View>
           <View style={styles.cardHeaderInfo}>
-            <Text style={styles.cardHeaderTitle}>Smart Load Shifting</Text>
-            <Text style={styles.cardHeaderSubtitle}>
-              Compare your typical pattern vs shifting flexible loads
+            <Text style={styles.cardTitle}>Smart Load Shifting</Text>
+            <Text style={styles.cardSubtitle}>
+              Typical pattern vs shifting flexible loads
             </Text>
           </View>
         </View>
@@ -346,18 +323,19 @@ export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
         {/* Dual Comparison Columns */}
         <View style={styles.compareColsRow}>
           {/* Current Column */}
-          <View style={styles.compareColCurrent}>
+          <View style={styles.compareCol}>
             <Text style={styles.compareColLabel}>Current Use</Text>
             <Text style={styles.compareColSub}>Typical pattern</Text>
-            <Text style={styles.compareColPercentCurrent}>
+            <Text style={styles.compareColPercent}>
               {current.selfConsumptionPct.toFixed(0)}%
             </Text>
-            <View style={styles.progressBarBgCurrent}>
+            <View style={styles.progressBarTrack}>
               <View
                 style={[
-                  styles.progressBarFillCurrent,
+                  styles.progressBarFill,
                   {
-                    width: `${Math.min(100, Math.max(10, (current.usedKwh / maxUsed) * 100))}%`,
+                    backgroundColor: "#94A3B8",
+                    width: `${Math.min(100, Math.max(8, (current.usedKwh / maxUsed) * 100))}%`,
                   },
                 ]}
               />
@@ -373,24 +351,27 @@ export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
           </View>
 
           {/* Optimized Column */}
-          <View style={styles.compareColOptimized}>
-            <Text style={styles.compareColLabelOpt}>Smart Timing</Text>
-            <Text style={styles.compareColSubOpt}>Flexible loads shifted</Text>
-            <Text style={styles.compareColPercentOpt}>
+          <View style={styles.compareCol}>
+            <Text style={[styles.compareColLabel, styles.compareColLabelOpt]}>
+              Smart Timing
+            </Text>
+            <Text style={styles.compareColSub}>Flexible loads shifted</Text>
+            <Text style={[styles.compareColPercent, styles.compareColPercentOpt]}>
               {optimized.selfConsumptionPct.toFixed(0)}%
             </Text>
-            <View style={styles.progressBarBgOpt}>
+            <View style={styles.progressBarTrack}>
               <View
                 style={[
-                  styles.progressBarFillOpt,
+                  styles.progressBarFill,
                   {
-                    width: `${Math.min(100, Math.max(10, (optimized.usedKwh / maxUsed) * 100))}%`,
+                    backgroundColor: "#2EA86E",
+                    width: `${Math.min(100, Math.max(8, (optimized.usedKwh / maxUsed) * 100))}%`,
                   },
                 ]}
               />
             </View>
             <View style={styles.compareColDetails}>
-              <Text style={styles.compareDetailTextOpt}>
+              <Text style={[styles.compareDetailText, styles.compareDetailTextOpt]}>
                 {optimized.usedKwh.toFixed(1)} kWh local
               </Text>
               <Text style={styles.compareDetailTextMuted}>
@@ -400,24 +381,30 @@ export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
           </View>
         </View>
 
-        {/* Highlight Callout Box (Offers Style) */}
-        <View style={styles.impactHighlightBox}>
-          <Leaf size={14} color="#166534" strokeWidth={2.2} />
-          <Text style={styles.impactHighlightText}>
-            +{usedGain.toFixed(1)} kWh home use · Save ₹{additionalSavings.toFixed(0)} more by shifting EV & laundry into midday.
-          </Text>
-        </View>
+        {/* Quiet Highlight Text */}
+        <Text style={styles.loadShiftSummary}>
+          +{usedGain.toFixed(1)} kWh direct home use · Save ₹{additionalSavings.toFixed(0)} more by shifting EV & laundry into midday.
+        </Text>
       </View>
 
-      {/* Card B: Financial & Environmental Dividends (2x2 Grid) */}
-      <View style={styles.cleanCard}>
+      {/* Card B: Financial & Environmental Dividends */}
+      <View style={styles.glassCard}>
+        <BlurView
+          intensity={Platform.OS === "ios" ? 50 : 85}
+          tint="light"
+          style={StyleSheet.absoluteFill}
+        />
+        <LinearGradient
+          colors={["rgba(255,255,255,0.78)", "rgba(255,255,255,0.42)"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0.85, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+
         <View style={styles.cardHeaderRow}>
-          <View style={styles.iconCircle}>
-            <CircleDollarSign size={18} color="#2EA86E" strokeWidth={2.2} />
-          </View>
           <View style={styles.cardHeaderInfo}>
-            <Text style={styles.cardHeaderTitle}>Financial & Environmental Dividends</Text>
-            <Text style={styles.cardHeaderSubtitle}>
+            <Text style={styles.cardTitle}>Financial & Environmental Dividends</Text>
+            <Text style={styles.cardSubtitle}>
               Clean power economic value & avoided emissions
             </Text>
           </View>
@@ -471,7 +458,19 @@ export function SolarImpactDashboard({ data }: { data: SolarImpactResponse }) {
       {/* ========================================================= */}
       {/* 6. TIMELINE OF SOLAR EVENTS                               */}
       {/* ========================================================= */}
-      <View style={styles.cleanCard}>
+      <View style={styles.glassCard}>
+        <BlurView
+          intensity={Platform.OS === "ios" ? 50 : 85}
+          tint="light"
+          style={StyleSheet.absoluteFill}
+        />
+        <LinearGradient
+          colors={["rgba(255,255,255,0.78)", "rgba(255,255,255,0.42)"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0.85, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+
         <Text style={styles.timelineHeading}>TODAY’S SOLAR ACTIVITY</Text>
         <View style={styles.timelineList}>
           {data.timeline.map((event, index) => (
@@ -510,16 +509,16 @@ const styles = StyleSheet.create({
     gap: 16,
   },
 
-  // Hero Banner (Exact Offers Style)
+  // Hero Card
   heroCard: {
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.25)",
+    borderColor: "rgba(46,168,110,0.28)",
     overflow: "hidden",
     position: "relative",
-    boxShadow: "0px 8px 16px rgba(5,150,105,0.15)",
-    elevation: 6,
+    boxShadow: "0px 8px 20px rgba(5,150,105,0.14)",
+    elevation: 4,
   },
   heroGlowOrb: {
     position: "absolute",
@@ -528,78 +527,64 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
-    backgroundColor: "rgba(46,168,110,0.18)",
+    backgroundColor: "rgba(94,234,212,0.1)",
   },
   heroHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: 14,
   },
-  heroPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(46,168,110,0.2)",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-  },
-  heroPillText: {
-    fontSize: 10,
+  heroEyebrow: {
+    fontSize: 10.5,
     fontFamily: "Nunito_800ExtraBold",
     color: "#5EEAD4",
-    letterSpacing: 0.8,
+    letterSpacing: 1.2,
   },
-  heroPointsBadge: {
+  heroPointsWrap: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    backgroundColor: "rgba(251,191,36,0.18)",
-    paddingHorizontal: 11,
-    paddingVertical: 5,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "rgba(251,191,36,0.35)",
   },
-  heroPointsBadgeText: {
-    fontSize: 11,
-    fontFamily: "Nunito_800ExtraBold",
+  heroPointsText: {
+    fontSize: 12.5,
+    fontFamily: "IBMPlexMono_600SemiBold",
     color: "#FBBF24",
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
   balanceRow: {
     flexDirection: "row",
     alignItems: "baseline",
     gap: 12,
-    marginBottom: 18,
+    marginBottom: 16,
   },
   balanceNumber: {
-    fontSize: 42,
+    fontSize: 34,
     fontFamily: "IBMPlexMono_600SemiBold",
     color: "#FFFFFF",
-    letterSpacing: -1,
+    letterSpacing: -0.5,
   },
   balanceMeta: {
-    gap: 2,
     flex: 1,
   },
   balanceUnit: {
     fontSize: 14,
     fontFamily: "Nunito_700Bold",
-    color: "#5EEAD4",
+    color: "#E2ECE5",
   },
   balanceSubtext: {
     fontSize: 11,
-    fontFamily: "Nunito_400Regular",
-    color: "rgba(255,255,255,0.5)",
+    fontFamily: "Nunito_500Medium",
+    color: "#7A9082",
+    marginTop: 2,
   },
   heroStatsRow: {
     flexDirection: "row",
     alignItems: "center",
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.08)",
+    justifyContent: "space-between",
     paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.12)",
   },
   heroStatItem: {
     flex: 1,
@@ -608,527 +593,198 @@ const styles = StyleSheet.create({
   heroStatDivider: {
     width: 1,
     height: 32,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "rgba(255,255,255,0.12)",
   },
   heroStatValue: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: "IBMPlexMono_600SemiBold",
     color: "#FFFFFF",
   },
   heroStatLabel: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontFamily: "Nunito_600SemiBold",
-    color: "rgba(255,255,255,0.5)",
+    color: "#94A3B8",
     marginTop: 2,
   },
   heroStatSub: {
-    fontSize: 9,
-    fontFamily: "Nunito_600SemiBold",
+    fontSize: 9.5,
+    fontFamily: "Nunito_500Medium",
     color: "#5EEAD4",
     marginTop: 1,
   },
 
-  // Rewards Spotlight Card (High-Persuasion Placed Above)
-  rewardsSpotlightCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.22)",
-    boxShadow: "0px 2px 8px rgba(5,150,105,0.05)",
+  // Reusable Frosted Glass Card
+  glassCard: {
+    backgroundColor: "transparent",
+    borderRadius: 22,
+    padding: 18,
+    borderWidth: 1.2,
+    borderColor: "rgba(255, 255, 255, 0.82)",
+    boxShadow: "0px 2px 10px rgba(10,36,21,0.06)",
     elevation: 2,
-    gap: 12,
+    gap: 14,
+    overflow: "hidden",
+    position: "relative",
   },
-  spotlightTopRow: {
+  cardHeaderRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
   },
-  spotlightCategoryTag: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: "#F0FDF4",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.2)",
+  cardHeaderInfo: {
+    flex: 1,
   },
-  spotlightCategoryText: {
-    fontSize: 9.5,
+  cardTitle: {
+    fontSize: 16,
     fontFamily: "Nunito_800ExtraBold",
-    color: "#059669",
-    letterSpacing: 0.5,
+    color: "#0D1811",
+    letterSpacing: -0.2,
   },
-  pendingPointsPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4.5,
-    backgroundColor: "#FEF3C7",
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 9,
-    borderWidth: 1,
-    borderColor: "rgba(245,158,11,0.3)",
+  cardSubtitle: {
+    fontSize: 12,
+    fontFamily: "Nunito_500Medium",
+    color: "#64748B",
+    marginTop: 2,
   },
-  pendingPointsText: {
-    fontSize: 10.5,
-    fontFamily: "Nunito_800ExtraBold",
-    color: "#B45309",
-    letterSpacing: 0.2,
-  },
-  allClaimedPill: {
+  waitingWrap: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#ECFDF5",
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 9,
-    borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.25)",
+    marginTop: 2,
+  },
+  waitingText: {
+    fontSize: 12,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#D97706",
+  },
+  allClaimedWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 2,
   },
   allClaimedText: {
-    fontSize: 10.5,
-    fontFamily: "Nunito_800ExtraBold",
-    color: "#059669",
-  },
-  spotlightMainRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  rewardsIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#ECFDF5",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.25)",
-  },
-  spotlightMainInfo: {
-    flex: 1,
-  },
-  spotlightPointsRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 7,
-  },
-  rewardsBigPoints: {
-    fontSize: 26,
-    fontFamily: "IBMPlexMono_600SemiBold",
-    color: "#0D1811",
-  },
-  rewardsPointsUnit: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: "Nunito_700Bold",
     color: "#059669",
   },
-  rewardsSpotlightSub: {
-    fontSize: 11,
-    fontFamily: "Nunito_400Regular",
-    color: "#526658",
-    marginTop: 1,
+
+  // Milestones List
+  milestoneList: {
+    gap: 0,
   },
-  milestonesRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.05)",
-    paddingTop: 10,
-  },
-  milestoneItem: {
+  milestoneRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    backgroundColor: "#F8FAF9",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#E5ECE8",
+    justifyContent: "space-between",
+    paddingVertical: 10,
   },
-  milestoneDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: "#2EA86E",
+  milestoneRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.05)",
+  },
+  milestoneRowLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
   },
   milestoneLabel: {
-    fontSize: 11,
+    fontSize: 13,
     fontFamily: "Nunito_600SemiBold",
     color: "#183222",
   },
-  milestonePts: {
-    fontSize: 10.5,
+  milestonePoints: {
+    fontSize: 12.5,
     fontFamily: "IBMPlexMono_600SemiBold",
     color: "#059669",
-  },
-  rewardsNudgeBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "#F0FDF4",
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.2)",
-  },
-  rewardsNudgeText: {
-    fontSize: 11,
-    fontFamily: "Nunito_600SemiBold",
-    color: "#166534",
-    flex: 1,
-    lineHeight: 15,
   },
 
   // Section Headers
   sectionHeader: {
     marginTop: 4,
-    marginBottom: 2,
   },
   sectionTitle: {
     fontSize: 16,
     fontFamily: "Nunito_800ExtraBold",
     color: "#0D1811",
+    letterSpacing: -0.2,
   },
   sectionSubtitle: {
     fontSize: 12,
-    fontFamily: "Nunito_400Regular",
-    color: "#526658",
-    marginTop: 1,
-  },
-
-  // Clean White Cards
-  cleanCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.16)",
-    boxShadow: "0px 2px 8px rgba(0,0,0,0.04)",
-    elevation: 2,
-    gap: 14,
-  },
-  cardHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  iconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#F0FDF4",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.2)",
-  },
-  cardHeaderInfo: {
-    flex: 1,
-  },
-  cardHeaderTitle: {
-    fontSize: 15,
-    fontFamily: "Nunito_800ExtraBold",
-    color: "#0D1811",
-  },
-  cardHeaderSubtitle: {
-    fontSize: 11,
-    fontFamily: "Nunito_400Regular",
-    color: "#526658",
-    marginTop: 1,
-  },
-
-  // Dual Comparison Columns
-  compareColsRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  compareColCurrent: {
-    flex: 1,
-    backgroundColor: "#F8FAF9",
-    borderRadius: 14,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#E5ECE8",
-  },
-  compareColLabel: {
-    fontSize: 12,
-    fontFamily: "Nunito_700Bold",
-    color: "#0D1811",
-  },
-  compareColSub: {
-    fontSize: 10,
-    fontFamily: "Nunito_400Regular",
-    color: "#7A9082",
-    marginTop: 1,
-  },
-  compareColPercentCurrent: {
-    fontSize: 22,
-    fontFamily: "IBMPlexMono_600SemiBold",
-    color: "#2D4236",
-    marginTop: 8,
-  },
-  progressBarBgCurrent: {
-    height: 6,
-    backgroundColor: "#E2EAE5",
-    borderRadius: 3,
-    overflow: "hidden",
-    marginVertical: 8,
-  },
-  progressBarFillCurrent: {
-    height: "100%",
-    backgroundColor: "#7A9082",
-    borderRadius: 3,
-  },
-  compareColDetails: {
-    gap: 2,
-  },
-  compareDetailText: {
-    fontSize: 11,
-    fontFamily: "Nunito_700Bold",
-    color: "#183222",
-  },
-  compareDetailTextMuted: {
-    fontSize: 10,
-    fontFamily: "Nunito_400Regular",
-    color: "#7A9082",
-  },
-
-  compareColOptimized: {
-    flex: 1,
-    backgroundColor: "#F0FDF4",
-    borderRadius: 14,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.3)",
-  },
-  compareColLabelOpt: {
-    fontSize: 12,
-    fontFamily: "Nunito_700Bold",
-    color: "#047857",
-  },
-  compareColSubOpt: {
-    fontSize: 10,
-    fontFamily: "Nunito_400Regular",
-    color: "#059669",
-    marginTop: 1,
-  },
-  compareColPercentOpt: {
-    fontSize: 22,
-    fontFamily: "IBMPlexMono_600SemiBold",
-    color: "#2EA86E",
-    marginTop: 8,
-  },
-  progressBarBgOpt: {
-    height: 6,
-    backgroundColor: "#DCFCE7",
-    borderRadius: 3,
-    overflow: "hidden",
-    marginVertical: 8,
-  },
-  progressBarFillOpt: {
-    height: "100%",
-    backgroundColor: "#2EA86E",
-    borderRadius: 3,
-  },
-  compareDetailTextOpt: {
-    fontSize: 11,
-    fontFamily: "Nunito_700Bold",
-    color: "#047857",
-  },
-
-  // Impact Highlight Box (Offers Style)
-  impactHighlightBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "#F0FDF4",
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.2)",
-  },
-  impactHighlightText: {
-    fontSize: 11,
-    fontFamily: "Nunito_600SemiBold",
-    color: "#166534",
-    flex: 1,
-    lineHeight: 15,
-  },
-
-  // Dividends 2x2 Grid
-  dividendGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  dividendTile: {
-    flex: 1,
-    minWidth: "47%",
-    backgroundColor: "#F8FAF9",
-    borderRadius: 14,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#E5ECE8",
-  },
-  dividendTileLabel: {
-    fontSize: 9,
-    fontFamily: "Nunito_800ExtraBold",
-    color: "#7A9082",
-    letterSpacing: 0.6,
-  },
-  dividendTileValue: {
-    fontSize: 18,
-    fontFamily: "IBMPlexMono_600SemiBold",
-    color: "#0D1811",
-    marginTop: 4,
-  },
-  dividendTileSub: {
-    fontSize: 10,
-    fontFamily: "Nunito_400Regular",
-    color: "#526658",
+    fontFamily: "Nunito_500Medium",
+    color: "#64748B",
     marginTop: 2,
   },
-  tariffFootnote: {
-    fontSize: 10,
-    fontFamily: "Nunito_400Regular",
-    color: "#7A9082",
-    textAlign: "center",
-  },
 
-  // Smart Solar Action Cards (Offers Coupon Style)
+  // Recommendations
   recommendationsList: {
     gap: 12,
   },
   actionCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "rgba(46,168,110,0.16)",
-    boxShadow: "0px 2px 8px rgba(0,0,0,0.04)",
+    backgroundColor: "transparent",
+    borderRadius: 22,
+    padding: 18,
+    borderWidth: 1.2,
+    borderColor: "rgba(255, 255, 255, 0.82)",
+    boxShadow: "0px 2px 10px rgba(10,36,21,0.06)",
     elevation: 2,
+    overflow: "hidden",
+    position: "relative",
+    gap: 10,
   },
   actionCardHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 8,
   },
-  actionCategoryBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(4,120,87,0.1)",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  actionCategoryBadgeText: {
-    fontSize: 9,
-    fontFamily: "Nunito_700Bold",
-    color: "#047857",
-    letterSpacing: 0.5,
-  },
-  actionPointsPillTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "#FEF3C7",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "rgba(245,158,11,0.3)",
-  },
-  actionPointsTextTop: {
-    fontSize: 9.5,
+  actionEyebrow: {
+    fontSize: 10,
     fontFamily: "Nunito_800ExtraBold",
-    color: "#B45309",
-    letterSpacing: 0.4,
+    color: "#047857",
+    letterSpacing: 0.8,
+  },
+  actionGoldWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  actionGoldText: {
+    fontSize: 11.5,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#D97706",
+    letterSpacing: 0.2,
   },
   actionBody: {
-    marginBottom: 12,
-  },
-  actionRewardHeadlineRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 2,
+    gap: 4,
   },
   actionPerk: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: "Nunito_800ExtraBold",
     color: "#0D1811",
-    lineHeight: 20,
-    flex: 1,
-  },
-  statusBadgeDone: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    backgroundColor: "#ECFDF5",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  statusBadgeDoneText: {
-    fontSize: 8.5,
-    fontFamily: "Nunito_800ExtraBold",
-    color: "#059669",
-  },
-  statusBadgeAccepted: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    backgroundColor: "#FEF3C7",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  statusBadgeAcceptedText: {
-    fontSize: 8.5,
-    fontFamily: "Nunito_800ExtraBold",
-    color: "#B45309",
   },
   actionTitle: {
     fontSize: 13,
     fontFamily: "Nunito_700Bold",
     color: "#183222",
-    marginTop: 2,
   },
   actionDescription: {
     fontSize: 12,
     fontFamily: "Nunito_400Regular",
     color: "#526658",
-    lineHeight: 16,
-    marginTop: 4,
+    lineHeight: 17,
   },
-  actionTimePill: {
+  actionMetaRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    backgroundColor: "#F0FDF4",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginTop: 8,
-    alignSelf: "flex-start",
+    marginTop: 4,
   },
-  actionTimePillText: {
+  actionMetaText: {
     fontSize: 11,
     fontFamily: "Nunito_600SemiBold",
-    color: "#166534",
+    color: "#64748B",
   },
-
   actionFooter: {
     flexDirection: "row",
     alignItems: "center",
@@ -1136,8 +792,9 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "rgba(0,0,0,0.05)",
     paddingTop: 10,
+    marginTop: 2,
   },
-  actionSavingsPill: {
+  actionSavingsWrap: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
@@ -1150,11 +807,11 @@ const styles = StyleSheet.create({
   actionBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
+    gap: 6,
     backgroundColor: "#0D1811",
-    paddingHorizontal: 14,
+    paddingHorizontal: 13,
     paddingVertical: 8,
-    borderRadius: 14,
+    borderRadius: 12,
   },
   actionBtnAccepted: {
     backgroundColor: "#047857",
@@ -1169,9 +826,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
     backgroundColor: "#059669",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 12,
   },
   actionBtnTextDone: {
     fontSize: 12,
@@ -1179,11 +836,121 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
 
+  // Compare Dual Columns
+  compareColsRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  compareCol: {
+    flex: 1,
+    backgroundColor: "rgba(255,255,255,0.7)",
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+  },
+  compareColLabel: {
+    fontSize: 12,
+    fontFamily: "Nunito_700Bold",
+    color: "#0D1811",
+  },
+  compareColLabelOpt: {
+    color: "#047857",
+  },
+  compareColSub: {
+    fontSize: 10,
+    fontFamily: "Nunito_400Regular",
+    color: "#64748B",
+    marginTop: 1,
+  },
+  compareColPercent: {
+    fontSize: 22,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#2D4236",
+    marginTop: 6,
+  },
+  compareColPercentOpt: {
+    color: "#2EA86E",
+  },
+  progressBarTrack: {
+    height: 4,
+    backgroundColor: "#F1F5F3",
+    borderRadius: 2,
+    overflow: "hidden",
+    marginVertical: 8,
+  },
+  progressBarFill: {
+    height: "100%",
+    borderRadius: 2,
+  },
+  compareColDetails: {
+    gap: 2,
+  },
+  compareDetailText: {
+    fontSize: 11,
+    fontFamily: "Nunito_700Bold",
+    color: "#183222",
+  },
+  compareDetailTextOpt: {
+    color: "#047857",
+  },
+  compareDetailTextMuted: {
+    fontSize: 10,
+    fontFamily: "Nunito_400Regular",
+    color: "#64748B",
+  },
+  loadShiftSummary: {
+    fontSize: 11.5,
+    fontFamily: "Nunito_600SemiBold",
+    color: "#2EA86E",
+    lineHeight: 16,
+  },
+
+  // Dividends 2x2 Grid
+  dividendGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  dividendTile: {
+    flex: 1,
+    minWidth: "47%",
+    backgroundColor: "rgba(255,255,255,0.7)",
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+  },
+  dividendTileLabel: {
+    fontSize: 9,
+    fontFamily: "Nunito_800ExtraBold",
+    color: "#64748B",
+    letterSpacing: 0.6,
+  },
+  dividendTileValue: {
+    fontSize: 18,
+    fontFamily: "IBMPlexMono_600SemiBold",
+    color: "#0D1811",
+    marginTop: 4,
+  },
+  dividendTileSub: {
+    fontSize: 10,
+    fontFamily: "Nunito_500Medium",
+    color: "#64748B",
+    marginTop: 2,
+  },
+  tariffFootnote: {
+    fontSize: 10,
+    fontFamily: "Nunito_400Regular",
+    color: "#64748B",
+    textAlign: "center",
+  },
+
   // Timeline
   timelineHeading: {
     fontSize: 10,
     fontFamily: "Nunito_800ExtraBold",
-    color: "#7A9082",
+    color: "#64748B",
     letterSpacing: 0.8,
   },
   timelineList: {
@@ -1225,7 +992,7 @@ const styles = StyleSheet.create({
   },
   timelinePoints: {
     fontSize: 10,
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "IBMPlexMono_600SemiBold",
     color: "#B45309",
   },
   timelineTitle: {

@@ -39,7 +39,7 @@ function getActivityIcon(kind: string) {
   if (k.includes("scan")) return <Camera size={16} color="#2EA86E" />;
   if (k.includes("receipt")) return <Receipt size={16} color="#2EA86E" />;
   if (k.includes("offset")) return <Leaf size={16} color="#2EA86E" />;
-  if (k.includes("commute") || k.includes("walk") || k.includes("step"))
+  if (k.includes("walk") || k.includes("step"))
     return <Footprints size={16} color="#2EA86E" />;
   if (k.includes("solar") || k.includes("energy"))
     return <Zap size={16} color="#2EA86E" />;
@@ -177,8 +177,8 @@ export default function ActivityScreen() {
             <Sparkles size={36} color="#7A9082" />
             <Text style={styles.emptyTitle}>No activity yet</Text>
             <Text style={styles.emptySubtitle}>
-              Scan a product, log a commute, or upload a receipt to start building your
-              activity log.
+              Scan a product, complete Walk to Learn, or upload a receipt to start
+              building your activity log.
             </Text>
           </View>
         )}

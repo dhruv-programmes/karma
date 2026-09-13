@@ -541,6 +541,9 @@ class SustainablePurchaseVerifyRequest(BaseModel):
     filename: str = Field(min_length=1, max_length=255)
     mime_type: str | None = Field(default=None, max_length=120)
     size_bytes: int | None = Field(default=None, ge=0)
+    # The normal verification flow is idempotent; the Tools "Add another EV"
+    # CTA explicitly opts into creating a second distinct vehicle asset.
+    allow_multiple: bool = False
 
 
 class SustainablePurchaseVerifyResponse(BaseModel):

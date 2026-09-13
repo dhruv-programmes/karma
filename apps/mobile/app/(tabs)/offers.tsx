@@ -8,6 +8,7 @@ import {
   Modal,
   Platform,
   Share,
+  Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -39,7 +40,45 @@ import {
   History,
 } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
-import { useMe, useRedeemReward } from "@/src/hooks/queries";
+import {
+  useMe,
+  useRedeemReward,
+  useLeague,
+  useOffsets,
+  usePurchaseOffset,
+} from "@/src/hooks/queries";
+import { leagueBadgeSource } from "@/src/lib/league";
+import type { LeagueTier } from "@/src/types/api";
+
+const LEAGUE_THEMES: Record<
+  LeagueTier,
+  { bg: string; text: string; icon: string; border: string }
+> = {
+  bronze: {
+    bg: "rgba(201, 130, 74, 0.18)",
+    text: "#F6C197",
+    icon: "#C9824A",
+    border: "rgba(201, 130, 74, 0.35)",
+  },
+  silver: {
+    bg: "rgba(147, 168, 182, 0.18)",
+    text: "#E2E8F0",
+    icon: "#CBD5E1",
+    border: "rgba(147, 168, 182, 0.35)",
+  },
+  gold: {
+    bg: "rgba(251, 191, 36, 0.18)",
+    text: "#FDE68A",
+    icon: "#FBBF24",
+    border: "rgba(251, 191, 36, 0.35)",
+  },
+  platinum: {
+    bg: "rgba(123, 140, 255, 0.18)",
+    text: "#C7D2FE",
+    icon: "#818CF8",
+    border: "rgba(123, 140, 255, 0.35)",
+  },
+};
 import { useAuthStore } from "@/src/store/auth";
 import { useTabBarClearance } from "@/src/theme/layout";
 
@@ -61,7 +100,7 @@ export interface CouponItem {
   ecoRelated: boolean;
 }
 
-export interface OffsetProject {
+type OffsetCard = {
   id: string;
   title: string;
   location: string;
@@ -69,9 +108,9 @@ export interface OffsetProject {
   impactKg: number;
   costPts: number;
   description: string;
-  icon: any;
+  icon: typeof Trees;
   color: string;
-}
+};
 
 const STATIC_COUPONS: CouponItem[] = [
   // Government Subsidies (Eco & Clean Tech)
@@ -266,7 +305,7 @@ const STATIC_COUPONS: CouponItem[] = [
     title: "Complete Bicycle Overhaul & Safety Tune",
     perk: "Free 21-Point Tune-Up",
     description: "Brake adjustment, derailleur indexing, chain de-grease and ultrasonic relubrication.",
-    impactNote: "Supports zero-emission commute",
+    impactNote: "Supports active mobility",
     costPts: 120,
     code: "CYCLE-TUNEUP-FREE",
     verifiedBy: "Pedal Power Network",
@@ -317,65 +356,58 @@ const SERVER_REWARD_COSTS: Record<string, number> = {
 const couponCost = (coupon: CouponItem) =>
   SERVER_REWARD_COSTS[coupon.id] ?? coupon.costPts;
 
-const STATIC_OFFSETS: OffsetProject[] = [
-  {
-    id: "offset-ghats",
-    title: "Western Ghats Rainforest Revival",
-    location: "Karnataka & Kerala Biome",
-    certifier: "Gold Standard Verified",
-    impactKg: 40,
-    costPts: 100,
-    description: "Plant and nurture 2 native endemic trees (Teak, Bamboo, Indian Rosewood) in degraded biodiversity corridors.",
-    icon: Trees,
-    color: "#2EA86E",
-  },
-  {
-    id: "offset-mangrove",
-    title: "Sundarbans Coastal Carbon Sink",
-    location: "Tidal Delta Coastlines",
-    certifier: "UN Climate Action Plan",
-    impactKg: 75,
-    costPts: 150,
-    description: "Protect and restore 15 square meters of blue carbon tidal mangroves that filter sea surges and sequester carbon 4x faster.",
-    icon: Waves,
-    color: "#0284C7",
-  },
-  {
-    id: "offset-biogas",
-    title: "Rural Family Bio-Gas Digesters",
-    location: "Dharwad Agricultural Belt",
-    certifier: "Verra VCS #1892",
-    impactKg: 85,
-    costPts: 180,
-    description: "Convert dairy cow dung into clean methane cooking gas for smallholder farm families, eliminating heavy firewood smoke.",
-    icon: Flame,
-    color: "#D97706",
-  },
-  {
-    id: "offset-school-solar",
-    title: "Clean Solar Micro-Grids for Schools",
-    location: "Rural Public Schools",
-    certifier: "Clean Energy Access Fund",
-    impactKg: 120,
-    costPts: 220,
-    description: "Fund 25 kWh of distributed solar generation to replace diesel generator backup power in primary schools.",
-    icon: Sun,
-    color: "#10B981",
-  },
-];
+/*
+ * Offset projects are deliberately not duplicated here.  The API's /offsets
+ * catalog is the source of truth for both this page and the dedicated offset
+ * flow.  The card mapper below only adds presentation metadata (icon/color).
+ */
+const offsetPointsCost = (priceInr: number) =>
+  Math.max(50, Math.floor(Math.max(0, priceInr) / 20 + 0.5) * 10);
 
 export default function OffersScreen() {
   const insets = useSafeAreaInsets();
   const tabClearance = useTabBarClearance();
   const router = useRouter();
   const me = useMe();
+  const league = useLeague();
   const redeemCoupon = useRedeemReward();
+  const offsets = useOffsets();
+  const purchaseOffset = usePurchaseOffset();
   const authUser = useAuthStore((state) => state.user);
+
+  const leagueData = league.data;
+  const currentTier: LeagueTier = leagueData?.tier ?? "silver";
+  const leagueTheme = LEAGUE_THEMES[currentTier] ?? LEAGUE_THEMES.silver;
+  const leagueName = leagueData?.league_name ?? (league.isLoading ? "Loading…" : "Silver League");
 
   // Keep these derived from the current profile. Local state here used to
   // capture the first render's demo value and never update after useMe loaded.
   const pointsBalance = me.data?.impact_points ?? authUser?.impact_points ?? null;
   const totalOffsetKg = me.data?.offset_kg_total ?? authUser?.offset_kg_total ?? null;
+
+  const offsetProjects = useMemo<OffsetCard[]>(
+    () =>
+      (offsets.data ?? []).map((project, index) => {
+        const name = project.name.toLowerCase();
+        const icon = name.includes("mangrove") || name.includes("tree") ? Trees
+          : name.includes("solar") ? Sun
+            : name.includes("cook") || name.includes("biogas") ? Flame
+              : Waves;
+        const colors = ["#2EA86E", "#0284C7", "#D97706", "#10B981"];
+        return {
+          id: project.id,
+          title: project.name,
+          location: project.geography,
+          certifier: `${project.provider} · ${project.verification_status}`,
+          impactKg: project.co2e_kg,
+          costPts: offsetPointsCost(project.price_inr),
+          description: project.description,
+          icon,
+          color: colors[index % colors.length],
+        };
+      }),
+    [offsets.data],
+  );
 
   // Claimed vouchers list
   const [claimedCodes, setClaimedCodes] = useState<Record<string, string>>({});
@@ -387,7 +419,8 @@ export default function OffersScreen() {
     null
   );
   const [activeOffsetDonation, setActiveOffsetDonation] =
-    useState<OffsetProject | null>(null);
+    useState<OffsetCard | null>(null);
+  const [offsetPurchaseMessage, setOffsetPurchaseMessage] = useState<string | null>(null);
   const [copiedNotification, setCopiedNotification] = useState(false);
   const [errorToast, setErrorToast] = useState<string | null>(null);
 
@@ -470,7 +503,7 @@ export default function OffersScreen() {
   };
 
   // Handle offset donation
-  const handleDonateOffset = (project: OffsetProject) => {
+  const handleDonateOffset = async (project: OffsetCard) => {
     if (pointsBalance === null) {
       setErrorToast("Your Karma Coin balance is still loading. Please try again.");
       setTimeout(() => setErrorToast(null), 3000);
@@ -484,10 +517,15 @@ export default function OffersScreen() {
       return;
     }
 
-    // Offset purchases must be persisted by the API before changing the
-    // account balance; these cards are currently a local hackathon preview.
-    triggerHaptics();
-    setActiveOffsetDonation(project);
+    try {
+      const result = await purchaseOffset.mutateAsync(project.id);
+      await triggerHaptics();
+      setOffsetPurchaseMessage(result.message);
+      setActiveOffsetDonation(project);
+    } catch (error) {
+      setErrorToast(error instanceof Error ? error.message : "Unable to donate right now.");
+      setTimeout(() => setErrorToast(null), 4000);
+    }
   };
 
   const copyToClipboard = async (code: string) => {
@@ -549,12 +587,29 @@ export default function OffersScreen() {
               <Coins size={14} color="#5EEAD4" strokeWidth={2.2} />
               <Text style={styles.coinsPillText}>IMPACT BALANCE</Text>
             </View>
-            <View style={styles.levelBadge}>
-              <Award size={13} color="#FBBF24" strokeWidth={2.2} />
-              <Text style={styles.levelBadgeText}>
-                Level {me.data?.loop_level ?? authUser?.loop_level ?? "—"}
+            <TouchableOpacity
+              activeOpacity={0.75}
+              onPress={() => router.push("/league")}
+              style={[
+                styles.levelBadge,
+                {
+                  backgroundColor: leagueTheme.bg,
+                  borderColor: leagueTheme.border,
+                  borderWidth: 1,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={`View ${leagueName}`}
+            >
+              <Image
+                source={leagueBadgeSource(currentTier)}
+                style={styles.leagueBadgeIcon}
+                resizeMode="contain"
+              />
+              <Text style={[styles.levelBadgeText, { color: leagueTheme.text }]}>
+                {leagueName}
               </Text>
-            </View>
+            </TouchableOpacity>
           </View>
 
           {/* Big Points Display */}
@@ -581,7 +636,7 @@ export default function OffersScreen() {
             </View>
             <View style={styles.heroStatDivider} />
             <View style={styles.heroStatItem}>
-              <Text style={styles.heroStatValue}>{STATIC_COUPONS.length}</Text>
+              <Text style={styles.heroStatValue}>{STATIC_COUPONS.length + offsetProjects.length}</Text>
               <Text style={styles.heroStatLabel}>Live Offers</Text>
             </View>
           </View>
@@ -802,7 +857,7 @@ export default function OffersScreen() {
             </View>
 
             <View style={styles.offsetsGrid}>
-              {STATIC_OFFSETS.map((project) => {
+              {offsetProjects.map((project) => {
                 const canAfford = pointsBalance !== null && pointsBalance >= project.costPts;
                 const ProjectIcon = project.icon;
 
@@ -1076,12 +1131,16 @@ export default function OffersScreen() {
 
                 <Text style={styles.donationTitle}>Donation Preview</Text>
                 <Text style={styles.donationSubtitle}>
-                  This preview estimates {activeOffsetDonation.impactKg} kg of
-                  CO₂e impact. No Karma Coins were deducted.
+                  Your donation supports {activeOffsetDonation.impactKg} kg of
+                  verified CO₂e impact using your Karma Coins.
                 </Text>
 
+                {offsetPurchaseMessage ? (
+                  <Text style={styles.donationSubtitle}>{offsetPurchaseMessage}</Text>
+                ) : null}
+
                 <View style={styles.donationCertCard}>
-                  <Text style={styles.certLabel}>PREVIEW CERTIFICATE</Text>
+                  <Text style={styles.certLabel}>OFFSET CERTIFICATE</Text>
                   <Text style={styles.certProject}>
                     {activeOffsetDonation.title}
                   </Text>
@@ -1256,11 +1315,15 @@ const styles = StyleSheet.create({
   levelBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 5,
     backgroundColor: "rgba(251,191,36,0.15)",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  leagueBadgeIcon: {
+    width: 15,
+    height: 15,
   },
   levelBadgeText: {
     fontSize: 11,

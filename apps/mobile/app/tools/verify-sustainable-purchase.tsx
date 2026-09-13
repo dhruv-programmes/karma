@@ -7,7 +7,7 @@ import {
   Alert,
   Platform,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -38,6 +38,8 @@ import { LootboxReveal } from "@/components/custom/sustainable-verification/loot
 
 export default function VerifySustainablePurchaseScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ add?: string }>();
+  const addingVehicle = params.add === "1";
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const me = useMe();
@@ -58,7 +60,7 @@ export default function VerifySustainablePurchaseScreen() {
 
   const [pickedFile, setPickedFile] = useState<UploadedFile | null>(null);
   const [phase, setPhase] = useState<"upload" | "scanning" | "lootbox" | "verified">(
-    rewardClaimed || isVerified ? "verified" : "upload"
+    !addingVehicle && (rewardClaimed || isVerified) ? "verified" : "upload"
   );
   const [isResetting, setIsResetting] = useState(false);
   const [verificationError, setVerificationError] = useState<string | null>(null);
@@ -92,6 +94,7 @@ export default function VerifySustainablePurchaseScreen() {
         filename: pickedFile.name,
         mime_type: pickedFile.mimeType || "application/pdf",
         size_bytes: pickedFile.size,
+        allow_multiple: addingVehicle,
       });
       if (result.status !== "verified") {
         throw new Error(result.verification || "Purchase verification was not successful.");
@@ -210,10 +213,10 @@ export default function VerifySustainablePurchaseScreen() {
           <View style={styles.heroIconWrapper}>
             <Zap size={24} color="#F7C948" fill="#F7C948" />
           </View>
-          <Text style={styles.heroHeading}>Turn proof into progress.</Text>
+          <Text style={styles.heroHeading}>{addingVehicle ? "Add another EV." : "Turn proof into progress."}</Text>
           <Text style={styles.heroDescription}>
-            Verify your Electric Vehicle purchase document and unlock a one-time
-            major Green Rewards pack with Karma Coins &amp; achievement.
+            Verify an Electric Vehicle purchase document and unlock a bounded
+            Green Rewards pack with Karma Coins &amp; achievement.
           </Text>
 
           {/* Prototype disclaimer pill */}
@@ -353,6 +356,15 @@ export default function VerifySustainablePurchaseScreen() {
                   : "Already claimed · No new reward"}
               </Text>
             </View>
+
+            <TouchableOpacity
+              style={styles.addVehicleButton}
+              onPress={() => router.push("/tools/verify-sustainable-purchase?add=1")}
+              activeOpacity={0.82}
+            >
+              <Car size={16} color="#167345" />
+              <Text style={styles.addVehicleButtonText}>Add another EV</Text>
+            </TouchableOpacity>
 
             {/* Presentation Demo Reset Button */}
             <TouchableOpacity
@@ -642,6 +654,23 @@ const styles = StyleSheet.create({
   claimedButtonText: {
     color: "#163D2A",
     fontSize: 14,
+    fontFamily: "Nunito_800ExtraBold",
+  },
+  addVehicleButton: {
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "#EAF8F0",
+    borderWidth: 1,
+    borderColor: "#BFE5CD",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 10,
+  },
+  addVehicleButtonText: {
+    color: "#167345",
+    fontSize: 13,
     fontFamily: "Nunito_800ExtraBold",
   },
   resetButton: {

@@ -9,7 +9,6 @@ import {
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { BlurView } from "expo-blur";
 import * as Location from "expo-location";
 import * as Haptics from "expo-haptics";
 import {
@@ -160,9 +159,6 @@ export default function LocationPermissionScreen() {
             const IconComp = item.Icon;
             return (
               <View key={item.id} style={styles.glassCard}>
-                {Platform.OS === "ios" ? (
-                  <BlurView intensity={35} tint="light" style={StyleSheet.absoluteFill} />
-                ) : null}
                 <LinearGradient
                   colors={["rgba(255, 255, 255, 0.86)", "rgba(255, 255, 255, 0.65)"]}
                   style={StyleSheet.absoluteFill}

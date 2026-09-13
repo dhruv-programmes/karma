@@ -9,7 +9,6 @@ import {
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { BlurView } from "expo-blur";
 import {
   ArrowLeft,
   ArrowRight,
@@ -104,9 +103,6 @@ export default function RevealScreen() {
 
         {/* Hero Score Card with Glassmorphism */}
         <View style={styles.glassCard}>
-          {Platform.OS === "ios" ? (
-            <BlurView intensity={35} tint="light" style={StyleSheet.absoluteFill} />
-          ) : null}
           <LinearGradient
             colors={["rgba(255, 255, 255, 0.86)", "rgba(255, 255, 255, 0.65)"]}
             style={StyleSheet.absoluteFill}
@@ -130,9 +126,6 @@ export default function RevealScreen() {
 
         {/* Estimated Footprint & Breakdown */}
         <View style={styles.glassCard}>
-          {Platform.OS === "ios" ? (
-            <BlurView intensity={35} tint="light" style={StyleSheet.absoluteFill} />
-          ) : null}
           <LinearGradient
             colors={["rgba(255, 255, 255, 0.84)", "rgba(255, 255, 255, 0.64)"]}
             style={StyleSheet.absoluteFill}
@@ -198,9 +191,6 @@ export default function RevealScreen() {
 
         {/* Goal Transition Visual */}
         <View style={styles.goalCard}>
-          {Platform.OS === "ios" ? (
-            <BlurView intensity={35} tint="light" style={StyleSheet.absoluteFill} />
-          ) : null}
           <LinearGradient
             colors={["rgba(255, 255, 255, 0.84)", "rgba(255, 255, 255, 0.64)"]}
             style={StyleSheet.absoluteFill}

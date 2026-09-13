@@ -10,7 +10,6 @@ import {
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import {
   ArrowLeft,
@@ -226,9 +225,6 @@ function GlassSliderCard({
 
   return (
     <View style={styles.glassCard}>
-      {Platform.OS === "ios" ? (
-        <BlurView intensity={35} tint="light" style={StyleSheet.absoluteFill} />
-      ) : null}
       <LinearGradient
         colors={["rgba(255, 255, 255, 0.82)", "rgba(255, 255, 255, 0.62)"]}
         style={StyleSheet.absoluteFill}

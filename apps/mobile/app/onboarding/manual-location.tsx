@@ -9,7 +9,6 @@ import {
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { ArrowLeft, ArrowRight, Check, MapPin } from "lucide-react-native";
 import { Box } from "@/components/ui/box";
@@ -142,9 +141,6 @@ export default function ManualLocationScreen() {
                   isSelected && styles.locationCardSelected,
                 ]}
               >
-                {Platform.OS === "ios" ? (
-                  <BlurView intensity={35} tint="light" style={StyleSheet.absoluteFill} />
-                ) : null}
                 <LinearGradient
                   colors={
                     isSelected
